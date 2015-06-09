@@ -1,5 +1,129 @@
-<!DOCTYPE html>
-<title>Under Construction</title>
-<html>
-  <img src="images/uc.jpg"/>
+    <!DOCTYPE html>
+
+<html lang="en">
+	<head>
+		<meta content="text/html"; charset="UTF-8"/>
+        <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+        <!--<script src="_script/jquery.js"></script>--></script>
+		<link type="text/css" rel="stylesheet" href="CSS/indexcss.css"/>
+		<link type="text/css" rel="stylesheet" href="CSS/colorcss.css"/>
+		<linL rel="shortcut icon" href="_data/ico.ico"/>
+		<title>Govind Sahai</title>
+	</head>
+	<body background="images/crayonWall.jpg">
+        
+		<div id="head">
+          <ul>
+            <li>
+              <a href="#" class="couthead">std::<lightgreen>cout</lightgreen> </a> 
+            </li>
+            <li>
+              <a href="javascript:scrollToHome()" class="middlehead">"<lightpink>Home</lightpink>"</a> 
+            </li>
+            <li>
+              <a target="_blank" href="https://github.com/mafiya69" class="middlehead">
+                  "<cyan>GitHub</cyan>"
+              </a> 
+            </li>
+            <li>
+              <a href="blog.html" class="middlehead">"<lightpink>About Me</lightpink>"</a> 
+            </li>
+            <li>
+              <a href="#" class="endlhead"> std::<lightgreen>endl</lightgreen>;</a> 
+            </li>
+          </ul>
+        </div>
+        
+        <!-- script started -->
+        <script>
+            $( "a.middlehead" ).hover(
+            function() {
+            $( this ).append( $( "<lightskyblue> << </lightskyblue>" ));
+            $( this ).prepend( $( "<lightskyblue> << </lightskyblue>" ));
+            }, 
+            function() {
+            $( this ).find( "lightskyblue" ).remove() ;
+            });
+            
+            $( "a.couthead" ).hover(
+            function() {
+            $( this ).append( $( "<lightskyblue> << </lightskyblue>" ));
+            }, 
+            function() {
+            $( this ).find( "lightskyblue" ).remove() ;
+            });
+            
+            $( "a.endlhead" ).hover(
+            function() {
+            $( this ).prepend( $( "<lightskyblue> << </lightskyblue>" ));
+            }, 
+            function() {
+            $( this ).find( "lightskyblue" ).remove() ;
+            });
+            
+            function scrollToHome(){
+                window.scroll(0,900);
+            }
+            
+        </script>
+        <!-- script ended -->
+        
+        <div>
+            <p class="welcomeText">
+                Welcome
+            </p>
+        </div>
+        
+        <!-- script started -->
+        <script>
+            $( "p.welcomeText" ).hover(
+            function() {
+            $( this ).prepend( $( "<red> << </red>  <blue> << </blue>" ));
+            $( this ).append( $( "<blue> >> </blue> <red> >> </red>" )); 
+            }, 
+            function() {
+            $( this ).find( "blue" ).remove()
+            $( this ).find( "red" ).remove() ;
+            });
+        </script>
+        <!-- script ended -->
+        
+        <div>
+            <img id="mainPic" src="images/BW1.jpg" width="100%" height="100%"/>
+        </div>
+        
+        <div>
+            <p class="mainPageHead">
+                Me @ Govind @ mnciitbhu @ mafiya69
+            </p>
+        </div>
+        
+        <div class="mainPageText">
+            <p id="mainPageTextData">
+                This is static WebPage hosted on GitHub made from <strong>scratch</strong> by Me @ Govind Sahai.
+            </p>
+            <p id="mainPageTextData">
+                Get all the <strong>code</strong> behind this Web Page at 
+                <a class="outLink" href="https://www.github.com/mafiya69/mafiya69.github.io">git://github.com/mafiya69/mafiya69.github.io</a>.
+            </p>
+            <p id="mainPageTextData">
+                Take a look at my GitHub profile 
+                <a class="outLink" href="https://www.github.com/mafiya69/">git://github.com/mafiya69</a>
+                and contribute to any project if you like!.                     
+            </p>
+            <p id="mainPageTextData">
+                I am also having some private repositories which you can't see. :)                     
+            </p>
+            <p id="mainPageTextData">
+                Take a look at the
+                <a class="outLink" href="#repos.html#">repositories</a>
+                I have.
+            </p>
+        </div>
+        
+        <div>
+            //
+        </div>
+        
+	</body>
 </html>
