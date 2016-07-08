@@ -1,0 +1,68 @@
+==================================================================
+https://keybase.io/mnciitbhu
+--------------------------------------------------------------------
+
+I hereby claim:
+
+  * I am an admin of https://mafiya69.github.io
+  * I am mnciitbhu (https://keybase.io/mnciitbhu) on keybase.
+  * I have a public key with fingerprint 7135 F349 5BB5 7796 9251  B783 F490 F1E1 266A FAB1
+
+To do so, I am signing this object:
+
+{
+    "body": {
+        "key": {
+            "eldest_kid": "0101a7e44fa52a31de5eb425a64d2b41db86172b0beadca29bcc90ab787c47603d4d0a",
+            "fingerprint": "7135f3495bb577969251b783f490f1e1266afab1",
+            "host": "keybase.io",
+            "key_id": "f490f1e1266afab1",
+            "kid": "0101a7e44fa52a31de5eb425a64d2b41db86172b0beadca29bcc90ab787c47603d4d0a",
+            "uid": "e1db5350840d184669e610b43bb39719",
+            "username": "mnciitbhu"
+        },
+        "service": {
+            "hostname": "mafiya69.github.io",
+            "protocol": "https:"
+        },
+        "type": "web_service_binding",
+        "version": 1
+    },
+    "ctime": 1468004493,
+    "expire_in": 157680000,
+    "prev": "1c5d78e76c29c7d1fae73f707a640c7bbd26bdecd057a752509d3a5193c1dfc8",
+    "seqno": 7,
+    "tag": "signature"
+}
+
+which yields the signature:
+
+-----BEGIN PGP MESSAGE-----
+Version: Keybase OpenPGP v2.0.53
+Comment: https://keybase.io/crypto
+
+yMIrAnicrZJbSBVBGMePmV1MU8qoh6RaX6LUZnZ3ds4eS8IuhA/dqYjqOLMze1zs
+7B737DmmZpGmBpqEJSVCZTeoXkKCLj6okfYgRWFFQRcRCqErhBQ9NWv11mNPw3zz
+//3n/3189zNTA+kpc3Nul54oeBFMGR44mwjsPPzjeK1EHVYthWqlCj558P2Mx71w
+hcWkkAQggARzVTUJkokCGUecqjIimspkqkJGgxrEMgWUE2YQWaeGoQNCcRAbKtaA
+wlQGiJQvmZYd4W7MtWxP2GKoIFNRdUQpwljXdBlBwSimqgMTcihrGjEJhQIsd+I+
+IcJREueFliNq4hKejPcP/X/OnZi04wJACgJBFTAYVDVN5xoEVFUoVXQMdV8Y565N
+olyoo7ZhWR4tT0h1+ZIoJy2D+5P1W/krIaZVTTS9MGJ55Qn6u62Y63iO4ewX7+We
+F4uHfN6rjvlAFafhP1ZhatlMjFMQSe7GLceWQlAoDc/yvaGqBQFQVV3Jl/iBmOXy
+sOUrEPbrAPj/8KSwhAZiOMixZsi6gRk0CceKiQEWQwIGppTJGmXcYABhgpGMgM4U
+gqCuGJCZRlDym6u0HSmERUwSEZZxK2ITL+Fyqe5e/56pgZT0wLS0Kf6aBdJnZv9d
+PiV3RqDlecqUZcMLdi+1vbKRbfOmVjxqjX5sfVIEtn76MifviFt7tfVZb++2yoyu
+mpLcjkcfuvu+FzwYOvX2w6GTB3N2HeiUOrdvfNycs1zb119INozLvanvBs1Vr7as
+QNHUohurzzcNXDTCOwbG1kysf6dU1azs6vlaEwHtSB//hpI9dDTr2pc30y/lxwre
+Lzzbcj05fvdok9M2nJU52FJfOa+0IKvF/NTdvqlxS9W57JG2dbO90bXNnyd+3llZ
+tDg6q7q7qOHh3Jupg82np90qOZMW+HphyWW9YWjvnPq+7B2LOoozxtzi0z/vbX7q
+5TkNL0fD83PfX0ksq5l4XdZbaF5vrD9m419Gkj3k
+=OuH6
+-----END PGP MESSAGE-----
+
+And finally, I am proving ownership of this host by posting or
+appending to this document.
+
+View my publicly-auditable identity here: https://keybase.io/mnciitbhu
+
+==================================================================
