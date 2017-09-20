@@ -1,5 +1,5 @@
-# mafiya69.github.io
+# mnciitbhu.github.io
 
-Source code of my web page: [mafiya69.github.io](http://mafiya69.github.io/)
+Source code of my web page: [mnciitbhu.me](https://mnciitbhu.me/)
 
 GNU GENERAL PUBLIC LICENSE (c) Govind Sahai
