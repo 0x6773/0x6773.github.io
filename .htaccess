@@ -1,2 +1,0 @@
-ErrorDocument 403 /owncloud/core/templates/403.php
-ErrorDocument 404 /owncloud/core/templates/404.php
