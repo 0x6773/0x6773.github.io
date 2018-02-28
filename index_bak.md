@@ -1,10 +1,6 @@
 ---
 layout: default
-title: aboutme
 ---
-
-
-# Welcome
 
 Text can be **bold**, _italic_, ~~strikethrough~~ or `keyword`.
 
