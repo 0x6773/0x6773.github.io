@@ -1,6 +1,3 @@
-#Redirect 301 /github /destination-page
-#Redirect 301 /different-page /destination-page
-#Redirect cool-page http://example.org/destination-page
 
 Redirect 301 /github https://github.com/mnciitbhu
 Redirect 301 /facebook https://facebook.com/mnciitbhu
