@@ -1,0 +1,646 @@
+@import url("./mobile.css");
+@font-face {
+  font-family: "FrutigerLight";
+  src: url("../assets/fonts/Frutiger-LT-Arabic-45-Light.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "FrutigerBold";
+  src: url("../assets/fonts/Frutiger-LT-Arabic-65-Bold.ttf") format("truetype");
+}
+
+body {
+  font-family: "FrutigerLight" !important;
+  overflow-x: hidden;
+}
+ul li {
+  list-style: none;
+}
+
+.background-img-bottom {
+  background-image: url(../assets/img/background-img-after.png);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: bottom left;
+  /* background: red; */
+  width: 60%;
+  height: 100%;
+  position: absolute;
+  z-index: -1;
+  bottom: -33%;
+  left: -10%;
+}
+
+.background-img-top {
+  background-image: url(../assets/img/background-img-after.png);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  /* background: red; */
+  width: 60%;
+  height: 99%;
+  position: absolute;
+  z-index: -1;
+  top: -10%;
+  right: -15%;
+  transform: rotateX(170deg);
+}
+
+/* header */
+.navbar-brand {
+  width: 100%;
+}
+#logo {
+  width: 180px;
+  height: 55px;
+}
+
+.logo-center {
+  display: flex;
+  justify-content: center;
+}
+
+.wifi-img-sec {
+  margin-top: -46px;
+}
+
+/* Main Section */
+.main-screen {
+  padding: 20px;
+  border: 33px solid #04615c;
+  border-top: none;
+  border-bottom-left-radius: 43px;
+  border-bottom-right-radius: 43px;
+  width: 100%;
+  max-width: 922px;
+  margin: 0px auto !important;
+  background-color: #fff;
+}
+
+.wifi-img {
+  width: 86px;
+  height: 42px;
+}
+
+.navbar .nav-left-btn {
+  outline: none;
+  border: none;
+  background-color: white;
+  color: black;
+  border-radius: 9px;
+  box-shadow: 0px 4px 8px #00000029;
+  font-size: 9px;
+  padding: 0px !important;
+  width: 60px;
+  height: 17px !important;
+}
+
+.navbar .lang-menu {
+  min-width: 60px !important;
+  border: none;
+  background: transparent;
+  box-shadow: 0px 3px 6px #00000029;
+  border-radius: 4px;
+  border: 0.2px solid #707070;
+  font-size: 9px;
+  margin-top: -8px;
+  border-top: none;
+  height: 17px !important;
+}
+
+.navbar .lang-menu button {
+  font-size: 9px;
+}
+
+/*  Top Heading */
+.heading-16 {
+  font-size: 16.5px;
+  color: #555759;
+  font-weight: 900;
+  font-family: "FrutigerBold";
+}
+
+.para-12 {
+  font-size: 12px;
+  color: #555759;
+  font-weight: 900;
+  font-family: "FrutigerBold";
+}
+
+.hero-section {
+  margin-top: 39px;
+  padding: 0px 178px;
+}
+
+.card-heading {
+  font-size: 15px;
+  color: #04615c;
+  font-weight: 900;
+  font-family: "FrutigerBold";
+}
+
+.hero-section .main-card {
+  background-color: #04615c;
+  /* max-height: 123px; */
+  min-height: 65px;
+  padding: 0 20px;
+  border-radius: 16px;
+}
+
+.hero-section-10 {
+  margin-top: 39px;
+  padding: 0px 179px;
+}
+
+.hero-section-10 .main-card-10 {
+  background-color: #fbf9f9;
+  /* max-height: 140px; */
+  min-height: 140px;
+  padding: 20px 15px;
+  border-radius: 12px;
+  align-items: center;
+}
+
+.hero-section-10 .main-card-10-c {
+  background-color: #fbf9f9;
+  /*max-height: 140px;*/
+  min-height: 140px;
+  padding: 20px 15px;
+  border-radius: 12px;
+  align-items: center;
+}
+
+/* Mobile */
+
+.mob .mob-flag {
+  padding: 6px 9px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0px 3px 6px #00000029;
+  margin-right: 10px;
+}
+
+.mob .mob-input .number-input {
+  outline: none !important;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 45px;
+  font-size: 15px;
+  font-weight: 900;
+  box-shadow: 0px 4px 8px #00000029;
+  text-align: center;
+  width: 200px;
+  color: #655656;
+  font-size: 14px;
+  font-family: "FrutigerBold";
+}
+
+.hero-section .main-card .card-content {
+  color: #ffffff;
+  /*text-align: right;*/
+  /* margin-left: 40px;
+  margin-right: 20px; */
+}
+
+a {
+  color: #04615c;
+  text-decoration: none;
+}
+a:hover {
+  color: #04615c;
+}
+
+.hero-section-10 .main-card-10 .card-content .code-sec .code-input {
+  outline: none !important;
+  border: none;
+  border-radius: 12px;
+  padding: 0px 16px;
+  font-size: 19px;
+  font-weight: 900;
+  text-align: center;
+  width: 100%;
+  color: #555759;
+  font-family: "FrutigerBold";
+}
+
+.code-title {
+  color: #04615c;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: right;
+  font-family: "FrutigerBold";
+}
+
+.title-15 {
+  font-size: 15px;
+  font-weight: 900;
+  font-family: "FrutigerBold";
+  /*text-align: right;*/
+}
+
+.title-15[style*="direction: ltr"] {
+  /*text-align: center;*/
+}
+
+.hero-section .main-card .card-content .desc-9 {
+  font-size: 7px;
+  font-family: "FrutigerLight";
+/*  text-align: right;*/
+}
+
+.hero-section .main-card .card-content .desc-9[style*="direction: ltr"] {
+  /*text-align: center;*/
+}
+
+.hero-section-10 .main-card-10 .card-content .mini-card {
+/*  background-color: white;*/
+  padding: 8px 0px;
+  border-radius: 12px;
+}
+
+.hero-section-10 .main-card-10 .card-content .mini-card .mini-card-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: #04615c;
+  font-family: "FrutigerBold";
+}
+
+.hero-section-10 .main-card-10 .card-content .mini-card .mini-card-img-wrap .img-mini-txt {
+  color: #04615c;
+  font-size: 6px;
+  font-weight: 900;
+  font-family: "FrutigerBold";
+}
+
+.button-submit {
+  outline: none;
+  border: none;
+  border-radius: 12px;
+  background-color: #04615c;
+  color: white;
+  padding: 4px 39px;
+  font-size: 13px;
+  font-weight: 900;
+  font-family: "FrutigerBold";
+  box-shadow: 0px 4px 8px #00000029;
+}
+
+.iti__country-list {
+  max-width: 415%;
+  border: none !important;
+  box-shadow: 0px 4px 8px #00000029 !important;
+  border-radius: 12px;
+}
+
+button:hover {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: #04615c !important;
+}
+
+.btn-disabled {
+  background-color: #e0e0e0;
+  color: #999;
+  outline: none;
+  border: none;
+  border-radius: 12px;
+  padding: 4px 39px;
+  font-size: 13px;
+  font-weight: 900;
+  font-family: "FrutigerBold";
+  box-shadow: 0px 4px 8px #00000029;
+}
+/* Banners Section */
+.banner-heading {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555759;
+  font-family: "FrutigerBold";
+}
+
+.banner-wrap > .banner-card-margin:not(:last-child) {
+  margin-right: 20px;
+}
+
+.banner-card {
+  width: 90%;
+  /* min-height:83px; */
+  border-radius: 15px;
+  box-shadow: 0px 4px 8px rgb(0 0 0 / 10%);
+  height: 100%;
+}
+
+.verify-img {
+  width: 133px;
+  height: 122px;
+}
+
+.verified-text {
+  font-size: 14px;
+  font-weight: 900;
+  color: #04615c;
+  font-family: "FrutigerBold";
+  text-align: center;
+}
+
+.custom-position {
+  position: absolute;
+  right: 0;
+  top: -20px;
+}
+
+.custom-position-left {
+  position: absolute;
+  left: 0;
+  top: 2px;
+}
+
+.desktop-hide {
+  display: none;
+}
+
+.carousel-control-prev {
+  background: white;
+  width: 18px;
+  height: 18px;
+  top: 62%;
+  left: -20px;
+  /* border-radius: 9px; */
+}
+
+.carousel-control-next {
+  background: white;
+  width: 18px;
+  height: 18px;
+  top: 62%;
+  right: -20px;
+  /* border-radius: 9px; */
+}
+
+.carousel-control-prev-icon {
+  background-image: url("../assets/img/icons/left.png");
+  background-size: inherit;
+}
+
+.carousel-control-next-icon {
+  background-image: url("../assets/img/icons/right.png");
+  background-size: inherit;
+}
+
+#brand-logo {
+  background-image: url("../images/logo.png");
+  background-repeat: no-repeat;
+  background-position: left;
+  cursor: pointer;
+  height: 55px;
+  width: 100%;
+  background-size: contain;
+}
+#wifi-logo {
+  background-image: url("../assets/img/wifi-img.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  cursor: pointer;
+  height: 55px;
+  width: 100%;
+  margin-left: 20px;
+  margin-top: 0px;
+}
+
+/* Basic styling to make it look like a button */
+.dropbtn {
+  font-family: "FrutigerLight";
+  background-color: #3498db;
+  color: white;
+  padding: 10px;
+  /*font-size: 16px;*/
+  border: none;
+  cursor: pointer;
+
+  outline: none;
+  border: none;
+  background-color: white;
+  color: black;
+  border-radius: 9px;
+  box-shadow: 0px 4px 8px #00000029;
+  font-size: 9px;
+  padding: 0px !important;
+  width: 60px;
+  height: 17px !important;
+}
+
+/* Style the dropdown content (hidden by default) */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+/* Style the dropdown links */
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  font-size: 9px;
+}
+
+/* Change color on hover */
+.dropdown-content a:hover {
+  background-color: #ddd;
+}
+
+/* Show the dropdown content when the button is clicked */
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+/* Optional: Align the dropdown links based on the data attribute */
+.dropdown-content [data-lang-alignment="left"] {
+  text-align: left;
+}
+
+.dropdown-content [data-lang-alignment="right"] {
+  text-align: right;
+}
+
+.desktop-show {
+  display: block;
+}
+
+#myCarousel.slider-holder {
+  /*display: unset;*/
+  max-width: unset;
+}
+
+#myCarousel .slider-holder {
+  display: unset;
+  max-width: unset;
+}
+
+#myCarousel .slider-holder .flexslider {
+  padding: unset;
+  position: unset;
+}
+
+.card-image img {
+  height: 40px;
+}
+.custom-hero-section {
+  max-width: 304px;
+  margin: 0 auto;
+  padding-left: 0;
+  padding-right: 0;
+}
+.row-custom > * {
+  padding: 0 5px;
+}
+
+.row-custom > [class*="col-"] {
+  margin-bottom: 10px;
+}
+
+.hero-section,
+.hero-section * {
+  /*direction: ltr !important;*/
+}
+
+.slider-holder {
+  background: none !important;
+}
+
+.iti__selected-flag {
+  direction: ltr !important;
+}
+
+.lang-lbl p {
+  margin-bottom: 0 !important;
+  margin-top: 5px;
+}
+
+.background-image-mobile {
+  background-image: url(../assets/img/background-img-after.png);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  /* background: red; */
+  width: 60%;
+  height: 22%;
+  position: absolute;
+  z-index: -1;
+  bottom: 0;
+  right: -92px;
+}
+
+#myCarousel.slider-holder[style*="direction: rtl"] > * {
+  direction: rtl !important;
+}
+
+.card-content {
+  padding-inline: 0.75rem;
+}
+.card-content-container {
+  /* gap: var(--space-between); */
+  box-sizing: border-box;
+  --space-between: 2.5rem;
+}
+.card-content-separator {
+  width: var(--space-between);
+  display: grid;
+  place-content: center;
+  font-size: 11px;
+}
+.card-content-single {
+  direction: ltr;
+/*  background: white;*/
+  border-radius: 10px;
+  box-sizing: border-box;
+  width: calc((100% - var(--space-between)) / 2);
+}
+.card-content-single .mini-card {
+  padding: 0.5rem;
+  justify-content: space-between;
+}
+.card-content-single .mini-card .mini-card-title {
+  margin-bottom: 0.5rem;
+  text-align: center;
+  font-size: 11px;
+}
+.card-content .mini-card .mini-card-img-wrap {
+  display: flex;
+  align-items: center;
+}
+.img-mini-txt {
+  font-size: 9px;
+}
+.card-content-separator,
+.img-mini-txt,
+.mini-card-title {
+  font-weight: 900;
+  color: #04615c;
+  font-family: "FrutigerBold";
+}
+.slider-holder .flexslider ul.slides {
+  padding: 0;
+  aspect-ratio: 244/25;
+  margin-inline: auto;
+  background-color: #fff;
+}
+.slider-holder .flexslider ul.slides li {
+  height: 100%;
+}
+
+.backbtn {
+  font-family: "FrutigerLight";
+  padding: 10px;
+  /* font-size: 16px; */
+  border: none;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  background-color: #04615c;
+  color: #fff;
+  border-radius: 9px;
+  box-shadow: 0px 4px 8px #00000029;
+  font-size: 9px;
+  padding: 0px !important;
+  width: 60px;
+  height: 17px !important;
+}
+.lang-lbl {
+  background-color: #04615c;
+  color: #fff;
+  border-radius: 9px;
+  box-shadow: 0px 4px 8px #00000029;
+  font-size: 12px;
+}
+.otp-footer {
+  font-size: 8px;
+  color: #04615c;
+  margin-top: 8px;
+  font-family: "FrutigerLight";
+  text-align: center;
+}
+.otp-footer a {
+  text-decoration: none;
+  color: #04615c;
+}
+.terms-list {
+  margin-bottom: 60px;
+}
+.terms-list ul {
+  padding-left: 17px;
+}
+.terms-list ul li {
+  font-size: 10px;
+  line-height: 17px;
+  color: #04615c;
+  font-family: "FrutigerLight";
+  list-style: disc;
+}
+.custom-heading {
+  font-size: 14px;
+  color: #555759;
+}
