@@ -114,6 +114,44 @@
   let myDir = null;    // buffered direction input
   let gameTime = 0;
 
+  // ── ICE / TURN config ──
+  const ICE_CONFIG = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:numb.viagenie.ca',
+        username: 'webrtc@live.com',
+        credential: 'muazkh'
+      },
+      {
+        urls: 'turn:relay.backups.cz',
+        username: 'webrtc',
+        credential: 'webrtc'
+      },
+      {
+        urls: 'turn:relay.backups.cz?transport=tcp',
+        username: 'webrtc',
+        credential: 'webrtc'
+      }
+    ]
+  };
+
   // ── Networking ──
   function generateCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -136,19 +174,27 @@
     lobbyWaiting.classList.remove('hidden');
     waitingMsg.textContent = 'Creating room...';
 
-    peer = new Peer('tron-' + code, { debug: 0 });
-    peer.on('open', () => {
+    peer = new Peer('tron-' + code, { debug: 2, config: ICE_CONFIG });
+    peer.on('open', id => {
+      console.log('[HOST] Peer open with id:', id);
       waitingMsg.textContent = 'Waiting for opponent...';
       roomCodeDisplay.classList.remove('hidden');
       roomCodeSpan.textContent = code;
     });
     peer.on('connection', c => {
+      console.log('[HOST] Incoming connection, open:', c.open);
       conn = c;
       isHost = true;
       myPlayer = 0;
       setupConnection();
     });
+    peer.on('disconnected', () => {
+      console.log('[HOST] Peer disconnected from signaling server');
+      waitingMsg.textContent = 'Reconnecting to server...';
+      peer.reconnect();
+    });
     peer.on('error', err => {
+      console.error('[HOST] Peer error:', err.type, err);
       if (err.type === 'unavailable-id') {
         showError('Room code taken. Try again.');
         lobbyActions.classList.remove('hidden');
@@ -170,14 +216,21 @@
     lobbyWaiting.classList.remove('hidden');
     waitingMsg.textContent = 'Connecting...';
 
-    peer = new Peer(undefined, { debug: 0 });
-    peer.on('open', () => {
-      conn = peer.connect('tron-' + code, { reliable: true });
+    peer = new Peer(undefined, { debug: 2, config: ICE_CONFIG });
+    peer.on('open', id => {
+      console.log('[JOIN] Peer open with id:', id);
+      waitingMsg.textContent = 'Connecting to room...';
+      conn = peer.connect('tron-' + code, { reliable: true, serialization: 'json' });
       isHost = false;
       myPlayer = 1;
+      console.log('[JOIN] Attempting to connect to tron-' + code);
       setupConnection();
     });
+    peer.on('disconnected', () => {
+      console.log('[JOIN] Peer disconnected from signaling server');
+    });
     peer.on('error', err => {
+      console.error('[JOIN] Peer error:', err.type, err);
       const msg = err.type === 'peer-unavailable'
         ? 'Room not found. Check the code and try again.'
         : 'Connection error: ' + err.type;
@@ -186,10 +239,11 @@
       lobbyWaiting.classList.add('hidden');
     });
 
-    // Timeout if peer server itself doesn't respond
+    // Timeout if connection doesn't establish
     setTimeout(() => {
-      if (!peer || peer.disconnected) return;
+      if (!peer || peer.destroyed) return;
       if (!conn || !conn.open) {
+        console.log('[JOIN] Connection timed out');
         showError('Connection timed out. Try again.');
         lobbyActions.classList.remove('hidden');
         lobbyWaiting.classList.add('hidden');
@@ -218,10 +272,14 @@
   function setupConnection() {
     // Fix race condition: connection may already be open when host
     // receives it via peer.on('connection'), so check immediately
+    console.log('[SETUP] conn.open:', conn.open, 'isHost:', isHost);
     if (conn.open) {
       onConnected();
     } else {
-      conn.on('open', () => onConnected());
+      conn.on('open', () => {
+        console.log('[SETUP] conn.on(open) fired');
+        onConnected();
+      });
     }
 
     conn.on('data', data => {
