@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Snake</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-wrapper">
+    <div id="hud">
+      <span id="score-label">SCORE: <span id="score">0</span></span>
+      <span id="high-label">HI: <span id="high-score">0</span></span>
+    </div>
+    <div id="canvas-container">
+      <canvas id="game-canvas" width="600" height="600"></canvas>
+
+      <!-- Start screen overlay -->
+      <div id="start-overlay" class="overlay">
+        <h1>SNAKE</h1>
+        <p class="subtitle">A retro arcade classic</p>
+        <button id="start-btn" class="btn">PLAY</button>
+        <p class="controls-hint">Arrow Keys / WASD / Swipe</p>
+      </div>
+
+      <!-- Game-over overlay -->
+      <div id="gameover-overlay" class="overlay hidden">
+        <h1>GAME OVER</h1>
+        <p id="final-score-text">Score: 0</p>
+        <button id="restart-btn" class="btn">PLAY AGAIN</button>
+        <div id="leaderboard">
+          <h2>HIGH SCORES</h2>
+          <ol id="score-list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

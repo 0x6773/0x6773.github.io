@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>2048</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="hud">
+      <h1 class="title">2048</h1>
+      <div class="scores">
+        <div class="score-box">
+          <span class="score-label">Score</span>
+          <span class="score-value" id="score">0</span>
+        </div>
+        <div class="score-box">
+          <span class="score-label">Best</span>
+          <span class="score-value" id="best-score">0</span>
+        </div>
+      </div>
+      <button class="new-game-btn" id="new-game-btn">New Game</button>
+    </header>
+
+    <div class="board-container">
+      <div class="grid-background" id="grid-background"></div>
+      <div class="tile-container" id="tile-container"></div>
+
+      <div class="overlay hidden" id="game-over-overlay">
+        <div class="overlay-content">
+          <h2>Game Over!</h2>
+          <p>No more moves available.</p>
+          <button class="overlay-btn" id="game-over-btn">Try Again</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="win-overlay">
+        <div class="overlay-content win">
+          <h2>You Win!</h2>
+          <p>You reached 2048!</p>
+          <div class="win-buttons">
+            <button class="overlay-btn" id="keep-playing-btn">Keep Playing</button>
+            <button class="overlay-btn secondary" id="win-new-game-btn">New Game</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="instructions">Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to move tiles. Swipe on mobile.</p>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

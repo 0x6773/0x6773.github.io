@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Minesweeper</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="hud">
+      <div id="mine-counter" class="hud-display">
+        <span class="hud-icon">&#x1F4A3;</span>
+        <span id="mine-count">010</span>
+      </div>
+      <div id="difficulty-selector">
+        <button class="diff-btn active" data-difficulty="easy">Easy</button>
+        <button class="diff-btn" data-difficulty="medium">Medium</button>
+        <button class="diff-btn" data-difficulty="hard">Hard</button>
+      </div>
+      <div id="timer-display" class="hud-display">
+        <span class="hud-icon">&#x23F1;</span>
+        <span id="timer">00:00</span>
+      </div>
+    </header>
+
+    <div id="board-wrapper">
+      <div id="board"></div>
+    </div>
+
+    <div id="overlay" class="hidden">
+      <div id="overlay-content">
+        <h2 id="overlay-title"></h2>
+        <div id="overlay-stats"></div>
+        <div id="high-scores-section" class="hidden">
+          <h3>Best Times</h3>
+          <ol id="high-scores-list"></ol>
+        </div>
+        <button id="play-again-btn">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

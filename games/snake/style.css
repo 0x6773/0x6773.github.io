@@ -1,0 +1,196 @@
+/* ── Reset & Base ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0f0f1a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: #e0e0e0;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── Game wrapper ── */
+#game-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* ── HUD ── */
+#hud {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid #0f3460;
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+#score-label { color: #53d769; }
+#high-label  { color: #f5a623; }
+#score, #high-score { font-variant-numeric: tabular-nums; }
+
+/* ── Canvas container ── */
+#canvas-container {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  border: 2px solid #0f3460;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+  box-shadow:
+    0 0 30px rgba(15, 52, 96, .5),
+    0 0 80px rgba(15, 52, 96, .2);
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #16213e;
+}
+
+/* ── Screen-shake ── */
+#canvas-container.shake {
+  animation: shake .4s ease-out;
+}
+@keyframes shake {
+  0%   { transform: translate( 0,  0); }
+  10%  { transform: translate(-6px,  4px); }
+  20%  { transform: translate( 6px, -4px); }
+  30%  { transform: translate(-4px,  6px); }
+  40%  { transform: translate( 4px, -6px); }
+  50%  { transform: translate(-2px,  2px); }
+  60%  { transform: translate( 2px, -2px); }
+  80%  { transform: translate( 1px,  1px); }
+  100% { transform: translate( 0,  0); }
+}
+
+/* ── Overlays ── */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(10, 10, 26, .88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 10;
+  gap: 12px;
+  padding: 30px;
+  transition: opacity .3s ease;
+}
+.overlay.hidden {
+  display: none;
+}
+
+.overlay h1 {
+  font-size: 52px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: #53d769;
+  text-shadow: 0 0 20px rgba(83, 215, 105, .6);
+  margin-bottom: 4px;
+}
+
+.overlay .subtitle {
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #7a8ba6;
+  margin-bottom: 8px;
+}
+
+.overlay .controls-hint {
+  font-size: 12px;
+  color: #556;
+  letter-spacing: 1px;
+  margin-top: 10px;
+}
+
+#final-score-text {
+  font-size: 22px;
+  color: #f5a623;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+/* ── Button ── */
+.btn {
+  padding: 14px 48px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #0f3460, #1a1a2e);
+  border: 2px solid #53d769;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .2s ease;
+  outline: none;
+  margin-top: 6px;
+}
+.btn:hover, .btn:focus-visible {
+  background: linear-gradient(135deg, #53d769, #3aaf50);
+  color: #0f0f1a;
+  box-shadow: 0 0 24px rgba(83, 215, 105, .45);
+  transform: scale(1.04);
+}
+
+/* ── Leaderboard ── */
+#leaderboard {
+  margin-top: 18px;
+  text-align: center;
+  width: 260px;
+}
+#leaderboard h2 {
+  font-size: 16px;
+  letter-spacing: 3px;
+  color: #f5a623;
+  margin-bottom: 8px;
+}
+#score-list {
+  list-style: none;
+  padding: 0;
+}
+#score-list li {
+  padding: 5px 0;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #b0b8c8;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex;
+  justify-content: space-between;
+}
+#score-list li .rank { color: #53d769; min-width: 28px; text-align: left; }
+#score-list li .pts  { color: #f5a623; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  #canvas-container,
+  #hud {
+    width: calc(100vw - 16px);
+    max-width: 600px;
+  }
+  #canvas-container { height: calc(100vw - 16px); max-height: 600px; }
+  .overlay h1 { font-size: 36px; }
+}

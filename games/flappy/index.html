@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Flappy Bird</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-wrapper">
+    <div id="hud">
+      <div id="hud-score-label">SCORE</div>
+      <div id="hud-score">0</div>
+    </div>
+    <div id="canvas-container">
+      <canvas id="game-canvas" width="400" height="600"></canvas>
+      <!-- Start Screen Overlay -->
+      <div id="start-overlay" class="overlay">
+        <div class="overlay-content">
+          <h1 class="game-title">Flappy Bird</h1>
+          <div class="start-bird"></div>
+          <p class="start-hint">Click or tap to start</p>
+          <p class="start-controls">SPACE / Click / Tap to flap</p>
+        </div>
+      </div>
+      <!-- Game Over Overlay -->
+      <div id="gameover-overlay" class="overlay hidden">
+        <div class="overlay-content">
+          <h2 class="gameover-title">Game Over</h2>
+          <div id="final-score-box">
+            <div class="final-score-label">SCORE</div>
+            <div id="final-score">0</div>
+          </div>
+          <div id="highscore-board">
+            <h3>Top Scores</h3>
+            <ol id="highscore-list"></ol>
+          </div>
+          <button id="play-again-btn">Play Again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>

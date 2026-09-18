@@ -62,6 +62,11 @@
       font-size: 64px;
       position: relative;
       overflow: hidden;
+      background: linear-gradient(135deg, #16213e, #1a1a2e);
+    }
+
+    .game-banner canvas {
+      display: block;
     }
 
     .game-banner::after {
@@ -72,6 +77,7 @@
       right: 0;
       height: 40px;
       background: linear-gradient(transparent, #1a1a2e);
+      pointer-events: none;
     }
 
     .game-info {
@@ -94,6 +100,7 @@
       gap: 6px;
       flex-wrap: wrap;
       padding: 0 20px 18px;
+      margin-top: auto;
     }
 
     .tag {
@@ -117,6 +124,12 @@
     }
 
     footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 32px; }
+      body { padding: 40px 12px; }
+      .games-grid { gap: 16px; }
+    }
   </style>
 </head>
 <body>
@@ -125,18 +138,87 @@
 
   <div class="games-grid">
 
+    <!-- Breakout -->
     <a href="breakout/" class="game-card">
-      <div class="game-banner" style="background: linear-gradient(135deg, #16213e, #1a1a2e);">
-        <canvas id="breakout-preview" width="280" height="160"></canvas>
+      <div class="game-banner">
+        <canvas id="preview-breakout" width="280" height="160"></canvas>
       </div>
       <div class="game-info">
         <h2>Breakout</h2>
         <p>Classic brick breaker with power-ups, sound effects, particles, and 5 levels of increasing difficulty.</p>
       </div>
       <div class="game-tags">
-        <span class="tag">Canvas</span>
         <span class="tag">Arcade</span>
         <span class="tag">Power-ups</span>
+        <span class="tag">Canvas</span>
+        <span class="tag">Mobile</span>
+      </div>
+    </a>
+
+    <!-- Snake -->
+    <a href="snake/" class="game-card">
+      <div class="game-banner">
+        <canvas id="preview-snake" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Snake</h2>
+        <p>Guide a growing snake to eat food without crashing into walls or yourself. Speed increases as you grow.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Arcade</span>
+        <span class="tag">Classic</span>
+        <span class="tag">Canvas</span>
+        <span class="tag">Mobile</span>
+      </div>
+    </a>
+
+    <!-- Flappy Bird -->
+    <a href="flappy/" class="game-card">
+      <div class="game-banner">
+        <canvas id="preview-flappy" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Flappy Bird</h2>
+        <p>Tap to flap and dodge pipes in this addictive one-button game. How far can you fly?</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Arcade</span>
+        <span class="tag">One-button</span>
+        <span class="tag">Canvas</span>
+        <span class="tag">Mobile</span>
+      </div>
+    </a>
+
+    <!-- Minesweeper -->
+    <a href="minesweeper/" class="game-card">
+      <div class="game-banner">
+        <canvas id="preview-minesweeper" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Minesweeper</h2>
+        <p>Reveal cells, flag mines, and clear the board. Three difficulty levels with fastest-time leaderboards.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Puzzle</span>
+        <span class="tag">Strategy</span>
+        <span class="tag">3 Difficulties</span>
+        <span class="tag">Mobile</span>
+      </div>
+    </a>
+
+    <!-- 2048 -->
+    <a href="2048/" class="game-card">
+      <div class="game-banner">
+        <canvas id="preview-2048" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>2048</h2>
+        <p>Slide and merge numbered tiles to reach 2048. Simple to learn, hard to master.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Puzzle</span>
+        <span class="tag">Strategy</span>
+        <span class="tag">Swipe</span>
         <span class="tag">Mobile</span>
       </div>
     </a>
@@ -148,52 +230,224 @@
   </footer>
 
   <script>
-    // Mini animated preview for Breakout card
+    // ── Mini animated previews for each game card ──
+
+    // Breakout preview
     (function() {
-      const c = document.getElementById('breakout-preview');
-      if (!c) return;
+      const c = document.getElementById('preview-breakout');
       const ctx = c.getContext('2d');
       const W = c.width, H = c.height;
-      const colors = ['#ff4d6d', '#ff8c42', '#ffd700', '#00e676', '#00d4ff'];
-      const rows = 4, cols = 9;
-      const bw = 26, bh = 8, bp = 3, ox = (W - cols * (bw + bp)) / 2, oy = 18;
-      let bx = W / 2, by = H - 30, bdx = 1.5, bdy = -1.5;
+      const colors = ['#ff4d6d','#ff8c42','#ffd700','#00e676','#00d4ff'];
+      const rows = 4, cols = 9, bw = 26, bh = 8, bp = 3;
+      const ox = (W - cols*(bw+bp))/2, oy = 18;
+      let bx = W/2, by = H-30, bdx = 1.5, bdy = -1.5;
       const bricks = [];
       for (let r = 0; r < rows; r++)
-        for (let c = 0; c < cols; c++)
-          bricks.push({ x: ox + c * (bw + bp), y: oy + r * (bh + bp), alive: true, color: colors[r] });
-
+        for (let ci = 0; ci < cols; ci++)
+          bricks.push({x:ox+ci*(bw+bp), y:oy+r*(bh+bp), alive:true, color:colors[r]});
       function frame() {
-        ctx.clearRect(0, 0, W, H);
-        for (const b of bricks) {
-          if (!b.alive) continue;
-          ctx.fillStyle = b.color;
-          ctx.beginPath();
-          ctx.roundRect(b.x, b.y, bw, bh, 2);
-          ctx.fill();
+        ctx.clearRect(0,0,W,H);
+        for (const b of bricks) { if (!b.alive) continue; ctx.fillStyle=b.color; ctx.beginPath(); ctx.roundRect(b.x,b.y,bw,bh,2); ctx.fill(); }
+        bx+=bdx; by+=bdy;
+        if (bx<=4||bx>=W-4) bdx*=-1;
+        if (by<=4) bdy*=-1;
+        if (by>=H-12) { bdy*=-1; by=H-12; }
+        for (const b of bricks) { if (!b.alive) continue; if (bx>b.x&&bx<b.x+bw&&by>b.y&&by<b.y+bh) { b.alive=false; bdy*=-1; break; } }
+        if (bricks.every(b=>!b.alive)) bricks.forEach(b=>b.alive=true);
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(bx,by,4,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#00d4ff'; ctx.beginPath(); ctx.roundRect(bx-20,H-8,40,6,3); ctx.fill();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // Snake preview
+    (function() {
+      const c = document.getElementById('preview-snake');
+      const ctx = c.getContext('2d');
+      const W = c.width, H = c.height;
+      const gs = 10; // grid size
+      const cols = Math.floor(W/gs), rows = Math.floor(H/gs);
+      let snake = [{x:14,y:8},{x:13,y:8},{x:12,y:8},{x:11,y:8},{x:10,y:8}];
+      let dir = {x:1,y:0};
+      let food = {x:20,y:8};
+      let tick = 0;
+      function spawnFood() {
+        food = {x:Math.floor(Math.random()*(cols-2))+1, y:Math.floor(Math.random()*(rows-2))+1};
+      }
+      function frame() {
+        tick++;
+        if (tick % 6 === 0) {
+          const head = {x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+          if (head.x<0||head.x>=cols||head.y<0||head.y>=rows) { dir={x:-dir.x,y:-dir.y}; head.x=snake[0].x+dir.x; head.y=snake[0].y+dir.y; }
+          // Simple AI: turn toward food
+          if (tick % 18 === 0) {
+            const dx = food.x-snake[0].x, dy = food.y-snake[0].y;
+            if (Math.abs(dx)>Math.abs(dy)) dir = {x:dx>0?1:-1,y:0};
+            else dir = {x:0,y:dy>0?1:-1};
+          }
+          snake.unshift(head);
+          if (head.x===food.x&&head.y===food.y) spawnFood();
+          else snake.pop();
         }
-        // Ball
-        bx += bdx; by += bdy;
-        if (bx <= 4 || bx >= W - 4) bdx *= -1;
-        if (by <= 4) bdy *= -1;
-        if (by >= H - 12) { bdy *= -1; by = H - 12; }
-        for (const b of bricks) {
-          if (!b.alive) continue;
-          if (bx > b.x && bx < b.x + bw && by > b.y && by < b.y + bh) {
-            b.alive = false; bdy *= -1; break;
+        ctx.clearRect(0,0,W,H);
+        for (let i=0;i<snake.length;i++) {
+          const s = snake[i];
+          const t = 1-i/snake.length;
+          ctx.fillStyle = `rgb(${Math.round(30+50*t)},${Math.round(180+35*t)},${Math.round(80+20*t)})`;
+          ctx.beginPath(); ctx.roundRect(s.x*gs+1,s.y*gs+1,gs-2,gs-2,3); ctx.fill();
+        }
+        const pulse = 1+0.15*Math.sin(tick*0.15);
+        ctx.fillStyle='#ff4d6d'; ctx.beginPath(); ctx.arc(food.x*gs+gs/2,food.y*gs+gs/2,gs/2*pulse*0.7,0,Math.PI*2); ctx.fill();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // Flappy Bird preview
+    (function() {
+      const c = document.getElementById('preview-flappy');
+      const ctx = c.getContext('2d');
+      const W = c.width, H = c.height;
+      let by = H/2, bvy = 0, tick = 0;
+      const pipes = [{x:W,gap:H/2-20},{x:W+120,gap:H/2+10},{x:W+240,gap:H/2-10}];
+      const gapH = 50, pipeW = 30;
+      function frame() {
+        tick++;
+        ctx.clearRect(0,0,W,H);
+        // Sky
+        const sky = ctx.createLinearGradient(0,0,0,H);
+        sky.addColorStop(0,'#0a1628'); sky.addColorStop(1,'#16213e');
+        ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+        // Bird physics
+        bvy += 0.25; by += bvy;
+        if (by > H-20) { by=H-20; bvy=-4; }
+        if (by < 10) { by=10; bvy=0; }
+        if (tick%60===0) bvy=-4;
+        // Pipes
+        for (const p of pipes) {
+          p.x -= 1.2;
+          if (p.x<-pipeW) { p.x=W+40; p.gap=30+Math.random()*(H-80); }
+          ctx.fillStyle='#00e676';
+          ctx.fillRect(p.x,0,pipeW,p.gap-gapH/2);
+          ctx.fillRect(p.x,p.gap+gapH/2,pipeW,H-p.gap-gapH/2);
+        }
+        // Ground
+        ctx.fillStyle='#2d1b00'; ctx.fillRect(0,H-10,W,10);
+        ctx.fillStyle='#4caf50'; ctx.fillRect(0,H-12,W,3);
+        // Bird
+        ctx.fillStyle='#ffd700'; ctx.beginPath(); ctx.arc(60,by,8,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(63,by-2,3,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(64,by-2,1.5,0,Math.PI*2); ctx.fill();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // Minesweeper preview
+    (function() {
+      const c = document.getElementById('preview-minesweeper');
+      const ctx = c.getContext('2d');
+      const W = c.width, H = c.height;
+      const cs = 16, cols = 14, rows = 8;
+      const ox = (W-cols*cs)/2, oy = (H-rows*cs)/2;
+      const numColors = ['','#5c7cfa','#51cf66','#ff6b6b','#364fc7','#862e9c','#0ca678','#333','#aaa'];
+      // Generate a board
+      const board = [];
+      const mines = new Set();
+      while (mines.size<15) mines.add(Math.floor(Math.random()*cols*rows));
+      for (let i=0;i<cols*rows;i++) {
+        const r=Math.floor(i/cols), ci=i%cols;
+        board.push({mine:mines.has(i), revealed:false, flag:false, n:0, r, c:ci});
+      }
+      for (const cell of board) {
+        if (cell.mine) continue;
+        let n=0;
+        for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+          const nr=cell.r+dr,nc=cell.c+dc;
+          if (nr>=0&&nr<rows&&nc>=0&&nc<cols&&board[nr*cols+nc].mine) n++;
+        }
+        cell.n=n;
+      }
+      // Animate: reveal cells over time
+      let revealIdx = 0;
+      const revealOrder = board.filter(b=>!b.mine).sort(()=>Math.random()-0.5);
+      let tick = 0;
+      function frame() {
+        tick++;
+        if (tick%8===0 && revealIdx<revealOrder.length) {
+          revealOrder[revealIdx].revealed=true;
+          revealIdx++;
+          if (revealIdx>=revealOrder.length) { setTimeout(()=>{ board.forEach(b=>{b.revealed=false;}); revealIdx=0; revealOrder.sort(()=>Math.random()-0.5); },1500); }
+        }
+        ctx.clearRect(0,0,W,H);
+        for (const cell of board) {
+          const x=ox+cell.c*cs, y=oy+cell.r*cs;
+          ctx.fillStyle = cell.revealed?'#16213e':'#1a1a2e';
+          ctx.fillRect(x+0.5,y+0.5,cs-1,cs-1);
+          if (cell.revealed && cell.n>0) {
+            ctx.fillStyle=numColors[cell.n];
+            ctx.font='bold 10px sans-serif';
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(cell.n,x+cs/2,y+cs/2+1);
           }
         }
-        // Respawn bricks
-        if (bricks.every(b => !b.alive)) bricks.forEach(b => b.alive = true);
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(bx, by, 4, 0, Math.PI * 2);
-        ctx.fill();
-        // Paddle
-        ctx.fillStyle = '#00d4ff';
-        ctx.beginPath();
-        ctx.roundRect(bx - 20, H - 8, 40, 6, 3);
-        ctx.fill();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // 2048 preview
+    (function() {
+      const c = document.getElementById('preview-2048');
+      const ctx = c.getContext('2d');
+      const W = c.width, H = c.height;
+      const gs = 4, cs = 32, pad = 4;
+      const ox = (W-gs*(cs+pad)+pad)/2, oy = (H-gs*(cs+pad)+pad)/2;
+      const tileColors = {2:'#eee4da',4:'#ede0c8',8:'#f2b179',16:'#f59563',32:'#f67c5f',64:'#f65e3b',128:'#edcf72',256:'#edcc61',512:'#edc850',1024:'#edc53f',2048:'#edc22e'};
+      const darkText = new Set([2,4]);
+      let grid = [[0,2,0,4],[0,0,8,2],[2,0,0,16],[4,2,0,0]];
+      let tick = 0;
+      function randomMove() {
+        // Simple: shift in a random direction
+        const d = Math.floor(Math.random()*4);
+        const newGrid = grid.map(r=>[...r]);
+        // Just shuffle some tiles for visual effect
+        for (let i=0;i<gs;i++) for (let j=0;j<gs;j++) {
+          if (newGrid[i][j]===0 && Math.random()<0.1) {
+            newGrid[i][j]=[2,4,8][Math.floor(Math.random()*3)];
+          }
+          if (newGrid[i][j]>0 && Math.random()<0.05) {
+            newGrid[i][j]*=2;
+            if (newGrid[i][j]>2048) newGrid[i][j]=2;
+          }
+          if (Math.random()<0.03) newGrid[i][j]=0;
+        }
+        // Ensure some tiles exist
+        let count = 0;
+        for (let i=0;i<gs;i++) for (let j=0;j<gs;j++) if (newGrid[i][j]>0) count++;
+        if (count<4) { newGrid[Math.floor(Math.random()*gs)][Math.floor(Math.random()*gs)]=[2,4,8,16,32][Math.floor(Math.random()*5)]; }
+        grid = newGrid;
+      }
+      function frame() {
+        tick++;
+        if (tick%40===0) randomMove();
+        ctx.clearRect(0,0,W,H);
+        // Board bg
+        ctx.fillStyle='#1a1a2e';
+        ctx.beginPath(); ctx.roundRect(ox-pad,oy-pad,gs*(cs+pad)+pad,gs*(cs+pad)+pad,6); ctx.fill();
+        for (let i=0;i<gs;i++) for (let j=0;j<gs;j++) {
+          const x=ox+j*(cs+pad), y=oy+i*(cs+pad);
+          const v = grid[i][j];
+          ctx.fillStyle = v>0 ? (tileColors[v]||'#edc22e') : '#16213e';
+          ctx.beginPath(); ctx.roundRect(x,y,cs,cs,4); ctx.fill();
+          if (v>0) {
+            ctx.fillStyle = darkText.has(v)?'#776e65':'#f9f6f2';
+            ctx.font = v>=1024?'bold 8px sans-serif':v>=128?'bold 10px sans-serif':'bold 12px sans-serif';
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(v,x+cs/2,y+cs/2+1);
+          }
+        }
         requestAnimationFrame(frame);
       }
       frame();
