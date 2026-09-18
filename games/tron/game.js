@@ -153,6 +153,7 @@
         showError('Room code taken. Try again.');
         lobbyActions.classList.remove('hidden');
         lobbyWaiting.classList.add('hidden');
+        roomCodeDisplay.classList.add('hidden');
       } else {
         showError('Connection error: ' + err.type);
       }
@@ -177,10 +178,24 @@
       setupConnection();
     });
     peer.on('error', err => {
-      showError('Could not connect. Check the code and try again.');
+      const msg = err.type === 'peer-unavailable'
+        ? 'Room not found. Check the code and try again.'
+        : 'Connection error: ' + err.type;
+      showError(msg);
       lobbyActions.classList.remove('hidden');
       lobbyWaiting.classList.add('hidden');
     });
+
+    // Timeout if peer server itself doesn't respond
+    setTimeout(() => {
+      if (!peer || peer.disconnected) return;
+      if (!conn || !conn.open) {
+        showError('Connection timed out. Try again.');
+        lobbyActions.classList.remove('hidden');
+        lobbyWaiting.classList.add('hidden');
+        if (peer) peer.destroy();
+      }
+    }, 15000);
   });
 
   btnCopy.addEventListener('click', () => {
@@ -191,27 +206,32 @@
     });
   });
 
+  function onConnected() {
+    lobby.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    if (isMobile()) mobileControls.classList.remove('hidden');
+    scores = [0, 0];
+    round = 1;
+    if (isHost) startRound();
+  }
+
   function setupConnection() {
-    conn.on('open', () => {
-      // Both connected - start game
-      lobby.classList.add('hidden');
-      gameScreen.classList.remove('hidden');
-      if (isMobile()) mobileControls.classList.remove('hidden');
-      scores = [0, 0];
-      round = 1;
-      if (isHost) startRound();
-    });
+    // Fix race condition: connection may already be open when host
+    // receives it via peer.on('connection'), so check immediately
+    if (conn.open) {
+      onConnected();
+    } else {
+      conn.on('open', () => onConnected());
+    }
 
     conn.on('data', data => {
       if (data.type === 'state') {
-        // Guest receives full state from host
         grid = data.grid;
         players = data.players;
         scores = data.scores;
         round = data.round;
         updateHUD();
       } else if (data.type === 'dir') {
-        // Host receives direction from guest
         if (isHost && data.dir && DIRS[data.dir]) {
           const p = players[1];
           if (p && OPPOSITE[data.dir] !== p.dir) p.dir = data.dir;
@@ -231,6 +251,11 @@
     conn.on('close', () => {
       stopGame();
       showOverlayMsg('Disconnected', 'Opponent left the game', '#ff4d6d');
+    });
+
+    conn.on('error', err => {
+      stopGame();
+      showOverlayMsg('Connection Error', 'Lost connection to opponent', '#ff4d6d');
     });
   }
 
