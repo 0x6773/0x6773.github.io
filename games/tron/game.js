@@ -117,37 +117,26 @@
   // ── ICE / TURN config ──
   const ICE_CONFIG = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.relay.metered.ca:80' },
       {
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
+        urls: 'turn:global.relay.metered.ca:80',
+        username: '0571de5bc8f35b73b0fe8ec4',
+        credential: 'mdERtNMft49guUrt'
       },
       {
-        urls: 'turn:openrelay.metered.ca:443',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
+        urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+        username: '0571de5bc8f35b73b0fe8ec4',
+        credential: 'mdERtNMft49guUrt'
       },
       {
-        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
+        urls: 'turn:global.relay.metered.ca:443',
+        username: '0571de5bc8f35b73b0fe8ec4',
+        credential: 'mdERtNMft49guUrt'
       },
       {
-        urls: 'turn:numb.viagenie.ca',
-        username: 'webrtc@live.com',
-        credential: 'muazkh'
-      },
-      {
-        urls: 'turn:relay.backups.cz',
-        username: 'webrtc',
-        credential: 'webrtc'
-      },
-      {
-        urls: 'turn:relay.backups.cz?transport=tcp',
-        username: 'webrtc',
-        credential: 'webrtc'
+        urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+        username: '0571de5bc8f35b73b0fe8ec4',
+        credential: 'mdERtNMft49guUrt'
       }
     ]
   };
