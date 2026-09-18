@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Games</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f1a;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 16px;
+      margin-bottom: 50px;
+    }
+
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      max-width: 960px;
+      width: 100%;
+    }
+
+    .game-card {
+      background: #1a1a2e;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .game-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0, 212, 255, 0.15);
+    }
+
+    .game-banner {
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .game-banner::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: linear-gradient(transparent, #1a1a2e);
+    }
+
+    .game-info {
+      padding: 20px;
+    }
+
+    .game-info h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .game-info p {
+      color: #999;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .game-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 0 20px 18px;
+    }
+
+    .tag {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.08);
+      color: #aaa;
+    }
+
+    footer {
+      margin-top: 60px;
+      color: #555;
+      font-size: 13px;
+    }
+
+    footer a {
+      color: #00d4ff;
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Games</h1>
+  <p class="subtitle">A collection of browser games. Click to play.</p>
+
+  <div class="games-grid">
+
+    <a href="breakout/" class="game-card">
+      <div class="game-banner" style="background: linear-gradient(135deg, #16213e, #1a1a2e);">
+        <canvas id="breakout-preview" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Breakout</h2>
+        <p>Classic brick breaker with power-ups, sound effects, particles, and 5 levels of increasing difficulty.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Canvas</span>
+        <span class="tag">Arcade</span>
+        <span class="tag">Power-ups</span>
+        <span class="tag">Mobile</span>
+      </div>
+    </a>
+
+  </div>
+
+  <footer>
+    <a href="/">&larr; Home</a>
+  </footer>
+
+  <script>
+    // Mini animated preview for Breakout card
+    (function() {
+      const c = document.getElementById('breakout-preview');
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      const W = c.width, H = c.height;
+      const colors = ['#ff4d6d', '#ff8c42', '#ffd700', '#00e676', '#00d4ff'];
+      const rows = 4, cols = 9;
+      const bw = 26, bh = 8, bp = 3, ox = (W - cols * (bw + bp)) / 2, oy = 18;
+      let bx = W / 2, by = H - 30, bdx = 1.5, bdy = -1.5;
+      const bricks = [];
+      for (let r = 0; r < rows; r++)
+        for (let c = 0; c < cols; c++)
+          bricks.push({ x: ox + c * (bw + bp), y: oy + r * (bh + bp), alive: true, color: colors[r] });
+
+      function frame() {
+        ctx.clearRect(0, 0, W, H);
+        for (const b of bricks) {
+          if (!b.alive) continue;
+          ctx.fillStyle = b.color;
+          ctx.beginPath();
+          ctx.roundRect(b.x, b.y, bw, bh, 2);
+          ctx.fill();
+        }
+        // Ball
+        bx += bdx; by += bdy;
+        if (bx <= 4 || bx >= W - 4) bdx *= -1;
+        if (by <= 4) bdy *= -1;
+        if (by >= H - 12) { bdy *= -1; by = H - 12; }
+        for (const b of bricks) {
+          if (!b.alive) continue;
+          if (bx > b.x && bx < b.x + bw && by > b.y && by < b.y + bh) {
+            b.alive = false; bdy *= -1; break;
+          }
+        }
+        // Respawn bricks
+        if (bricks.every(b => !b.alive)) bricks.forEach(b => b.alive = true);
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(bx, by, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Paddle
+        ctx.fillStyle = '#00d4ff';
+        ctx.beginPath();
+        ctx.roundRect(bx - 20, H - 8, 40, 6, 3);
+        ctx.fill();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+  </script>
+</body>
+</html>
