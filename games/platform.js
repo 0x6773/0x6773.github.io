@@ -263,10 +263,8 @@
     // Auto-save session time when user leaves
     var self = GamePlatform;
     window.addEventListener('beforeunload', function() {
-      if (self._sessionGameId) {
+      if (self._sessionGameId && !self._sessionRecorded) {
         var time = self.endSession();
-        // Don't double-record if the game already called recordGame
-        // Just save the time to the existing stats
         var data = loadData();
         if (data.gameStats && data.gameStats[self._sessionGameId]) {
           data.gameStats[self._sessionGameId].totalPlayTime =
@@ -341,6 +339,7 @@
       if (score > (gs.bestScore || 0)) gs.bestScore = score;
       gs.totalPlayTime = (gs.totalPlayTime || 0) + (pt || 0);
       gs.lastPlayed = Date.now();
+      this._sessionRecorded = true;
 
       if (extra) {
         if (extra.win) gs.wins = (gs.wins || 0) + 1;
@@ -392,7 +391,7 @@
 
       // Check daily challenges
       if (GamePlatform.checkDailyChallenge) {
-        var ch = GamePlatform.checkDailyChallenge(gameId, score);
+        var ch = GamePlatform.checkDailyChallenge(gameId, score, extra);
         if (ch) {
           showToast(
             '<span class="gp-toast-icon">\uD83C\uDFAF</span>' +
@@ -494,12 +493,14 @@
     _sessionStart: 0,
     _sessionHiddenTime: 0,
     _sessionHiddenAt: 0,
+    _sessionRecorded: false,
 
     startSession: function(gameId) {
       this._sessionGameId = gameId;
       this._sessionStart = Date.now();
       this._sessionHiddenTime = 0;
       this._sessionHiddenAt = 0;
+      this._sessionRecorded = false;
 
       // Track tab visibility to subtract hidden time
       var self = this;
@@ -547,21 +548,26 @@
 
       // Define possible challenges per game
       var allChallenges = [
-        { gameId: 'breakout', desc: 'Complete World 1-3', type: 'play' },
-        { gameId: 'snake', desc: 'Score 50+', type: 'score', target: 50 },
-        { gameId: 'flappy', desc: 'Score 15+', type: 'score', target: 15 },
-        { gameId: 'minesweeper', desc: 'Win on Easy', type: 'win' },
-        { gameId: '2048', desc: 'Reach 512 tile', type: 'play' },
-        { gameId: 'tetris', desc: 'Clear 10 lines', type: 'play' },
-        { gameId: 'snake', desc: 'Score 100+', type: 'score', target: 100 },
-        { gameId: 'flappy', desc: 'Score 25+', type: 'score', target: 25 },
-        { gameId: 'breakout', desc: 'Score 300+', type: 'score', target: 300 },
-        { gameId: 'tetris', desc: 'Score 1000+', type: 'score', target: 1000 },
-        { gameId: '2048', desc: 'Score 5000+', type: 'score', target: 5000 },
-        { gameId: 'minesweeper', desc: 'Win on Medium', type: 'win' },
-        { gameId: 'snake', desc: 'Score 200+', type: 'score', target: 200 },
-        { gameId: 'flappy', desc: 'Score 50+', type: 'score', target: 50 },
-        { gameId: 'tetris', desc: 'Score 3000+', type: 'score', target: 3000 },
+        { gameId: 'breakout', desc: 'Score 300+ in Breakout', check: function(s, e) { return s >= 300; } },
+        { gameId: 'snake', desc: 'Score 50+ in Snake', check: function(s, e) { return s >= 50; } },
+        { gameId: 'flappy', desc: 'Score 15+ in Flappy Bird', check: function(s, e) { return s >= 15; } },
+        { gameId: 'minesweeper', desc: 'Win a Minesweeper game', check: function(s, e) { return e && e.win; } },
+        { gameId: '2048', desc: 'Score 2000+ in 2048', check: function(s, e) { return s >= 2000; } },
+        { gameId: 'tetris', desc: 'Score 500+ in Tetris', check: function(s, e) { return s >= 500; } },
+        { gameId: 'snake', desc: 'Score 100+ in Snake', check: function(s, e) { return s >= 100; } },
+        { gameId: 'flappy', desc: 'Score 25+ in Flappy Bird', check: function(s, e) { return s >= 25; } },
+        { gameId: 'breakout', desc: 'Score 500+ in Breakout', check: function(s, e) { return s >= 500; } },
+        { gameId: 'tetris', desc: 'Score 1000+ in Tetris', check: function(s, e) { return s >= 1000; } },
+        { gameId: '2048', desc: 'Score 5000+ in 2048', check: function(s, e) { return s >= 5000; } },
+        { gameId: 'minesweeper', desc: 'Win Minesweeper on Medium+', check: function(s, e) { return e && e.win; } },
+        { gameId: 'wordle', desc: 'Win a Wordle game', check: function(s, e) { return e && e.win; } },
+        { gameId: 'sudoku', desc: 'Complete a Sudoku puzzle', check: function(s, e) { return e && e.win; } },
+        { gameId: 'connect4', desc: 'Win a Connect Four game', check: function(s, e) { return e && e.win; } },
+        { gameId: 'doodle-jump', desc: 'Score 500+ in Doodle Jump', check: function(s, e) { return s >= 500; } },
+        { gameId: 'snake', desc: 'Score 200+ in Snake', check: function(s, e) { return s >= 200; } },
+        { gameId: 'flappy', desc: 'Score 50+ in Flappy Bird', check: function(s, e) { return s >= 50; } },
+        { gameId: 'tetris', desc: 'Score 3000+ in Tetris', check: function(s, e) { return s >= 3000; } },
+        { gameId: 'breakout', desc: 'Score 1000+ in Breakout', check: function(s, e) { return s >= 1000; } },
       ];
 
       // Pick 5 challenges for today using seeded selection
@@ -580,7 +586,7 @@
       return { date: today, challenges: selected };
     },
 
-    checkDailyChallenge: function(gameId, score) {
+    checkDailyChallenge: function(gameId, score, extra) {
       var daily = this.getDailyChallenges();
       var data = loadData();
       if (!data.dailyChallenges) data.dailyChallenges = {};
@@ -590,14 +596,10 @@
         var ch = daily.challenges[i];
         if (ch.gameId !== gameId) continue;
         var key = ch.gameId + '_' + i;
-        if (data.dailyChallenges[daily.date][key]) continue; // already completed
+        if (data.dailyChallenges[daily.date][key]) continue;
 
-        var completed = false;
-        if (ch.type === 'score' && score >= ch.target) completed = true;
-        if (ch.type === 'win') completed = true; // just playing counts
-        if (ch.type === 'play') completed = true; // just playing counts
-
-        if (completed) {
+        // Use the check function for proper validation
+        if (ch.check && ch.check(score, extra)) {
           data.dailyChallenges[daily.date][key] = { completedAt: Date.now() };
           saveData(data);
           return ch;

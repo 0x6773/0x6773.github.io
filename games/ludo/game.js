@@ -969,6 +969,7 @@
       var allDone = player.tokens.every(function (t) { return t.pathIndex >= 56; });
       if (allDone) {
         gameState.winner = playerIdx;
+        stopTurnTimer();
         gameState.phase = 'gameover';
         addLog(player.name + ' wins the game!');
         broadcastState({ type: 'win', pi: playerIdx });
@@ -2059,6 +2060,11 @@
 
   function startRematch() {
     if (!isHost) return;
+    stopTurnTimer();
+    gameState.turnStartedAt = 0;
+    gameState.turnDeadline = 0;
+    gameState.turnId = 0;
+    gameState.stateVersion = 0;
     gameState.players.forEach(function (p) {
       p.tokens = createTokens();
       p.captures = 0;
@@ -2096,6 +2102,7 @@
       p.sixes = 0;
     });
 
+    stopTurnTimer();
     gameState.phase = 'rolling';
     gameState.currentPlayer = 0;
     gameState.diceValue = null;
@@ -2103,6 +2110,7 @@
     gameState.winner = null;
     gameState.turnStartedAt = 0;
     gameState.turnDeadline = 0;
+    gameState.turnId = 0;
 
     addLog('Game started!');
 
