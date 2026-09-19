@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Tron Online</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00f0ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
+
+  <div id="game-container">
+    <!-- Lobby -->
+    <div id="lobby">
+      <h1>TRON</h1>
+      <p class="tagline">Online Multiplayer</p>
+
+      <div id="lobby-actions">
+        <button id="btn-host" class="btn btn-cyan">Create Game</button>
+        <div class="divider">or</div>
+        <div id="join-section">
+          <input id="join-code" type="text" placeholder="Room code" maxlength="6" autocomplete="off" spellcheck="false">
+          <button id="btn-join" class="btn btn-magenta">Join</button>
+        </div>
+      </div>
+
+      <div id="lobby-status" class="hidden">
+        <p id="status-msg">Creating room...</p>
+        <div id="room-code-box" class="hidden">
+          <p>Share this code with your opponent:</p>
+          <span id="room-code"></span>
+          <button id="btn-copy" class="btn-small">Copy</button>
+        </div>
+      </div>
+
+      <p id="lobby-error" class="error hidden"></p>
+      <p class="hint">Play from two devices on the same or different networks.</p>
+    </div>
+
+    <!-- Game -->
+    <div id="game-screen" class="hidden">
+      <div id="hud">
+        <span id="p1-score" class="score-cyan">YOU: 0</span>
+        <span id="round-info">Round 1</span>
+        <span id="p2-score" class="score-magenta">OPP: 0</span>
+      </div>
+      <canvas id="gameCanvas" width="600" height="600"></canvas>
+      <div id="game-overlay" class="hidden">
+        <h2 id="overlay-title"></h2>
+        <p id="overlay-msg"></p>
+      </div>
+      <p id="controls-hint">Arrow keys / WASD / Swipe to steer</p>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

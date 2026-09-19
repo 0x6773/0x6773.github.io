@@ -240,6 +240,23 @@
       </div>
     </a>
 
+    <!-- Tron Online -->
+    <a href="tron-online/" class="game-card">
+      <div class="game-banner">
+        <canvas id="preview-tron-online" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Tron Online</h2>
+        <p>Play Tron against a friend on a different device. Create a room, share the code, battle!</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Multiplayer</span>
+        <span class="tag">Online</span>
+        <span class="tag">WebRTC</span>
+        <span class="tag">Mobile</span>
+      </div>
+    </a>
+
   </div>
 
   <footer>
@@ -511,6 +528,60 @@
         }
         ctx.fillStyle='#00f0ff'; ctx.fillRect(p1.x*cs,p1.y*cs,cs,cs);
         ctx.fillStyle='#e040fb'; ctx.fillRect(p2.x*cs,p2.y*cs,cs,cs);
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // Tron Online preview (reuse same animation)
+    (function() {
+      const c = document.getElementById('preview-tron-online');
+      const ctx = c.getContext('2d');
+      const W = c.width, H = c.height;
+      const cs = 3;
+      const cols = Math.floor(W/cs), rows = Math.floor(H/cs);
+      const grid = [];
+      for (let y=0;y<rows;y++) { grid[y]=[]; for (let x=0;x<cols;x++) grid[y][x]=0; }
+      let p1 = {x:20,y:Math.floor(rows/2),dir:{x:1,y:0}};
+      let p2 = {x:cols-20,y:Math.floor(rows/2),dir:{x:-1,y:0}};
+      let tick=0;
+      function reset() {
+        for (let y=0;y<rows;y++) for (let x=0;x<cols;x++) grid[y][x]=0;
+        p1={x:20,y:Math.floor(rows/2),dir:{x:1,y:0}};
+        p2={x:cols-20,y:Math.floor(rows/2),dir:{x:-1,y:0}};
+      }
+      function aiTurn(p) {
+        if (Math.random()>0.08) return;
+        const dirs = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}].filter(d=>!(d.x===-p.dir.x&&d.y===-p.dir.y));
+        const safe = dirs.filter(d=>{const nx=p.x+d.x,ny=p.y+d.y;return nx>=0&&nx<cols&&ny>=0&&ny<rows&&grid[ny][nx]===0;});
+        if (safe.length>0) p.dir=safe[Math.floor(Math.random()*safe.length)];
+      }
+      // Draw wifi icon in corner
+      function drawWifi(ctx) {
+        ctx.save(); ctx.globalAlpha=0.4; ctx.strokeStyle='#00f0ff'; ctx.lineWidth=1.5;
+        for (let i=1;i<=3;i++) { ctx.beginPath(); ctx.arc(W-16,12,i*4,1.2*Math.PI,1.8*Math.PI); ctx.stroke(); }
+        ctx.fillStyle='#00f0ff'; ctx.beginPath(); ctx.arc(W-16,12,1.5,0,Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+      function frame() {
+        tick++;
+        if (tick%2===0) {
+          aiTurn(p1); aiTurn(p2);
+          p1.x+=p1.dir.x; p1.y+=p1.dir.y;
+          p2.x+=p2.dir.x; p2.y+=p2.dir.y;
+          const p1dead = p1.x<0||p1.x>=cols||p1.y<0||p1.y>=rows||grid[p1.y]?.[p1.x]!==0;
+          const p2dead = p2.x<0||p2.x>=cols||p2.y<0||p2.y>=rows||grid[p2.y]?.[p2.x]!==0;
+          if (p1dead||p2dead) reset();
+          else { grid[p1.y][p1.x]=1; grid[p2.y][p2.x]=2; }
+        }
+        ctx.fillStyle='#0a0a14'; ctx.fillRect(0,0,W,H);
+        for (let y=0;y<rows;y++) for (let x=0;x<cols;x++) {
+          if (grid[y][x]===1) { ctx.fillStyle='rgba(0,240,255,0.5)'; ctx.fillRect(x*cs,y*cs,cs,cs); }
+          else if (grid[y][x]===2) { ctx.fillStyle='rgba(224,64,251,0.5)'; ctx.fillRect(x*cs,y*cs,cs,cs); }
+        }
+        ctx.fillStyle='#00f0ff'; ctx.fillRect(p1.x*cs,p1.y*cs,cs,cs);
+        ctx.fillStyle='#e040fb'; ctx.fillRect(p2.x*cs,p2.y*cs,cs,cs);
+        drawWifi(ctx);
         requestAnimationFrame(frame);
       }
       frame();

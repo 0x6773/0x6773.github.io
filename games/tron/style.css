@@ -118,6 +118,9 @@ canvas {
   letter-spacing: 1px;
   transition: all 0.2s;
   background: transparent;
+  position: relative;
+  z-index: 20;
+  pointer-events: auto;
 }
 
 .btn-cyan {

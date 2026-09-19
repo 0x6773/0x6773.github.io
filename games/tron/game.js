@@ -113,12 +113,15 @@
   });
 
   // ── Start ──
-  startBtn.addEventListener('click', () => {
+  startBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    console.log('[TRON] Start button clicked');
     ensureAudio();
     scores = [0, 0];
     round = 1;
     updateHUD();
     overlay.classList.add('hidden');
+    document.getElementById('controls-info').style.display = '';
     startRound();
   });
 
