@@ -29,8 +29,18 @@
           <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#666;margin-bottom:8px;text-transform:uppercase">How to Play</div>
           Arrow keys, WASD, or swipe to steer<br>
           Eat the red food to grow and score<br>
-          Don't hit walls or your own tail<br>
-          Speed increases as you grow
+          Near-miss your own tail for bonus points<br>
+          Speed increases as you grow<br>
+          <span style="color:#888;font-size:11px;margin-top:4px;display:inline-block">
+            <b style="color:#53d769">Classic</b> – walls kill &nbsp;
+            <b style="color:#e8a030">Obstacle</b> – dodge blocks &nbsp;
+            <b style="color:#60b0ff">Portal</b> – edges wrap
+          </span>
+        </div>
+        <div id="snake-modes" style="display:flex;gap:8px;margin:12px 0;justify-content:center">
+          <button class="smode-btn active" data-mode="classic" style="padding:8px 16px;font-size:13px;font-weight:700;border:2px solid #53d769;border-radius:6px;background:transparent;color:#53d769;cursor:pointer;transition:all 0.2s">Classic</button>
+          <button class="smode-btn" data-mode="obstacle" style="padding:8px 16px;font-size:13px;font-weight:700;border:2px solid #666;border-radius:6px;background:transparent;color:#666;cursor:pointer;transition:all 0.2s">Obstacle</button>
+          <button class="smode-btn" data-mode="portal" style="padding:8px 16px;font-size:13px;font-weight:700;border:2px solid #666;border-radius:6px;background:transparent;color:#666;cursor:pointer;transition:all 0.2s">Portal</button>
         </div>
         <button id="start-btn" class="btn">PLAY</button>
         <p class="controls-hint">Arrow Keys / WASD / Swipe</p>
@@ -39,6 +49,7 @@
       <!-- Game-over overlay -->
       <div id="gameover-overlay" class="overlay hidden">
         <h1>GAME OVER</h1>
+        <p id="final-mode-text" style="font-size:12px;letter-spacing:2px;color:#888;margin:0 0 4px;text-transform:uppercase"></p>
         <p id="final-score-text">Score: 0</p>
         <button id="restart-btn" class="btn">PLAY AGAIN</button>
         <div id="leaderboard">

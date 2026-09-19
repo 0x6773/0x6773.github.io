@@ -89,6 +89,11 @@
   let grid, players, scores = [0, 0], round = 1;
   let tickInterval, gameRunning = false, myDir = null;
 
+  // ── Latency / Interpolation ──
+  let interpBuffer = { p: [{}, {}] };
+  let lastTickTime = 0;
+  let latency = 0, lastPingTime = 0;
+
   // ── Networking ──
   function genCode() {
     const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = '';
@@ -171,7 +176,18 @@
     lobby.classList.add('hidden');
     gameScreen.classList.remove('hidden');
     scores = [0, 0]; round = 1;
+    latency = 0; lastPingTime = 0;
     updateHUD();
+
+    // Create latency display element
+    if (!document.getElementById('latency-display')) {
+      var latDisplay = document.createElement('span');
+      latDisplay.id = 'latency-display';
+      latDisplay.style.cssText = 'font-size:12px;color:#888;margin-left:8px';
+      var hint = document.getElementById('controls-hint');
+      if (hint) hint.appendChild(latDisplay);
+    }
+
     if (isHost) startRound();
     requestAnimationFrame(renderLoop);
   }
@@ -182,18 +198,24 @@
 
     conn.on('data', d => {
       if (d.t === 'tick') {
-        // Lightweight tick: just player positions + alive status
-        // Client updates grid locally
+        // Store targets in interpolation buffer & update trail immediately
+        for (let i = 0; i < 2; i++) {
+          interpBuffer.p[i].targetX = d.p[i].x;
+          interpBuffer.p[i].targetY = d.p[i].y;
+          interpBuffer.p[i].dir = d.p[i].d;
+          interpBuffer.p[i].alive = d.p[i].a;
+          if (d.p[i].a && d.p[i].x >= 0 && d.p[i].x < COLS && d.p[i].y >= 0 && d.p[i].y < ROWS) {
+            grid[d.p[i].y][d.p[i].x] = i + 1;
+          }
+        }
+        // Apply positions
         for (let i = 0; i < 2; i++) {
           players[i].x = d.p[i].x;
           players[i].y = d.p[i].y;
           players[i].dir = d.p[i].d;
           players[i].alive = d.p[i].a;
-          // Add trail to local grid
-          if (d.p[i].a && d.p[i].x >= 0 && d.p[i].x < COLS && d.p[i].y >= 0 && d.p[i].y < ROWS) {
-            grid[d.p[i].y][d.p[i].x] = i + 1;
-          }
         }
+        lastTickTime = performance.now();
       }
       else if (d.t === 'init') {
         // Full state on round start
@@ -213,9 +235,20 @@
       else if (d.t === 'go') hideOverlay();
       else if (d.t === 're') handleRoundEnd(d.w, d.cp);
       else if (d.t === 'me') handleMatchEnd(d.w);
+      // ── Ping / Pong ──
+      else if (d.t === 'ping') { send({ t: 'pong', ts: d.ts }); }
+      else if (d.t === 'pong') { latency = Math.round((performance.now() - d.ts) / 2); }
+      // ── Rematch ──
+      else if (d.t === 'rematch' && isHost) {
+        scores = [0, 0]; round = 1; updateHUD(); startRound();
+      }
     });
 
-    conn.on('close', () => { stopGame(); showOverlay('Disconnected', 'Opponent left', '#ff4d6d'); });
+    conn.on('close', () => {
+      stopGame();
+      clearMatchEndBtns();
+      showOverlay('Disconnected', 'Opponent left', '#ff4d6d');
+    });
     conn.on('error', err => { console.warn('Connection error:', err); });
   }
 
@@ -283,6 +316,12 @@
   function tick() {
     if (!gameRunning) return;
 
+    // Periodic ping to measure latency (~every 2s)
+    if (isHost && performance.now() - lastPingTime > 2000) {
+      lastPingTime = performance.now();
+      send({ t: 'ping', ts: performance.now() });
+    }
+
     // Host input
     if (myDir && isHost) { const p = players[0]; if (OPPOSITE[myDir] !== p.dir) p.dir = myDir; myDir = null; }
 
@@ -342,14 +381,62 @@
     }, 800);
   }
 
+  function clearMatchEndBtns() {
+    var old = document.getElementById('match-end-btns');
+    if (old) old.remove();
+  }
+
   function handleMatchEnd(w) {
     const isMe = w === myPlayer;
     if (isMe) sfxMatchWin(); else sfxCrash();
     if (window.GamePlatform) {
       GamePlatform.recordGame('tron-online', scores[0] + scores[1], 0, { win: isMe });
     }
-    showOverlay(isMe ? 'You Win!' : 'You Lose', scores[0] + ' - ' + scores[1] + '  (First to ' + ROUNDS_TO_WIN + ')', isMe ? '#ffd700' : '#ff4d6d');
-    setTimeout(() => { scores = [0, 0]; round = 1; updateHUD(); if (isHost) startRound(); }, 5000);
+
+    showOverlay(
+      isMe ? 'You Win!' : 'You Lose',
+      scores[0] + ' - ' + scores[1] + '  (First to ' + ROUNDS_TO_WIN + ')',
+      isMe ? '#ffd700' : '#ff4d6d'
+    );
+
+    // Remove any stale buttons
+    clearMatchEndBtns();
+
+    var btnContainer = document.createElement('div');
+    btnContainer.id = 'match-end-btns';
+    btnContainer.style.cssText = 'display:flex;gap:12px;margin-top:16px;justify-content:center';
+
+    var rematchBtn = document.createElement('button');
+    rematchBtn.textContent = 'Rematch';
+    rematchBtn.style.cssText = 'padding:10px 28px;font-size:15px;font-weight:700;border:2px solid #00f0ff;border-radius:6px;background:transparent;color:#00f0ff;cursor:pointer;transition:background .15s';
+    rematchBtn.onmouseenter = function () { rematchBtn.style.background = 'rgba(0,240,255,0.12)'; };
+    rematchBtn.onmouseleave = function () { rematchBtn.style.background = 'transparent'; };
+    rematchBtn.onclick = function () {
+      clearMatchEndBtns();
+      scores = [0, 0]; round = 1;
+      updateHUD();
+      if (isHost) {
+        startRound();
+      } else {
+        send({ t: 'rematch' });
+        showOverlay('Waiting...', 'Waiting for host to start', '#888');
+      }
+    };
+
+    var leaveBtn = document.createElement('button');
+    leaveBtn.textContent = 'Leave';
+    leaveBtn.style.cssText = 'padding:10px 28px;font-size:15px;font-weight:700;border:2px solid #666;border-radius:6px;background:transparent;color:#888;cursor:pointer;transition:background .15s';
+    leaveBtn.onmouseenter = function () { leaveBtn.style.background = 'rgba(255,255,255,0.06)'; };
+    leaveBtn.onmouseleave = function () { leaveBtn.style.background = 'transparent'; };
+    leaveBtn.onclick = function () {
+      if (conn && conn.open) conn.close();
+      if (peer) peer.destroy();
+      location.reload();
+    };
+
+    btnContainer.appendChild(rematchBtn);
+    btnContainer.appendChild(leaveBtn);
+    gameOverlay.appendChild(btnContainer);
   }
 
   // ── HUD & Overlays ──
@@ -390,8 +477,19 @@
 
   // ── Render ──
   function renderLoop() {
-    updateParticles(); render();
+    updateParticles(); render(); updateLatencyDisplay();
     if (!gameScreen.classList.contains('hidden')) requestAnimationFrame(renderLoop);
+  }
+
+  function updateLatencyDisplay() {
+    var latEl = document.getElementById('latency-display');
+    if (!latEl) return;
+    if (latency > 0) {
+      var color = latency < 50 ? '#00e676' : latency < 100 ? '#ffd700' : '#ff4d6d';
+      latEl.innerHTML = '<span style="color:' + color + '">&#9679; ' + latency + 'ms</span>';
+    } else {
+      latEl.innerHTML = '';
+    }
   }
 
   function render() {

@@ -131,6 +131,11 @@ body.gp-has-header {
   margin-bottom: 4px;
 }
 
+/* Ensure game canvases prevent scroll but body allows it */
+canvas {
+  touch-action: none;
+}
+
 /* Responsive */
 @media (max-width: 500px) {
   .gp-header-stats { gap: 12px; font-size: 12px; }

@@ -547,15 +547,73 @@ let laserTimer = 0;    // countdown to next laser shot
 let magnetStuck = false; // is ball stuck to paddle via magnet
 let magnetBallOffset = 0; // offset of stuck ball from paddle center
 
+// ── Boss Mode State ──
+let bossMode = false;
+let boss = null;
+let bossProjectiles = [];
+
+// ── Precision Mode State ──
+let precisionMode = false;
+let precisionLoop = 0; // how many times we've looped through all 5 levels
+
+// ── Screen Flash ──
+let screenFlashColor = null;
+let screenFlashAlpha = 0;
+
+function screenFlash(color) {
+  screenFlashColor = color;
+  screenFlashAlpha = 0.4;
+}
+
+// ── Combo Text ──
+let comboTexts = [];
+
+function showComboText(text) {
+  comboTexts.push({
+    text: text,
+    x: canvas.width / 2,
+    y: canvas.height / 2 - 40,
+    life: 1.0,
+    vy: -0.8,
+    scale: 1.5
+  });
+}
+
+function updateComboTexts() {
+  for (let i = comboTexts.length - 1; i >= 0; i--) {
+    const ct = comboTexts[i];
+    ct.y += ct.vy;
+    ct.life -= 0.012;
+    ct.scale *= 0.995;
+    if (ct.life <= 0) comboTexts.splice(i, 1);
+  }
+}
+
+function drawComboTexts() {
+  for (const ct of comboTexts) {
+    ctx.save();
+    ctx.globalAlpha = ct.life;
+    ctx.fillStyle = '#ffd700';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.font = 'bold ' + Math.round(28 * ct.scale) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.strokeText(ct.text, ct.x, ct.y);
+    ctx.fillText(ct.text, ct.x, ct.y);
+    ctx.restore();
+  }
+}
+
 // ── Laser beam object ──
 function spawnLaser() {
   sfxLaserShoot();
-  lasers.push({
-    x: paddle.x + paddle.w / 2,
-    y: paddle.y,
-    vy: -10,
-    alive: true
-  });
+  // Dual lasers when Wide + Laser are both active
+  if (activeEffects['wide'] && activeEffects['laser']) {
+    lasers.push({ x: paddle.x + 6, y: paddle.y, vy: -10, alive: true });
+    lasers.push({ x: paddle.x + paddle.w - 6, y: paddle.y, vy: -10, alive: true });
+  } else {
+    lasers.push({ x: paddle.x + paddle.w / 2, y: paddle.y, vy: -10, alive: true });
+  }
 }
 
 // ── Input: Keyboard ──
@@ -610,7 +668,389 @@ function releaseMagnetBall() {
 
 function getBallSpeed() {
   const world = WORLDS[currentWorld];
-  return world.baseSpeed + (currentLevel - 1) * 0.3;
+  const levelNum = (typeof currentLevel === 'number') ? currentLevel : LEVELS_PER_WORLD;
+  let speed = world.baseSpeed + (levelNum - 1) * 0.3;
+  if (precisionMode) {
+    speed *= 1.2;
+    speed += precisionLoop * 0.5; // gets faster each loop
+  }
+  return speed;
+}
+
+// ── Boss Level Functions ──
+function startBossLevel(worldNum) {
+  _gameRecorded = false;
+  bossMode = true;
+  bossProjectiles = [];
+  currentWorld = worldNum;
+  currentLevel = 'B';
+  score = score || 0; // keep score from the level
+  powerups = [];
+  activeEffects = {};
+  particles = [];
+  floatingTexts = [];
+  comboTexts = [];
+  ballTrails = new Map();
+  lasers = [];
+  laserTimer = 0;
+  magnetStuck = false;
+  magnetBallOffset = 0;
+  shakeAmount = 0;
+  shakeDuration = 0;
+  running = true;
+
+  boss = {
+    x: canvas.width / 2 - BRICK_WIDTH * 2,
+    y: 30,
+    w: BRICK_WIDTH * 4,
+    h: BRICK_HEIGHT * 2,
+    hp: [20, 35, 50][worldNum - 1],
+    maxHp: [20, 35, 50][worldNum - 1],
+    speed: [1, 1.5, 2.5][worldNum - 1],
+    dx: 1,
+    color: WORLDS[worldNum].colors[0],
+    shieldTimer: 0,
+    shieldInterval: [10000, 8000, 6000][worldNum - 1],
+    attackTimer: 0,
+    attackInterval: worldNum === 3 ? 3000 : 0,
+    worldNum: worldNum,
+    lastTime: Date.now(),
+    dropTimer: 0,
+    dropInterval: worldNum === 2 ? 5000 : 0
+  };
+
+  bricks = [];
+  buildBossShield(worldNum);
+
+  resetBalls();
+  resetPaddle();
+  updateHUD();
+  updatePowerupHUD();
+  hideSecondaryBtn();
+  if (animId) cancelAnimationFrame(animId);
+  if (window.GamePlatform) GamePlatform.startTimer();
+  loop();
+}
+
+function buildBossShield(worldNum) {
+  var shieldRows = worldNum === 1 ? 1 : worldNum === 2 ? 2 : 2;
+  var worldColors = WORLDS[worldNum].colors;
+  var bossLeft = Math.floor((boss.x - BRICK_OFFSET_LEFT) / (BRICK_WIDTH + BRICK_PADDING));
+  var bossRight = Math.ceil((boss.x + boss.w - BRICK_OFFSET_LEFT) / (BRICK_WIDTH + BRICK_PADDING));
+  bossLeft = Math.max(0, bossLeft - 1);
+  bossRight = Math.min(BRICK_COLS, bossRight + 1);
+
+  // Shield starts below the boss
+  var shieldStartY = boss.y + boss.h + 10;
+
+  // Clear existing bricks and rebuild
+  bricks = [];
+  BRICK_ROWS = shieldRows;
+  for (var r = 0; r < shieldRows; r++) {
+    bricks[r] = [];
+    for (var c = 0; c < BRICK_COLS; c++) {
+      var inRange = c >= bossLeft && c < bossRight;
+      var colorIdx = r % worldColors.length;
+      bricks[r][c] = {
+        x: BRICK_OFFSET_LEFT + c * (BRICK_WIDTH + BRICK_PADDING),
+        y: shieldStartY + r * (BRICK_HEIGHT + BRICK_PADDING),
+        w: BRICK_WIDTH,
+        h: BRICK_HEIGHT,
+        alive: inRange,
+        color: worldColors[colorIdx],
+        points: ROW_POINTS[colorIdx],
+        row: colorIdx,
+        isShield: true
+      };
+    }
+  }
+}
+
+function spawnBossProjectile() {
+  if (!boss) return;
+  var px = boss.x + boss.w / 2 + (Math.random() - 0.5) * boss.w * 0.6;
+  var py = boss.y + boss.h;
+  bossProjectiles.push({
+    x: px,
+    y: py,
+    w: 8,
+    h: 8,
+    vy: 3 + Math.random() * 1.5,
+    color: '#ff4d6d'
+  });
+  playTone(180, 0.1, 'sawtooth', 0.08);
+}
+
+function spawnBossObstacle() {
+  if (!boss) return;
+  // W2 boss drops an obstacle brick downward
+  var px = boss.x + Math.random() * boss.w;
+  var py = boss.y + boss.h;
+  bossProjectiles.push({
+    x: px - BRICK_WIDTH / 4,
+    y: py,
+    w: BRICK_WIDTH / 2,
+    h: BRICK_HEIGHT / 2,
+    vy: 2,
+    color: WORLDS[boss.worldNum].colors[Math.floor(Math.random() * 3)],
+    isObstacle: true
+  });
+  playTone(220, 0.08, 'square', 0.06);
+}
+
+function updateBoss(dt) {
+  if (!boss) return;
+
+  var now = Date.now();
+  var elapsed = now - boss.lastTime;
+  boss.lastTime = now;
+
+  // Move boss
+  boss.x += boss.speed * boss.dx;
+  if (boss.x <= 0) { boss.x = 0; boss.dx = 1; }
+  if (boss.x + boss.w >= canvas.width) { boss.x = canvas.width - boss.w; boss.dx = -1; }
+
+  // Regenerate shield
+  boss.shieldTimer += elapsed;
+  if (boss.shieldTimer >= boss.shieldInterval) {
+    boss.shieldTimer = 0;
+    buildBossShield(boss.worldNum);
+  }
+
+  // Boss attacks (World 3: projectiles)
+  if (boss.attackInterval > 0) {
+    boss.attackTimer += elapsed;
+    if (boss.attackTimer >= boss.attackInterval) {
+      boss.attackTimer = 0;
+      spawnBossProjectile();
+    }
+  }
+
+  // Boss drops (World 2: obstacles)
+  if (boss.dropInterval > 0) {
+    boss.dropTimer += elapsed;
+    if (boss.dropTimer >= boss.dropInterval) {
+      boss.dropTimer = 0;
+      spawnBossObstacle();
+    }
+  }
+
+  // Update boss projectiles
+  for (var i = bossProjectiles.length - 1; i >= 0; i--) {
+    var proj = bossProjectiles[i];
+    proj.y += proj.vy;
+
+    // Off screen
+    if (proj.y > canvas.height) {
+      bossProjectiles.splice(i, 1);
+      continue;
+    }
+
+    // Hit paddle
+    if (proj.x + proj.w > paddle.x && proj.x < paddle.x + paddle.w &&
+        proj.y + proj.h > paddle.y && proj.y < paddle.y + paddle.h) {
+      bossProjectiles.splice(i, 1);
+      triggerShake(6, 10);
+      spawnParticles(proj.x + proj.w / 2, proj.y + proj.h / 2, proj.color, 10);
+      // Lose a life
+      lives--;
+      sfxLifeLost();
+      updateHUD();
+      if (lives <= 0) {
+        gameOver(false);
+        return;
+      }
+      continue;
+    }
+  }
+
+  // Check ball collision with boss body
+  for (var bi = 0; bi < balls.length; bi++) {
+    var ball = balls[bi];
+    if (magnetStuck && bi === 0) continue;
+    if (ball.x + ball.r > boss.x && ball.x - ball.r < boss.x + boss.w &&
+        ball.y + ball.r > boss.y && ball.y - ball.r < boss.y + boss.h) {
+      boss.hp--;
+      ball.dy = Math.abs(ball.dy); // bounce down
+      sfxBrickBreak(0);
+      spawnParticles(ball.x, ball.y, boss.color, 8);
+      screenFlash(boss.color);
+      triggerShake(4, 8);
+
+      var pts = 10 * boss.worldNum;
+      score += pts;
+      spawnFloatingText(ball.x, ball.y, '+' + pts, boss.color);
+      updateHUD();
+
+      if (boss.hp <= 0) {
+        bossDefeated();
+        return;
+      }
+    }
+  }
+
+  // Check laser collision with boss
+  for (var li = lasers.length - 1; li >= 0; li--) {
+    var laser = lasers[li];
+    if (laser.x > boss.x && laser.x < boss.x + boss.w &&
+        laser.y > boss.y && laser.y < boss.y + boss.h) {
+      boss.hp--;
+      lasers.splice(li, 1);
+      spawnParticles(laser.x, laser.y, '#ffff00', 6);
+      screenFlash('#ffff00');
+
+      var lpts = 5 * boss.worldNum;
+      score += lpts;
+      spawnFloatingText(laser.x, laser.y, '+' + lpts, '#ffff00');
+      updateHUD();
+
+      if (boss.hp <= 0) {
+        bossDefeated();
+        return;
+      }
+    }
+  }
+}
+
+function drawBoss() {
+  if (!boss) return;
+
+  // Boss body
+  var bossGrad = ctx.createLinearGradient(boss.x, boss.y, boss.x, boss.y + boss.h);
+  bossGrad.addColorStop(0, lightenColor(boss.color, 40));
+  bossGrad.addColorStop(0.5, boss.color);
+  bossGrad.addColorStop(1, darkenColor(boss.color, 40));
+  ctx.fillStyle = bossGrad;
+  ctx.save();
+  ctx.shadowColor = boss.color;
+  ctx.shadowBlur = 20;
+  ctx.beginPath();
+  roundRect(ctx, boss.x, boss.y, boss.w, boss.h, 6);
+  ctx.fill();
+  ctx.restore();
+
+  // Shine highlight
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  roundRect(ctx, boss.x + 3, boss.y + 2, boss.w - 6, boss.h * 0.3, 4);
+  ctx.fill();
+  ctx.restore();
+
+  // Health bar
+  var barW = boss.w;
+  var barH = 6;
+  var barY = boss.y - 14;
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  roundRect(ctx, boss.x, barY, barW, barH, 3);
+  ctx.fill();
+  var hpFraction = boss.hp / boss.maxHp;
+  var hpColor = hpFraction > 0.3 ? '#00e676' : '#ff4d6d';
+  ctx.fillStyle = hpColor;
+  ctx.beginPath();
+  roundRect(ctx, boss.x, barY, barW * hpFraction, barH, 3);
+  ctx.fill();
+
+  // HP text
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(boss.hp + '/' + boss.maxHp, boss.x + boss.w / 2, barY - 3);
+
+  // BOSS label
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('BOSS', boss.x + boss.w / 2, boss.y + boss.h / 2 + 6);
+
+  // Draw boss projectiles
+  for (var proj of bossProjectiles) {
+    ctx.save();
+    ctx.fillStyle = proj.color;
+    ctx.shadowColor = proj.color;
+    ctx.shadowBlur = 8;
+    if (proj.isObstacle) {
+      ctx.beginPath();
+      roundRect(ctx, proj.x, proj.y, proj.w, proj.h, 3);
+      ctx.fill();
+    } else {
+      ctx.fillRect(proj.x, proj.y, proj.w, proj.h);
+    }
+    ctx.restore();
+  }
+}
+
+function bossDefeated() {
+  var defeatedWorld = boss.worldNum;
+  boss = null;
+  bossMode = false;
+  bossProjectiles = [];
+  running = false;
+  cancelAnimationFrame(animId);
+  Object.values(activeEffects).forEach(function(e) { clearTimeout(e.timer); });
+  activeEffects = {};
+  powerupHud.innerHTML = '';
+  lasers = [];
+  magnetStuck = false;
+
+  sfxWin();
+
+  // Big explosion particles
+  for (var i = 0; i < 50; i++) {
+    spawnParticles(
+      canvas.width / 2 + (Math.random() - 0.5) * 200,
+      80 + Math.random() * 60,
+      ['#ffd700', '#ff6600', '#ff4d6d', '#00e676', '#00d4ff'][Math.floor(Math.random() * 5)],
+      5
+    );
+  }
+  screenFlash('#ffd700');
+  triggerShake(10, 20);
+
+  // Save progress for the world's level 5
+  saveLevelResult(defeatedWorld, LEVELS_PER_WORLD, score);
+  saveHighScore(score);
+
+  if (window.GamePlatform) {
+    _gameRecorded = true;
+    var t = GamePlatform.stopTimer();
+    GamePlatform.recordGame('breakout', score, t * 1000, {
+      win: true,
+      world: defeatedWorld,
+      level: 'Boss'
+    });
+    GamePlatform.updateScore(score);
+  }
+
+  // Check if all worlds completed
+  var allDone = defeatedWorld === 3;
+
+  overlayTitle.textContent = 'BOSS DEFEATED!';
+  overlayTitle.style.color = '#ffd700';
+
+  var msgText = allDone
+    ? 'All worlds completed!\nFinal Score: ' + score
+    : 'World ' + defeatedWorld + ' Complete!\nScore: ' + score;
+  overlayMsg.textContent = msgText;
+
+  var howTo = overlay.querySelector('.how-to-play');
+  if (howTo) howTo.style.display = 'none';
+  highscoresDiv.classList.add('hidden');
+
+  if (allDone) {
+    overlayBtn.textContent = 'Play';
+    hideSecondaryBtn();
+  } else {
+    overlayBtn.textContent = 'Next Level';
+    currentWorld = defeatedWorld;
+    currentLevel = LEVELS_PER_WORLD; // so goToNextLevel advances to next world
+    setupSecondaryBtn();
+  }
+
+  hidePrecisionBtn();
+  overlay.classList.remove('hidden');
 }
 
 // ── Level Select Screen ──
@@ -689,8 +1129,39 @@ function renderLevelSelect() {
   });
 }
 
+// ── Precision Mode Scoring ──
+const PRECISION_HS_KEY = 'breakout_precision_highscores';
+
+function loadPrecisionScores() {
+  try { return JSON.parse(localStorage.getItem(PRECISION_HS_KEY)) || []; }
+  catch { return []; }
+}
+
+function savePrecisionScore(s) {
+  const scores = loadPrecisionScores();
+  scores.push({ score: s, date: new Date().toLocaleDateString() });
+  scores.sort((a, b) => b.score - a.score);
+  localStorage.setItem(PRECISION_HS_KEY, JSON.stringify(scores.slice(0, 5)));
+}
+
+function renderPrecisionScores() {
+  const scores = loadPrecisionScores();
+  if (scores.length === 0) { highscoresDiv.classList.add('hidden'); return; }
+  highscoresDiv.classList.remove('hidden');
+  scoreList.innerHTML = '<li style="color:#ffd700;font-weight:700;margin-bottom:4px">Precision Leaderboard</li>' +
+    scores.map((s, i) => `<li>#${i + 1}  ${String(s.score).padStart(5, ' ')}  ${s.date}</li>`).join('');
+}
+
+function startPrecisionMode() {
+  precisionMode = true;
+  precisionLoop = 0;
+  startLevel(1, 1);
+}
+
 // ── Overlay / Start Screen ──
 function showStartScreen() {
+  precisionMode = false;
+  precisionLoop = 0;
   overlayTitle.textContent = 'Breakout';
   overlayTitle.style.color = '#00d4ff';
   overlayMsg.textContent = 'Click or tap to start';
@@ -698,8 +1169,15 @@ function showStartScreen() {
   // Show how-to-play and highscores
   const howTo = overlay.querySelector('.how-to-play');
   if (howTo) howTo.style.display = '';
+  var precBtn = document.getElementById('precision-btn');
+  if (precBtn) precBtn.style.display = '';
   renderHighScores();
   overlay.classList.remove('hidden');
+}
+
+function hidePrecisionBtn() {
+  var precBtn = document.getElementById('precision-btn');
+  if (precBtn) precBtn.style.display = 'none';
 }
 
 overlayBtn.addEventListener('click', () => {
@@ -713,8 +1191,19 @@ overlayBtn.addEventListener('click', () => {
     goToNextLevel();
   } else if (btnText === 'Retry') {
     overlay.classList.add('hidden');
-    startLevel(currentWorld, currentLevel);
+    if (currentLevel === 'B') {
+      startBossLevel(currentWorld);
+    } else {
+      startLevel(currentWorld, currentLevel);
+    }
   }
+});
+
+// Precision Mode button
+document.getElementById('precision-btn').addEventListener('click', () => {
+  ensureAudio();
+  overlay.classList.add('hidden');
+  startPrecisionMode();
 });
 
 // Secondary button handler (Level Select from result screen)
@@ -743,14 +1232,18 @@ function hideSecondaryBtn() {
 // ── Initialisation ──
 function startLevel(world, level) {
   _gameRecorded = false;
+  bossMode = false;
+  boss = null;
+  bossProjectiles = [];
   currentWorld = world;
   currentLevel = level;
   score = 0;
-  lives = 3;
+  lives = precisionMode ? 1 : 3;
   powerups = [];
   activeEffects = {};
   particles = [];
   floatingTexts = [];
+  comboTexts = [];
   ballTrails = new Map();
   lasers = [];
   laserTimer = 0;
@@ -771,6 +1264,16 @@ function startLevel(world, level) {
 }
 
 function goToNextLevel() {
+  if (precisionMode) {
+    // In precision mode, loop through World 1 levels
+    let nextLevel = currentLevel + 1;
+    if (nextLevel > LEVELS_PER_WORLD) {
+      precisionLoop++;
+      nextLevel = 1;
+    }
+    startLevel(1, nextLevel);
+    return;
+  }
   let nextWorld = currentWorld;
   let nextLevel = currentLevel + 1;
   if (nextLevel > LEVELS_PER_WORLD) {
@@ -838,6 +1341,7 @@ function buildBricks() {
 
 // ── Power-up helpers ──
 function spawnPowerup(x, y) {
+  if (precisionMode) return; // No power-ups in precision mode
   if (Math.random() > POWERUP_DROP_CHANCE) return;
   const type = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
   powerups.push({ x, y, type, vy: POWERUP_SPEED, angle: 0 });
@@ -887,7 +1391,21 @@ function activatePowerup(type) {
       setTimedEffect('magnet', type.duration);
       break;
   }
+  checkCombos();
   updatePowerupHUD();
+}
+
+// ── Power-Up Combinations ──
+function checkCombos() {
+  if (activeEffects['fire'] && balls.length > 1) {
+    showComboText('FIRE STORM!');
+  }
+  if (activeEffects['wide'] && activeEffects['laser']) {
+    showComboText('DUAL LASERS!');
+  }
+  if (activeEffects['magnet'] && balls.length > 1) {
+    showComboText('MAGNET FIELD!');
+  }
 }
 
 function setTimedEffect(id, duration) {
@@ -974,7 +1492,8 @@ function update() {
         if (laser.x >= b.x && laser.x <= b.x + b.w &&
             laser.y >= b.y && laser.y <= b.y + b.h) {
           b.alive = false;
-          const globalLevel = (currentWorld - 1) * LEVELS_PER_WORLD + currentLevel;
+          const lvlNum = (typeof currentLevel === 'number') ? currentLevel : LEVELS_PER_WORLD;
+          const globalLevel = (currentWorld - 1) * LEVELS_PER_WORLD + lvlNum;
           const pts = b.points * globalLevel;
           score += pts;
           sfxBrickBreak(b.row);
@@ -1060,7 +1579,8 @@ function update() {
           ball.y - ball.r < b.y + b.h
         ) {
           b.alive = false;
-          const globalLevel = (currentWorld - 1) * LEVELS_PER_WORLD + currentLevel;
+          const lvlNum2 = (typeof currentLevel === 'number') ? currentLevel : LEVELS_PER_WORLD;
+          const globalLevel = (currentWorld - 1) * LEVELS_PER_WORLD + lvlNum2;
           const pts = b.points * globalLevel;
           score += pts;
           sfxBrickBreak(b.row);
@@ -1133,18 +1653,30 @@ function update() {
   updateParticles();
   updateFloatingTexts();
   updateTrails();
+  updateComboTexts();
+
+  // Screen flash decay
+  if (screenFlashAlpha > 0) screenFlashAlpha -= 0.02;
+
+  // Update boss
+  if (bossMode) {
+    updateBoss();
+    if (!running) return; // boss defeated or game over
+  }
 
   // Update power-up timer display every frame
   if (Object.keys(activeEffects).length > 0) updatePowerupHUD();
 
-  // Check level cleared
-  let allCleared = true;
-  for (let r = 0; r < BRICK_ROWS && allCleared; r++)
-    for (let c = 0; c < BRICK_COLS && allCleared; c++)
-      if (bricks[r][c].alive) allCleared = false;
+  // Check level cleared (skip in boss mode - boss has own win condition)
+  if (!bossMode) {
+    let allCleared = true;
+    for (let r = 0; r < BRICK_ROWS && allCleared; r++)
+      for (let c = 0; c < BRICK_COLS && allCleared; c++)
+        if (bricks[r][c].alive) allCleared = false;
 
-  if (allCleared) {
-    return levelComplete();
+    if (allCleared) {
+      return levelComplete();
+    }
   }
 }
 
@@ -1265,13 +1797,19 @@ function draw() {
   ctx.fill();
   ctx.restore();
 
-  // Laser barrel indicator
+  // Laser barrel indicator(s)
   if (hasLaser) {
     ctx.save();
     ctx.fillStyle = '#ffff00';
     ctx.shadowColor = '#ffff00';
     ctx.shadowBlur = 6;
-    ctx.fillRect(paddle.x + paddle.w / 2 - 2, paddle.y - 4, 4, 4);
+    if (isWide) {
+      // Dual laser barrels
+      ctx.fillRect(paddle.x + 4, paddle.y - 4, 4, 4);
+      ctx.fillRect(paddle.x + paddle.w - 8, paddle.y - 4, 4, 4);
+    } else {
+      ctx.fillRect(paddle.x + paddle.w / 2 - 2, paddle.y - 4, 4, 4);
+    }
     ctx.restore();
   }
 
@@ -1321,6 +1859,43 @@ function draw() {
     ctx.restore();
   }
 
+  // Boss
+  drawBoss();
+
+  // Combo texts
+  drawComboTexts();
+
+  // Screen flash overlay
+  if (screenFlashAlpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = screenFlashAlpha;
+    ctx.fillStyle = screenFlashColor || '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  // Precision mode HUD indicator
+  if (precisionMode) {
+    ctx.save();
+    ctx.globalAlpha = 0.6 + 0.2 * Math.sin(gameTime * 0.05);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('PRECISION MODE', canvas.width / 2, canvas.height - 8);
+    ctx.restore();
+  }
+
+  // Boss mode world indicator
+  if (bossMode) {
+    ctx.save();
+    ctx.globalAlpha = 0.6 + 0.3 * Math.sin(gameTime * 0.08);
+    ctx.fillStyle = '#ff4d6d';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('BOSS FIGHT', canvas.width / 2, canvas.height - 8);
+    ctx.restore();
+  }
+
   ctx.restore(); // end shake transform
 }
 
@@ -1354,7 +1929,14 @@ function roundRect(ctx, x, y, w, h, r) {
 // ── HUD ──
 function updateHUD() {
   scoreEl.textContent = 'Score: ' + score;
-  levelEl.textContent = 'World ' + currentWorld + '-' + currentLevel;
+  if (bossMode) {
+    levelEl.textContent = 'World ' + currentWorld + ' BOSS';
+  } else if (precisionMode) {
+    var loopLabel = precisionLoop > 0 ? ' (x' + (precisionLoop + 1) + ')' : '';
+    levelEl.textContent = 'Precision ' + currentLevel + loopLabel;
+  } else {
+    levelEl.textContent = 'World ' + currentWorld + '-' + currentLevel;
+  }
   livesEl.textContent = 'Lives: ' + lives;
   if (window.GamePlatform) GamePlatform.updateScore(score);
 }
@@ -1369,9 +1951,23 @@ function levelComplete() {
   lasers = [];
   magnetStuck = false;
 
+  // If completing level 5 of a world (and not precision mode), go to boss fight
+  if (!precisionMode && currentLevel === LEVELS_PER_WORLD) {
+    // Don't save level 5 yet - save after boss is defeated to gate world unlock
+    var bossWorld = currentWorld;
+    // Brief delay then start boss
+    setTimeout(function() { startBossLevel(bossWorld); }, 600);
+    sfxLevelComplete();
+    return;
+  }
+
   sfxLevelComplete();
 
-  const starsEarned = saveLevelResult(currentWorld, currentLevel, score);
+  if (precisionMode) {
+    savePrecisionScore(score);
+  } else {
+    saveLevelResult(currentWorld, currentLevel, score);
+  }
   saveHighScore(score);
 
   if (window.GamePlatform) {
@@ -1380,33 +1976,45 @@ function levelComplete() {
     GamePlatform.recordGame('breakout', score, t * 1000, {
       win: true,
       world: currentWorld,
-      level: currentLevel
+      level: currentLevel,
+      precision: precisionMode
     });
     GamePlatform.updateScore(score);
   }
 
-  // Check if a new world was just unlocked
-  const nextWorld = currentWorld + (currentLevel === LEVELS_PER_WORLD ? 1 : 0);
-  if (currentLevel === LEVELS_PER_WORLD && nextWorld <= 3 && isWorldUnlocked(nextWorld)) {
-    sfxWorldUnlock();
+  if (!precisionMode) {
+    // Check if a new world was just unlocked
+    const nextWorld = currentWorld + (currentLevel === LEVELS_PER_WORLD ? 1 : 0);
+    if (currentLevel === LEVELS_PER_WORLD && nextWorld <= 3 && isWorldUnlocked(nextWorld)) {
+      sfxWorldUnlock();
+    }
   }
 
   // Check if all worlds completed
-  const allDone = currentWorld === 3 && currentLevel === LEVELS_PER_WORLD;
+  const allDone = !precisionMode && currentWorld === 3 && currentLevel === LEVELS_PER_WORLD;
 
-  // Stars display
+  // Stars display (not in precision mode)
   let starStr = '';
-  for (let i = 1; i <= 3; i++) {
-    starStr += i <= starsEarned ? '\u2605' : '\u2606';
+  if (!precisionMode) {
+    const starsEarned = getLevelStars(currentWorld, currentLevel);
+    for (let i = 1; i <= 3; i++) {
+      starStr += i <= starsEarned ? '\u2605' : '\u2606';
+    }
   }
 
-  overlayTitle.textContent = allDone ? 'Congratulations!' : 'Level Complete!';
-  overlayTitle.style.color = '#ffd700';
-
-  let msgText = allDone
-    ? 'All worlds completed!\nScore: ' + score + '  ' + starStr
-    : 'World ' + currentWorld + '-' + currentLevel + '\nScore: ' + score + '  ' + starStr;
-  overlayMsg.textContent = msgText;
+  if (precisionMode) {
+    overlayTitle.textContent = 'Level Complete!';
+    overlayTitle.style.color = '#ffd700';
+    var loopLabel = precisionLoop > 0 ? ' (Loop ' + (precisionLoop + 1) + ')' : '';
+    overlayMsg.textContent = 'Precision Level ' + currentLevel + loopLabel + '\nScore: ' + score;
+  } else {
+    overlayTitle.textContent = allDone ? 'Congratulations!' : 'Level Complete!';
+    overlayTitle.style.color = '#ffd700';
+    let msgText = allDone
+      ? 'All worlds completed!\nScore: ' + score + '  ' + starStr
+      : 'World ' + currentWorld + '-' + currentLevel + '\nScore: ' + score + '  ' + starStr;
+    overlayMsg.textContent = msgText;
+  }
 
   // Hide how-to-play
   const howTo = overlay.querySelector('.how-to-play');
@@ -1421,12 +2029,16 @@ function levelComplete() {
     setupSecondaryBtn();
   }
 
+  hidePrecisionBtn();
   overlay.classList.remove('hidden');
 }
 
 // ── Game Over ──
 function gameOver(won) {
   running = false;
+  bossMode = false;
+  boss = null;
+  bossProjectiles = [];
   cancelAnimationFrame(animId);
   Object.values(activeEffects).forEach(e => clearTimeout(e.timer));
   activeEffects = {};
@@ -1436,6 +2048,9 @@ function gameOver(won) {
 
   sfxGameOver();
 
+  if (precisionMode) {
+    savePrecisionScore(score);
+  }
   saveHighScore(score);
   if (window.GamePlatform) {
     _gameRecorded = true;
@@ -1443,14 +2058,21 @@ function gameOver(won) {
     GamePlatform.recordGame('breakout', score, t * 1000, {
       win: false,
       world: currentWorld,
-      level: currentLevel
+      level: currentLevel,
+      precision: precisionMode
     });
     GamePlatform.updateScore(score);
   }
 
   overlayTitle.textContent = 'Game Over';
   overlayTitle.style.color = '#ff4d6d';
-  overlayMsg.textContent = 'World ' + currentWorld + '-' + currentLevel + '\nScore: ' + score;
+  if (precisionMode) {
+    overlayMsg.textContent = 'Precision Mode\nScore: ' + score;
+  } else if (currentLevel === 'B') {
+    overlayMsg.textContent = 'World ' + currentWorld + ' Boss\nScore: ' + score;
+  } else {
+    overlayMsg.textContent = 'World ' + currentWorld + '-' + currentLevel + '\nScore: ' + score;
+  }
   overlayBtn.textContent = 'Retry';
 
   // Hide how-to-play
@@ -1459,7 +2081,14 @@ function gameOver(won) {
   highscoresDiv.classList.add('hidden');
 
   setupSecondaryBtn();
+  hidePrecisionBtn();
   overlay.classList.remove('hidden');
+
+  // Reset precision mode on game over
+  if (precisionMode) {
+    precisionMode = false;
+    precisionLoop = 0;
+  }
 }
 
 // ── Loop ──

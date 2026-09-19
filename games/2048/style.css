@@ -19,8 +19,8 @@ body {
   justify-content: center;
   align-items: flex-start;
   padding: 20px 16px;
-  overflow: hidden;
-  touch-action: none;
+  overflow-x: hidden;
+  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
 }

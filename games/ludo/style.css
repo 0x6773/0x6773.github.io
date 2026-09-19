@@ -14,7 +14,7 @@ body {
   justify-content: center;
   align-items: flex-start;
   overflow-x: hidden;
-  touch-action: none;
+  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -576,6 +576,7 @@ body {
   width: 600px;
   height: 600px;
   max-width: 100%;
+  touch-action: none;
 }
 
 /* ---------- Side Panel ---------- */

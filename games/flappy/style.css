@@ -8,10 +8,10 @@
 html, body {
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
   background: #0f0f1a;
   font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  touch-action: none;
+  touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
@@ -75,6 +75,7 @@ html, body {
   width: 100%;
   height: auto;
   cursor: pointer;
+  touch-action: none;
 }
 
 /* ── Overlays ── */

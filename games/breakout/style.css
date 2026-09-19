@@ -12,8 +12,8 @@ body {
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #fff;
-  overflow: hidden;
-  touch-action: none;
+  overflow-x: hidden;
+  touch-action: pan-y;
 }
 
 #game-container {
@@ -103,6 +103,12 @@ canvas {
 
 #overlay-btn-secondary:hover {
   background: #666;
+}
+
+#precision-btn:hover {
+  background: rgba(255,215,0,0.15);
+  border-color: #ffe44d;
+  color: #ffe44d;
 }
 
 /* High Scores */

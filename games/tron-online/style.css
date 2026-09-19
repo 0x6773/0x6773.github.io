@@ -8,8 +8,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
-  touch-action: none;
+  overflow-x: hidden;
+  touch-action: pan-y;
   user-select: none;
 }
 
@@ -150,6 +150,7 @@ canvas {
   border-radius: 0 0 8px 8px;
   border: 2px solid #111;
   border-top: none;
+  touch-action: none;
 }
 
 #game-overlay {
