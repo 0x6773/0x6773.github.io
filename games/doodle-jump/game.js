@@ -567,6 +567,9 @@
               playerCenterX > plat.x && playerCenterX < plat.x + plat.w) {
 
             if (plat.type === "fragile") {
+              // Bounce first, then break
+              player.vy = BOUNCE_VEL;
+              player.y = plat.y - PLAYER_H;
               plat.broken = true;
               plat.breakAnim = 1;
               spawnBreakParticles(plat.x, plat.y);
