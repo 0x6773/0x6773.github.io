@@ -8,6 +8,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>2048</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+  #start-overlay {
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(15,15,26,0.95);display:flex;justify-content:center;
+    align-items:center;z-index:50;
+  }
+  #start-overlay.hidden { display:none; }
+  </style>
 </head>
 <body>
   <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
@@ -26,6 +34,23 @@
       </div>
       <button class="new-game-btn" id="new-game-btn">New Game</button>
     </header>
+
+    <div id="start-overlay">
+      <div style="text-align:center;padding:30px">
+        <h1 style="font-size:48px;margin-bottom:8px;color:#edc22e">2048</h1>
+        <p style="color:#888;margin-bottom:16px">Slide and merge tiles</p>
+        <div style="max-width:340px;text-align:left;margin:0 auto 16px;padding:14px 18px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;line-height:1.7;color:#aaa">
+          <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#666;margin-bottom:8px;text-transform:uppercase">How to Play</div>
+          Arrow keys, WASD, or swipe to slide tiles<br>
+          Matching tiles merge when they collide<br>
+          2 + 2 = 4, 4 + 4 = 8, and so on<br>
+          Reach the 2048 tile to win<br>
+          Game over when no moves remain<br>
+          You can keep playing after reaching 2048
+        </div>
+        <button id="start-game-btn" style="padding:12px 36px;font-size:16px;font-weight:700;border:2px solid #edc22e;border-radius:6px;background:transparent;color:#edc22e;cursor:pointer;letter-spacing:1px">Start Game</button>
+      </div>
+    </div>
 
     <div class="board-container">
       <div class="grid-background" id="grid-background"></div>
@@ -55,5 +80,10 @@
   </div>
 
   <script src="game.js"></script>
+  <script>
+  document.getElementById('start-game-btn').addEventListener('click', function() {
+    document.getElementById('start-overlay').classList.add('hidden');
+  });
+  </script>
 </body>
 </html>
