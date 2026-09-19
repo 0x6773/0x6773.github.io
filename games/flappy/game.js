@@ -345,6 +345,14 @@
   });
   document.addEventListener("keydown", handleInput);
 
+  // Start overlay tap handler (canvas is behind overlay on mobile)
+  startOverlay.addEventListener("pointerdown", (e) => {
+    // Don't start if tapping mode buttons or ghost checkbox
+    if (e.target.closest(".mode-btn") || e.target.closest(".ghost-toggle")) return;
+    e.preventDefault();
+    flap();
+  });
+
   playAgainBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     gameoverOverlay.classList.add("hidden");
