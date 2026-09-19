@@ -405,6 +405,14 @@
       return localStorage.getItem('gp_muted') === '1';
     },
 
+    resetAllData: function() {
+      var data = loadData();
+      var playerName = data.playerName || 'Player';
+      // Clear everything but keep the player name
+      var fresh = { playerName: playerName, gameStats: {}, achievements: {}, recentGames: [], dailyLog: [] };
+      saveData(fresh);
+    },
+
     toggleMute: function() {
       var muted = !this.isMuted();
       localStorage.setItem('gp_muted', muted ? '1' : '0');

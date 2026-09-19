@@ -840,6 +840,8 @@
   <footer class="hub-footer">
     Built with &#x2764;&#xFE0F; | Powered by vanilla JS |
     <a href="https://github.com/0x6773/0x6773.github.io" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <br>
+    <button id="btn-reset-data" style="margin-top:16px;padding:8px 20px;font-size:12px;font-weight:600;letter-spacing:1px;border:1px solid #444;border-radius:6px;background:transparent;color:#888;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='#ff4d6d';this.style.color='#ff4d6d'" onmouseout="this.style.borderColor='#444';this.style.color='#888'">Reset All Stats &amp; Achievements</button>
   </footer>
 
   <!-- ═══════════════════════════════════════════
@@ -1568,6 +1570,21 @@
               card.classList.remove('search-hidden');
             } else {
               card.classList.add('search-hidden');
+            }
+          }
+        });
+      }
+
+      // ── Reset button ──
+      var resetBtn = document.getElementById('btn-reset-data');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+          if (confirm('Are you sure? This will clear all your stats, achievements, and recent activity. Your player name will be kept.')) {
+            var GP = window.GamePlatform;
+            if (GP && GP.resetAllData) {
+              GP.resetAllData();
+              initDashboard(); // refresh the page data
+              if (GP.toast) GP.toast('All stats and achievements have been reset.', 'info');
             }
           }
         });
