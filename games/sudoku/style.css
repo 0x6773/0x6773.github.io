@@ -223,10 +223,10 @@ body {
   grid-template-columns: repeat(9, 1fr);
   gap: 6px;
   margin-bottom: 12px;
+  max-width: 100%;
 }
 
 .num-btn {
-  aspect-ratio: 1;
   border: 1px solid #2a2a4a;
   border-radius: 10px;
   background: #1a1a2e;
@@ -238,7 +238,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
+  min-height: 44px;
+  padding: 8px 0;
 }
 
 .num-btn:hover {
@@ -575,6 +576,18 @@ body {
   }
 }
 
+@media (max-width: 420px) {
+  #number-pad {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+  }
+
+  .num-btn {
+    font-size: 1.2rem;
+    min-height: 42px;
+  }
+}
+
 @media (max-width: 360px) {
   .sudoku-cell {
     font-size: 1rem;
@@ -586,7 +599,7 @@ body {
 
   .num-btn {
     font-size: 1rem;
-    min-height: 40px;
+    min-height: 38px;
   }
 
   #number-pad {

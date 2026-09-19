@@ -457,32 +457,46 @@
 
   // Mobile long-press
   let touchStartCoords = null;
+  let longPressHandled = false; // blocks click after long-press flag
 
   function onTouchStart(e) {
     const coords = getCellCoords(e);
     if (!coords) return;
+    e.preventDefault(); // prevent text selection and default touch behavior
     touchStartCoords = coords;
+    longPressHandled = false;
     longPressTimer = setTimeout(() => {
-      e.preventDefault();
       if (touchStartCoords) {
         toggleFlag(touchStartCoords.r, touchStartCoords.c);
-        touchStartCoords = null; // prevent click after long-press
+        longPressHandled = true;
+        touchStartCoords = null;
       }
     }, 400);
   }
 
   function onTouchEnd(e) {
     clearTimeout(longPressTimer);
-    if (!touchStartCoords) {
-      e.preventDefault(); // was a long-press, don't fire click
-      return;
+    e.preventDefault(); // prevent synthetic click from firing
+    if (longPressHandled) {
+      longPressHandled = false;
+      touchStartCoords = null;
+      return; // was a long-press flag, don't do anything else
     }
-    touchStartCoords = null;
+    // Short tap: treat as a click/reveal
+    if (touchStartCoords) {
+      const { r, c } = touchStartCoords;
+      touchStartCoords = null;
+      if (gameOver || grid[r][c].flagged) return;
+      if (grid[r][c].revealed) { chordCell(r, c); return; }
+      if (!minesGenerated) { generateMines(r, c); startTimer(); }
+      revealCell(r, c);
+    }
   }
 
   function onTouchCancel() {
     clearTimeout(longPressTimer);
     touchStartCoords = null;
+    longPressHandled = false;
   }
 
   // ── Game Over ──

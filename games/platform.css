@@ -131,9 +131,17 @@ body.gp-has-header {
   margin-bottom: 4px;
 }
 
-/* Ensure game canvases prevent scroll but body allows it */
-canvas {
+/* Game canvases prevent scroll; preview canvases in hub should allow scroll */
+canvas#gameCanvas,
+canvas#game-canvas,
+canvas#boardCanvas {
   touch-action: none;
+}
+
+/* Preview canvases on the hub must allow scrolling */
+.game-banner canvas {
+  touch-action: auto;
+  pointer-events: none;
 }
 
 /* Responsive */
