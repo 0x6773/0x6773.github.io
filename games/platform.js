@@ -408,9 +408,22 @@
     resetAllData: function() {
       var data = loadData();
       var playerName = data.playerName || 'Player';
-      // Clear everything but keep the player name
+      // Clear platform data but keep the player name
       var fresh = { playerName: playerName, gameStats: {}, achievements: {}, recentGames: [], dailyLog: [] };
       saveData(fresh);
+      // Clear all game-specific localStorage keys
+      var gameKeys = [
+        'breakout_highscores', 'breakout_progress',
+        'snake_highscores',
+        'flappybird_highscores', 'flappy_ghost',
+        'minesweeper_scores_easy', 'minesweeper_scores_medium', 'minesweeper_scores_hard',
+        '2048_highest_tile_ever', '2048_total_moves_ever',
+        '2048_best_classic', '2048_best_mini', '2048_best_big', '2048_best_timeattack',
+        'tetris_highscores',
+      ];
+      for (var i = 0; i < gameKeys.length; i++) {
+        localStorage.removeItem(gameKeys[i]);
+      }
     },
 
     toggleMute: function() {
