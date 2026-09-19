@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mnciitbhu.me/games/sitemap.xml
