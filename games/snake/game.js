@@ -306,7 +306,8 @@
   function checkNearMiss() {
     if (nearMissCooldown > 0) { nearMissCooldown--; return; }
     const head = snake[0];
-    for (let i = 2; i < snake.length; i++) {
+    // Skip first 5 segments: neck + recent turns are naturally adjacent
+    for (let i = 5; i < snake.length; i++) {
       const dx = Math.abs(head.x - snake[i].x);
       const dy = Math.abs(head.y - snake[i].y);
       if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
