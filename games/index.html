@@ -257,6 +257,23 @@
       </div>
     </a>
 
+    <!-- Tetris -->
+    <a href="tetris/" class="game-card">
+      <div class="game-banner">
+        <canvas id="preview-tetris" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Tetris</h2>
+        <p>Classic falling blocks. Clear lines, level up, chase your high score. Hold, ghost piece, and 7-bag randomizer.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Puzzle</span>
+        <span class="tag">Classic</span>
+        <span class="tag">Canvas</span>
+        <span class="tag">Mobile</span>
+      </div>
+    </a>
+
   </div>
 
   <footer>
@@ -582,6 +599,61 @@
         ctx.fillStyle='#00f0ff'; ctx.fillRect(p1.x*cs,p1.y*cs,cs,cs);
         ctx.fillStyle='#e040fb'; ctx.fillRect(p2.x*cs,p2.y*cs,cs,cs);
         drawWifi(ctx);
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // Tetris preview
+    (function() {
+      const c = document.getElementById('preview-tetris');
+      const ctx = c.getContext('2d');
+      const W = c.width, H = c.height;
+      const cs = 8, cols = 10, rows = 18;
+      const ox = (W - cols*cs)/2, oy = (H - rows*cs)/2;
+      const colors = ['#00d4ff','#ffd700','#e040fb','#00e676','#ff4d6d','#448aff','#ff8c42'];
+      const board = [];
+      for (let y=0;y<rows;y++) { board[y]=[]; for (let x=0;x<cols;x++) board[y][x]=null; }
+      // Pre-fill bottom rows
+      for (let y=rows-5;y<rows;y++) for (let x=0;x<cols;x++) {
+        if (Math.random()>0.3) board[y][x]=colors[Math.floor(Math.random()*colors.length)];
+      }
+      // Falling piece
+      const shapes = [[[0,0],[1,0],[2,0],[3,0]],[[0,0],[1,0],[0,1],[1,1]],[[0,0],[1,0],[2,0],[1,1]]];
+      let piece = {s:shapes[0],c:colors[0],x:3,y:0};
+      let tick = 0;
+      function newPiece() {
+        const si = Math.floor(Math.random()*shapes.length);
+        piece = {s:shapes[si],c:colors[Math.floor(Math.random()*colors.length)],x:Math.floor(Math.random()*7),y:0};
+      }
+      function frame() {
+        tick++;
+        if (tick%8===0) {
+          piece.y++;
+          let landed = false;
+          for (const b of piece.s) {
+            const py=piece.y+b[1], px=piece.x+b[0];
+            if (py>=rows||(py>=0&&board[py]&&board[py][px])) landed=true;
+          }
+          if (landed) {
+            piece.y--;
+            for (const b of piece.s) {
+              const py=piece.y+b[1], px=piece.x+b[0];
+              if (py>=0&&py<rows&&px>=0&&px<cols) board[py][px]=piece.c;
+            }
+            // Clear full rows
+            for (let y=rows-1;y>=0;y--) { if (board[y].every(c=>c!==null)) { board.splice(y,1); board.unshift(new Array(cols).fill(null)); y++; } }
+            newPiece();
+          }
+        }
+        ctx.fillStyle='#111'; ctx.fillRect(0,0,W,H);
+        // Board
+        for (let y=0;y<rows;y++) for (let x=0;x<cols;x++) {
+          if (board[y][x]) { ctx.fillStyle=board[y][x]; ctx.fillRect(ox+x*cs+0.5,oy+y*cs+0.5,cs-1,cs-1); }
+        }
+        // Piece
+        ctx.fillStyle=piece.c;
+        for (const b of piece.s) { const px=ox+(piece.x+b[0])*cs, py=oy+(piece.y+b[1])*cs; ctx.fillRect(px+0.5,py+0.5,cs-1,cs-1); }
         requestAnimationFrame(frame);
       }
       frame();
