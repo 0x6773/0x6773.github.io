@@ -678,13 +678,14 @@ function getBallSpeed() {
 }
 
 // ── Boss Level Functions ──
-function startBossLevel(worldNum) {
+function startBossLevel(worldNum, keepScore) {
   _gameRecorded = false;
   bossMode = true;
   bossProjectiles = [];
   currentWorld = worldNum;
   currentLevel = 'B';
-  score = score || 0; // keep score from the level
+  if (!keepScore) score = 0;
+  lives = 3;
   powerups = [];
   activeEffects = {};
   particles = [];
@@ -1956,7 +1957,7 @@ function levelComplete() {
     // Don't save level 5 yet - save after boss is defeated to gate world unlock
     var bossWorld = currentWorld;
     // Brief delay then start boss
-    setTimeout(function() { startBossLevel(bossWorld); }, 600);
+    setTimeout(function() { startBossLevel(bossWorld, true); }, 600);
     sfxLevelComplete();
     return;
   }
