@@ -15,6 +15,44 @@
     align-items:center;z-index:50;
   }
   #start-overlay.hidden { display:none; }
+  .custom-config {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+    background: #1a1a2e;
+    border-radius: 6px;
+    margin-top: 8px;
+    flex-basis: 100%;
+  }
+  .custom-config.hidden { display: none; }
+  .custom-config label {
+    font-size: 12px;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .custom-config input {
+    width: 50px;
+    padding: 4px 6px;
+    font-size: 13px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #fff;
+    text-align: center;
+  }
+  .custom-config button {
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid #00d4ff;
+    border-radius: 4px;
+    color: #00d4ff;
+    cursor: pointer;
+  }
   </style>
   <link rel="stylesheet" href="../platform.css">
   <script src="../platform.js"></script>
@@ -31,6 +69,13 @@
         <button class="diff-btn active" data-difficulty="easy">Easy</button>
         <button class="diff-btn" data-difficulty="medium">Medium</button>
         <button class="diff-btn" data-difficulty="hard">Hard</button>
+        <button class="diff-btn" data-difficulty="custom">Custom</button>
+      </div>
+      <div id="custom-config" class="custom-config hidden">
+        <label>Rows: <input type="number" id="custom-rows" min="5" max="30" value="16"></label>
+        <label>Cols: <input type="number" id="custom-cols" min="5" max="30" value="16"></label>
+        <label>Mines: <input type="number" id="custom-mines" min="1" max="200" value="40"></label>
+        <button id="custom-apply">Apply</button>
       </div>
       <div id="timer-display" class="hud-display">
         <span class="hud-icon">&#x23F1;</span>
@@ -53,7 +98,7 @@
           Numbers show adjacent mine count<br>
           Clear all non-mine cells to win<br>
           First click is always safe<br>
-          3 difficulties: Easy, Medium, Hard
+          4 difficulties: Easy, Medium, Hard, Custom
         </div>
         <button id="start-game-btn" style="padding:12px 36px;font-size:16px;font-weight:700;border:2px solid #00d4ff;border-radius:6px;background:transparent;color:#00d4ff;cursor:pointer;letter-spacing:1px">Start Game</button>
       </div>

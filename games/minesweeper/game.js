@@ -8,6 +8,7 @@
     easy:   { rows: 9,  cols: 9,  mines: 10  },
     medium: { rows: 16, cols: 16, mines: 40  },
     hard:   { rows: 16, cols: 30, mines: 99  },
+    custom: { rows: 16, cols: 16, mines: 40  },
   };
 
   const NUM_COLORS = {
@@ -24,8 +25,10 @@
   let gameOver = false;
   let flagCount = 0;
   let revealedCount = 0;
-  let timerInterval = null;
-  let elapsedSeconds = 0;
+  let timerStart = 0;
+  let timerRunning = false;
+  let timerDisplayInterval = null;
+  let finalElapsed = 0;
   let longPressTimer = null;
 
   // ── DOM ──
@@ -118,25 +121,35 @@
     },
   };
 
-  // ── Timer ──
+  // ── Timer (performance.now based) ──
   function startTimer() {
-    if (timerInterval) return;
-    elapsedSeconds = 0;
+    if (timerRunning) return;
+    timerStart = performance.now();
+    timerRunning = true;
     updateTimerDisplay();
-    timerInterval = setInterval(() => {
-      elapsedSeconds++;
-      updateTimerDisplay();
-    }, 1000);
+    timerDisplayInterval = setInterval(updateTimerDisplay, 200);
   }
 
   function stopTimer() {
-    clearInterval(timerInterval);
-    timerInterval = null;
+    if (timerRunning) {
+      finalElapsed = getElapsedSeconds();
+    }
+    timerRunning = false;
+    if (timerDisplayInterval) {
+      clearInterval(timerDisplayInterval);
+      timerDisplayInterval = null;
+    }
+  }
+
+  function getElapsedSeconds() {
+    if (!timerRunning || !timerStart) return 0;
+    return Math.floor((performance.now() - timerStart) / 1000);
   }
 
   function updateTimerDisplay() {
-    const m = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
-    const s = String(elapsedSeconds % 60).padStart(2, '0');
+    const secs = timerRunning ? getElapsedSeconds() : 0;
+    const m = String(Math.floor(secs / 60)).padStart(2, '0');
+    const s = String(secs % 60).padStart(2, '0');
     timerEl.textContent = `${m}:${s}`;
   }
 
@@ -180,8 +193,9 @@
     minesGenerated = false;
     flagCount = 0;
     revealedCount = 0;
-    elapsedSeconds = 0;
-    updateTimerDisplay();
+    timerStart = 0;
+    finalElapsed = 0;
+    timerEl.textContent = '00:00';
     overlayEl.classList.add('hidden');
 
     const config = DIFFICULTIES[difficulty];
@@ -189,6 +203,10 @@
     cols = config.cols;
     totalMines = config.mines;
     updateMineCounter();
+
+    // Dynamic cell sizing for larger boards
+    const maxWidth = Math.min(window.innerWidth - 40, 600);
+    const cellSize = Math.max(20, Math.min(36, Math.floor(maxWidth / cols)));
 
     // Build grid data
     grid = [];
@@ -201,8 +219,8 @@
 
     // Build DOM
     boardEl.innerHTML = '';
-    boardEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    boardEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+    boardEl.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
 
     cellElements = [];
     for (let r = 0; r < rows; r++) {
@@ -210,6 +228,9 @@
       for (let c = 0; c < cols; c++) {
         const cell = document.createElement('div');
         cell.className = 'cell cell-unrevealed';
+        cell.style.width = cellSize + 'px';
+        cell.style.height = cellSize + 'px';
+        cell.style.fontSize = Math.max(10, cellSize * 0.4) + 'px';
         cell.dataset.row = r;
         cell.dataset.col = c;
 
@@ -535,17 +556,17 @@
       const diffLabel = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
       overlayStats.innerHTML =
         `<p>Difficulty: <span>${diffLabel}</span></p>` +
-        `<p>Time: <span>${formatTime(elapsedSeconds)}</span></p>` +
+        `<p>Time: <span>${formatTime(finalElapsed)}</span></p>` +
         `<p>Mines: <span>${totalMines}</span></p>`;
 
       // Save & show high scores
-      const scores = saveHighScore(difficulty, elapsedSeconds);
+      const scores = saveHighScore(difficulty, finalElapsed);
       highScoreSec.classList.remove('hidden');
       highScoreList.innerHTML = '';
       scores.forEach((s) => {
         const li = document.createElement('li');
         li.textContent = formatTime(s);
-        if (s === elapsedSeconds) {
+        if (s === finalElapsed) {
           li.classList.add('new-score');
         }
         highScoreList.appendChild(li);
@@ -554,7 +575,7 @@
       overlayTitle.textContent = 'Game Over';
       overlayTitle.className = 'lose';
       overlayStats.innerHTML =
-        `<p>Time: <span>${formatTime(elapsedSeconds)}</span></p>` +
+        `<p>Time: <span>${formatTime(finalElapsed)}</span></p>` +
         `<p>Cells revealed: <span>${revealedCount - 1}</span> / <span>${rows * cols - totalMines}</span></p>`;
 
       // Show high scores if any exist
@@ -573,12 +594,61 @@
     }
   }
 
+  // ── Custom Config ──
+  const customConfigEl = document.getElementById('custom-config');
+  const customRowsEl   = document.getElementById('custom-rows');
+  const customColsEl   = document.getElementById('custom-cols');
+  const customMinesEl  = document.getElementById('custom-mines');
+  const customApplyBtn = document.getElementById('custom-apply');
+
+  function validateCustomMines(r, c, m) {
+    const maxMines = r * c - 9;
+    return Math.min(m, Math.max(1, maxMines));
+  }
+
+  function applyCustomConfig() {
+    let r = parseInt(customRowsEl.value, 10) || 16;
+    let c = parseInt(customColsEl.value, 10) || 16;
+    let m = parseInt(customMinesEl.value, 10) || 40;
+
+    // Clamp rows and cols
+    r = Math.max(5, Math.min(30, r));
+    c = Math.max(5, Math.min(30, c));
+    // Validate mines
+    m = validateCustomMines(r, c, m);
+
+    // Update inputs to show adjusted values
+    customRowsEl.value = r;
+    customColsEl.value = c;
+    customMinesEl.value = m;
+
+    DIFFICULTIES.custom.rows = r;
+    DIFFICULTIES.custom.cols = c;
+    DIFFICULTIES.custom.mines = m;
+
+    difficulty = 'custom';
+    initGame();
+  }
+
+  customApplyBtn.addEventListener('click', applyCustomConfig);
+
   // ── UI Bindings ──
   diffBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       diffBtns.forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       difficulty = btn.dataset.difficulty;
+
+      if (difficulty === 'custom') {
+        // Show custom config and pre-fill with current values
+        customConfigEl.classList.remove('hidden');
+        customRowsEl.value = DIFFICULTIES.custom.rows;
+        customColsEl.value = DIFFICULTIES.custom.cols;
+        customMinesEl.value = DIFFICULTIES.custom.mines;
+      } else {
+        customConfigEl.classList.add('hidden');
+      }
+
       initGame();
     });
   });

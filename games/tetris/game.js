@@ -97,7 +97,15 @@
     const sc = loadHS();
     if (!sc.length) { highscoresDiv.classList.add('hidden'); return; }
     highscoresDiv.classList.remove('hidden');
-    scoreList.innerHTML = sc.map((s, i) => `<li>#${i+1}  ${String(s.score).padStart(6,' ')}  ${s.date}</li>`).join('');
+    if (tetrisMode === 'sprint') {
+      scoreList.innerHTML = sc.map((s, i) => {
+        var cs = 999999 - s.score; // convert back to centiseconds
+        var secs = cs / 100;
+        return `<li>#${i+1}  ${formatSprintTime(secs)}  ${s.date}</li>`;
+      }).join('');
+    } else {
+      scoreList.innerHTML = sc.map((s, i) => `<li>#${i+1}  ${String(s.score).padStart(6,' ')}  ${s.date}</li>`).join('');
+    }
   }
 
   // ── Particles ──
@@ -157,6 +165,16 @@
   let board, score, level, lines, bag, nextQueue, current, holdPiece, holdUsed;
   let dropTimer, lockTimer, gameRunning, animId, lastTime;
 
+  // ── Combo / T-spin state ──
+  let comboCount = 0;
+  let lastClearWasDifficult = false;
+  let lastActionWasRotate = false;
+  let activeComboTexts = [];
+
+  // ── Sprint mode state ──
+  let sprintStartTime = 0;
+  let sprintElapsed = 0;
+
   // ── Bag randomizer (7-bag) ──
   function fillBag() {
     const b = [...PIECE_NAMES];
@@ -168,22 +186,48 @@
     return bag.pop();
   }
 
+  // ── SRS Wall Kick Tables ──
+  const SRS_KICKS = {
+    '0>1': [[0,0], [-1,0], [-1,-1], [0,2], [-1,2]],
+    '1>2': [[0,0], [1,0], [1,1], [0,-2], [1,-2]],
+    '2>3': [[0,0], [1,0], [1,-1], [0,2], [1,2]],
+    '3>0': [[0,0], [-1,0], [-1,1], [0,-2], [-1,-2]],
+  };
+  const SRS_KICKS_CCW = {
+    '1>0': [[0,0], [1,0], [1,-1], [0,2], [1,2]],
+    '2>1': [[0,0], [-1,0], [-1,1], [0,-2], [-1,-2]],
+    '3>2': [[0,0], [-1,0], [-1,-1], [0,2], [-1,2]],
+    '0>3': [[0,0], [1,0], [1,1], [0,-2], [1,-2]],
+  };
+  const SRS_KICKS_I = {
+    '0>1': [[0,0], [-2,0], [1,0], [-2,1], [1,-2]],
+    '1>2': [[0,0], [-1,0], [2,0], [-1,-2], [2,1]],
+    '2>3': [[0,0], [2,0], [-1,0], [2,-1], [-1,2]],
+    '3>0': [[0,0], [1,0], [-2,0], [1,2], [-2,-1]],
+  };
+  const SRS_KICKS_I_CCW = {
+    '1>0': [[0,0], [2,0], [-1,0], [2,-1], [-1,2]],
+    '2>1': [[0,0], [1,0], [-2,0], [1,2], [-2,-1]],
+    '3>2': [[0,0], [-2,0], [1,0], [-2,1], [1,-2]],
+    '0>3': [[0,0], [-1,0], [2,0], [-1,-2], [2,1]],
+  };
+
   // ── Piece helpers ──
   function makePiece(name) {
     const def = PIECES[name];
     const cells = def.shape.map(c => ({ x: c[0], y: c[1] }));
-    return { name, cells, color: def.color, x: 3, y: 0 };
+    return { name, cells, color: def.color, x: 3, y: 0, rotation: 0 };
   }
 
-  function rotateCells(cells, dir) {
-    // Find bounding box
-    let maxX = 0, maxY = 0;
-    for (const c of cells) { if (c.x > maxX) maxX = c.x; if (c.y > maxY) maxY = c.y; }
-    const size = Math.max(maxX, maxY) + 1;
-    return cells.map(c => dir === 1
-      ? { x: size - 1 - c.y, y: c.x }
-      : { x: c.y, y: size - 1 - c.x }
-    );
+  function rotateCellsSRS(cells, name, dir) {
+    const size = name === 'I' ? 4 : (name === 'O' ? 2 : 3);
+    return cells.map(c => {
+      if (dir === 1) { // clockwise
+        return { x: size - 1 - c.y, y: c.x };
+      } else { // counter-clockwise
+        return { x: c.y, y: size - 1 - c.x };
+      }
+    });
   }
 
   function piecePositions(piece) {
@@ -224,11 +268,17 @@
     particles = [];
     puInventory = [];
     slowActive = false; if (slowTimer) clearTimeout(slowTimer);
+    comboCount = 0;
+    lastClearWasDifficult = false;
+    lastActionWasRotate = false;
+    activeComboTexts = [];
+    sprintStartTime = performance.now();
+    sprintElapsed = 0;
     renderPowerupBar();
     colorPicker.classList.add('hidden');
 
     // Show/hide power-up bar based on mode
-    if (tetrisMode === 'classic') {
+    if (tetrisMode === 'classic' || tetrisMode === 'sprint') {
       powerupBar.style.display = 'none';
     } else {
       powerupBar.style.display = '';
@@ -257,12 +307,13 @@
   }
 
   // ── Actions ──
-  function moveLeft()  { current.x--; if (!isValid(current)) current.x++; else sfxMove(); }
-  function moveRight() { current.x++; if (!isValid(current)) current.x--; else sfxMove(); }
+  function moveLeft()  { current.x--; if (!isValid(current)) current.x++; else { lastActionWasRotate = false; sfxMove(); } }
+  function moveRight() { current.x++; if (!isValid(current)) current.x--; else { lastActionWasRotate = false; sfxMove(); } }
 
   function moveDown() {
     current.y++;
     if (!isValid(current)) { current.y--; return false; }
+    lastActionWasRotate = false;
     dropTimer = 0; lockTimer = 0;
     return true;
   }
@@ -276,18 +327,43 @@
   }
 
   function rotate(dir) {
-    const oldCells = current.cells;
-    current.cells = rotateCells(current.cells, dir);
-    // Wall kick: try offsets
-    const kicks = [0, -1, 1, -2, 2];
-    for (const kx of kicks) {
-      for (const ky of [0, -1, 1]) {
-        current.x += kx; current.y += ky;
-        if (isValid(current)) { sfxRotate(); return; }
-        current.x -= kx; current.y -= ky;
-      }
+    if (current.name === 'O') return; // O doesn't rotate
+
+    const oldCells = current.cells.map(c => ({...c}));
+    const oldRotation = current.rotation;
+    const newRotation = (oldRotation + (dir === 1 ? 1 : 3)) % 4;
+
+    // Rotate cells
+    current.cells = rotateCellsSRS(current.cells, current.name, dir);
+    current.rotation = newRotation;
+
+    // Get kick table
+    const key = oldRotation + '>' + newRotation;
+    var kicks;
+    if (current.name === 'I') {
+      kicks = dir === 1 ? SRS_KICKS_I[key] : SRS_KICKS_I_CCW[key];
+    } else {
+      kicks = dir === 1 ? SRS_KICKS[key] : SRS_KICKS_CCW[key];
     }
-    current.cells = oldCells; // revert
+
+    if (!kicks) kicks = [[0,0]];
+
+    // Try each kick offset
+    for (const [kx, ky] of kicks) {
+      current.x += kx;
+      current.y -= ky; // SRS uses y-up, canvas uses y-down
+      if (isValid(current)) {
+        lastActionWasRotate = true;
+        sfxRotate();
+        return;
+      }
+      current.x -= kx;
+      current.y += ky;
+    }
+
+    // All kicks failed, revert
+    current.cells = oldCells;
+    current.rotation = oldRotation;
   }
 
   function hold() {
@@ -307,46 +383,101 @@
 
   function lockPiece() {
     sfxLock();
+    var lockedName = current.name;
+    var lockedRotate = lastActionWasRotate;
     for (const c of piecePositions(current)) {
       if (c.y >= 0 && c.y < ROWS) board[c.y][c.x] = current.color;
     }
     holdUsed = false;
-    clearLines();
-    spawnNext();
+    clearLines(lockedName, lockedRotate);
+    if (gameRunning) spawnNext();
   }
 
-  function clearLines() {
+  // ── Combo text helpers ──
+  function showComboText(texts) {
+    for (var i = 0; i < texts.length; i++) {
+      activeComboTexts.push({
+        text: texts[i],
+        y: canvas.height / 2 - 40 + i * 30,
+        alpha: 2.0,
+        scale: 1.2
+      });
+    }
+  }
+
+  function clearLines(lockedName, lockedRotate) {
     const fullRows = [];
     for (let y = 0; y < ROWS; y++) {
       if (board[y].every(c => c !== null)) fullRows.push(y);
     }
-    if (!fullRows.length) return;
-
-    for (const row of fullRows) spawnLineParticles(row);
 
     const n = fullRows.length;
-    if (n === 4) sfxTetris(); else sfxLine(n);
 
-    // Remove rows
-    for (const row of fullRows) {
-      board.splice(row, 1);
-      board.unshift(new Array(COLS).fill(null));
-    }
+    if (n > 0) {
+      for (const row of fullRows) spawnLineParticles(row);
+      if (n === 4) sfxTetris(); else sfxLine(n);
 
-    lines += n;
-    score += LINE_SCORES[n] * level;
-    level = Math.floor(lines / 10) + 1;
-    updateHUD();
-
-    // Chance to earn a power-up (Arcade mode only): 1 line=20%, 2=40%, 3=70%, 4=100%
-    if (tetrisMode === 'arcade') {
-      const puChance = [0, 0.2, 0.4, 0.7, 1.0][n];
-      if (puInventory.length < MAX_POWERUPS && Math.random() < puChance) {
-        const pu = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
-        puInventory.push({ ...pu });
-        sfxPowerup();
-        renderPowerupBar();
+      // Remove rows
+      for (const row of fullRows) {
+        board.splice(row, 1);
+        board.unshift(new Array(COLS).fill(null));
       }
+
+      lines += n;
+      score += LINE_SCORES[n] * level;
+      level = Math.floor(lines / 10) + 1;
+
+      // ── Combo / T-spin scoring ──
+      comboCount++;
+
+      var isTSpin = (lockedName === 'T' && lockedRotate);
+      var isDifficult = (n === 4 || isTSpin);
+
+      var comboTexts = [];
+
+      if (isTSpin) {
+        if (n === 1) comboTexts.push('T-SPIN SINGLE');
+        else if (n === 2) comboTexts.push('T-SPIN DOUBLE');
+        else if (n === 3) comboTexts.push('T-SPIN TRIPLE');
+        score += [0, 400, 800, 1200][n] * level;
+      }
+
+      if (n === 4) comboTexts.push('TETRIS!');
+
+      if (isDifficult && lastClearWasDifficult) {
+        comboTexts.push('BACK-TO-BACK');
+        score += Math.floor(LINE_SCORES[n] * level * 0.5);
+      }
+
+      if (comboCount > 1) {
+        comboTexts.push('COMBO x' + comboCount);
+        score += 50 * comboCount * level;
+      }
+
+      lastClearWasDifficult = isDifficult;
+
+      if (comboTexts.length > 0) showComboText(comboTexts);
+
+      updateHUD();
+
+      // Sprint mode: check for 40 line completion
+      if (tetrisMode === 'sprint' && lines >= 40) {
+        sprintComplete();
+        return;
+      }
+
+      // Chance to earn a power-up (Arcade mode only): 1 line=20%, 2=40%, 3=70%, 4=100%
+      if (tetrisMode === 'arcade') {
+        const puChance = [0, 0.2, 0.4, 0.7, 1.0][n];
+        if (puInventory.length < MAX_POWERUPS && Math.random() < puChance) {
+          const pu = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
+          puInventory.push({ ...pu });
+          sfxPowerup();
+          renderPowerupBar();
+        }
+      }
+    } else {
+      comboCount = 0;
     }
   }
 
@@ -361,6 +492,33 @@
     }
     overlay.querySelector('h1').textContent = 'GAME OVER';
     overlaySub.textContent = 'Score: ' + score + '  |  Lines: ' + lines;
+    renderHS();
+    modeSelector.style.display = 'flex';
+    overlay.classList.remove('hidden');
+  }
+
+  // ── Sprint helpers ──
+  function sfxWin() { [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => playTone(f, 0.2, 'triangle', 0.12), i * 80)); }
+
+  function formatSprintTime(seconds) {
+    var m = Math.floor(seconds / 60);
+    var s = seconds % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2);
+  }
+
+  function sprintComplete() {
+    gameRunning = false;
+    sprintElapsed = (performance.now() - sprintStartTime) / 1000;
+    sfxWin();
+    if (window.GamePlatform) {
+      var t = GamePlatform.stopTimer();
+      GamePlatform.recordGame('tetris', Math.round(sprintElapsed * 100), t * 1000, { linesCleared: lines, mode: 'sprint' });
+    }
+    // For sprint, save inverted score so lower times rank higher (999999 - centiseconds)
+    var centiseconds = Math.round(sprintElapsed * 100);
+    saveHS(999999 - centiseconds);
+    overlay.querySelector('h1').textContent = 'SPRINT COMPLETE!';
+    overlaySub.textContent = '40 Lines in ' + formatSprintTime(sprintElapsed);
     renderHS();
     modeSelector.style.display = 'flex';
     overlay.classList.remove('hidden');
@@ -391,6 +549,7 @@
   const MODE_STYLES = {
     classic: { selectedBorder: '#00d4ff', selectedColor: '#00d4ff' },
     arcade:  { selectedBorder: '#e040fb', selectedColor: '#e040fb' },
+    sprint:  { selectedBorder: '#00e676', selectedColor: '#00e676' },
   };
 
   modeBtns.forEach(btn => {
@@ -407,7 +566,8 @@
       btn.style.borderColor = s.selectedBorder;
       btn.style.color = s.selectedColor;
       tetrisMode = mode;
-      overlaySub.textContent = mode.charAt(0).toUpperCase() + mode.slice(1) + ' — Click or press any key to start';
+      var modeLabel = mode === 'sprint' ? 'Sprint 40L' : mode.charAt(0).toUpperCase() + mode.slice(1);
+      overlaySub.textContent = modeLabel + ' — Click or press any key to start';
       renderHS();
     });
   });
@@ -643,7 +803,8 @@
     lastTime = now;
 
     dropTimer += dt;
-    const speed = slowActive ? SPEED(level) * 2 : SPEED(level);
+    const baseSpeed = tetrisMode === 'sprint' ? 500 : SPEED(level);
+    const speed = slowActive ? baseSpeed * 2 : baseSpeed;
 
     // Auto-drop
     if (dropTimer >= speed) {
@@ -709,6 +870,37 @@
     if (slowActive) {
       ctx.save(); ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 3; ctx.globalAlpha = 0.4 + 0.2 * Math.sin(Date.now() * 0.005);
       ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+      ctx.restore();
+    }
+
+    // Draw combo texts
+    for (var i = activeComboTexts.length - 1; i >= 0; i--) {
+      var ct = activeComboTexts[i];
+      ct.alpha -= 0.02;
+      ct.y -= 0.5;
+      ct.scale *= 0.995;
+      if (ct.alpha <= 0) { activeComboTexts.splice(i, 1); continue; }
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, ct.alpha);
+      ctx.font = 'bold ' + Math.round(20 * ct.scale) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd700';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      ctx.strokeText(ct.text, canvas.width / 2, ct.y);
+      ctx.fillText(ct.text, canvas.width / 2, ct.y);
+      ctx.restore();
+    }
+
+    // Sprint mode: draw elapsed time on canvas
+    if (tetrisMode === 'sprint' && gameRunning) {
+      sprintElapsed = (performance.now() - sprintStartTime) / 1000;
+      ctx.save();
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#00e676';
+      ctx.globalAlpha = 0.8;
+      ctx.fillText('TIME ' + formatSprintTime(sprintElapsed), canvas.width / 2, 18);
       ctx.restore();
     }
   }
@@ -779,9 +971,15 @@
 
   // ── HUD ──
   function updateHUD() {
-    scoreEl.textContent = 'Score: ' + score;
-    levelEl.textContent = 'Level: ' + level;
-    linesEl.textContent = 'Lines: ' + lines;
+    if (tetrisMode === 'sprint') {
+      scoreEl.textContent = 'Sprint 40L';
+      levelEl.textContent = 'Time: ' + formatSprintTime(sprintElapsed);
+      linesEl.textContent = 'Lines: ' + Math.min(lines, 40) + '/40';
+    } else {
+      scoreEl.textContent = 'Score: ' + score;
+      levelEl.textContent = 'Level: ' + level;
+      linesEl.textContent = 'Lines: ' + lines;
+    }
     if (window.GamePlatform) GamePlatform.updateScore(score);
   }
 
