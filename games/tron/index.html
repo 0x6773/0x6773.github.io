@@ -3,60 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Tron - Multiplayer</title>
+  <title>Tron - Light Cycles</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
   <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
   <div id="game-container">
-    <!-- Lobby Screen -->
-    <div id="lobby">
+    <div id="hud">
+      <span id="p1-score" class="score-cyan">P1: 0</span>
+      <span id="round-info">Round 1</span>
+      <span id="p2-score" class="score-magenta">P2: 0</span>
+    </div>
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <div id="overlay">
       <h1>TRON</h1>
       <p class="tagline">Light Cycle Battle</p>
-
-      <div id="lobby-actions">
-        <button id="btn-host" class="btn btn-cyan">Create Game</button>
-        <div class="divider">or</div>
-        <div id="join-section">
-          <input id="join-code" type="text" placeholder="Enter room code" maxlength="6" autocomplete="off" spellcheck="false">
-          <button id="btn-join" class="btn btn-magenta">Join Game</button>
+      <div id="controls-info">
+        <div class="player-controls">
+          <span class="label-cyan">Player 1</span>
+          <span>W A S D</span>
+        </div>
+        <div class="vs">vs</div>
+        <div class="player-controls">
+          <span class="label-magenta">Player 2</span>
+          <span>Arrow Keys</span>
         </div>
       </div>
-
-      <div id="lobby-waiting" class="hidden">
-        <p id="waiting-msg">Creating room...</p>
-        <div id="room-code-display" class="hidden">
-          <p>Share this code:</p>
-          <span id="room-code"></span>
-          <button id="btn-copy" class="btn-small">Copy</button>
-        </div>
-      </div>
-
-      <p id="lobby-error" class="error hidden"></p>
-      <p class="instructions">Two players. Leave a trail. Don't crash.</p>
+      <button id="start-btn" class="btn btn-cyan">Start Game</button>
+      <p id="overlay-sub" class="instructions">First to 5 wins. Don't crash!</p>
     </div>
-
-    <!-- Game Screen -->
-    <div id="game-screen" class="hidden">
-      <div id="hud">
-        <span id="p1-score" class="score-cyan">P1: 0</span>
-        <span id="round-info">Round 1</span>
-        <span id="p2-score" class="score-magenta">P2: 0</span>
-      </div>
-      <canvas id="gameCanvas" width="600" height="600"></canvas>
-      <div id="game-overlay" class="hidden">
-        <h2 id="overlay-title"></h2>
-        <p id="overlay-msg"></p>
-      </div>
-      <div id="mobile-controls" class="hidden">
-        <button class="ctrl-btn" data-dir="up">&#9650;</button>
-        <div class="ctrl-row">
-          <button class="ctrl-btn" data-dir="left">&#9664;</button>
-          <button class="ctrl-btn" data-dir="down">&#9660;</button>
-          <button class="ctrl-btn" data-dir="right">&#9654;</button>
-        </div>
-      </div>
+    <div id="round-overlay" class="hidden">
+      <h2 id="round-title"></h2>
+      <p id="round-msg"></p>
     </div>
   </div>
   <script src="game.js"></script>
