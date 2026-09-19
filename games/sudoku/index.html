@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNZT8PLH08"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-FNZT8PLH08');</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="Play Sudoku free online. 3 difficulty levels, pencil notes, hints, undo, and timer. Track your best times.">
+  <meta name="keywords" content="sudoku, online sudoku, free sudoku, sudoku puzzle, sudoku game, brain puzzle">
+  <link rel="canonical" href="https://mnciitbhu.me/games/sudoku/">
+  <meta property="og:title" content="Sudoku - Free Online Puzzle | Easy to Hard with Notes & Hints">
+  <meta property="og:description" content="Play Sudoku free online. 3 difficulty levels, pencil notes, hints, undo, and timer. Track your best times.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mnciitbhu.me/games/sudoku/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Sudoku - Free Online Puzzle | Easy to Hard with Notes & Hints">
+  <meta name="twitter:description" content="Play Sudoku free online. 3 difficulty levels, pencil notes, hints, undo, and timer. Track your best times.">
+  <title>Sudoku - Free Online Puzzle | Easy to Hard with Notes & Hints</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../platform.css">
+  <script src="../platform.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Sudoku",
+    "description": "Play Sudoku free online. 3 difficulty levels, pencil notes, hints, undo, and timer. Track your best times.",
+    "url": "https://mnciitbhu.me/games/sudoku/",
+    "genre": "Puzzle",
+    "gamePlatform": "Web Browser",
+    "applicationCategory": "Game",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Govind Sahai"
+    }
+  }
+  </script>
+</head>
+<body>
+  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
+  <div id="app">
+    <header id="hud">
+      <div id="difficulty-selector">
+        <button class="diff-btn active" data-difficulty="easy">Easy</button>
+        <button class="diff-btn" data-difficulty="medium">Medium</button>
+        <button class="diff-btn" data-difficulty="hard">Hard</button>
+      </div>
+      <div id="timer-display" class="hud-display">
+        <span class="hud-icon">&#x23F1;</span>
+        <span id="timer">00:00</span>
+      </div>
+    </header>
+
+    <div id="board-wrapper">
+      <div id="board"></div>
+    </div>
+
+    <div id="controls">
+      <div id="number-pad">
+        <button class="num-btn" data-num="1">1</button>
+        <button class="num-btn" data-num="2">2</button>
+        <button class="num-btn" data-num="3">3</button>
+        <button class="num-btn" data-num="4">4</button>
+        <button class="num-btn" data-num="5">5</button>
+        <button class="num-btn" data-num="6">6</button>
+        <button class="num-btn" data-num="7">7</button>
+        <button class="num-btn" data-num="8">8</button>
+        <button class="num-btn" data-num="9">9</button>
+      </div>
+      <div id="action-buttons">
+        <button id="btn-pencil" class="action-btn" title="Pencil Mode">
+          <span class="action-icon">&#x270F;</span>
+          <span class="action-label">Notes</span>
+        </button>
+        <button id="btn-erase" class="action-btn" title="Erase">
+          <span class="action-icon">&#x232B;</span>
+          <span class="action-label">Erase</span>
+        </button>
+        <button id="btn-hint" class="action-btn" title="Hint">
+          <span class="action-icon">&#x1F4A1;</span>
+          <span class="action-label">Hint (3)</span>
+        </button>
+        <button id="btn-undo" class="action-btn" title="Undo">
+          <span class="action-icon">&#x21A9;</span>
+          <span class="action-label">Undo</span>
+        </button>
+        <button id="btn-new-game" class="action-btn action-btn-primary" title="New Game">
+          <span class="action-icon">&#x1F504;</span>
+          <span class="action-label">New</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="best-time-display"></div>
+
+    <!-- Start Overlay -->
+    <div id="start-overlay">
+      <div class="overlay-box">
+        <h1>Sudoku</h1>
+        <p class="overlay-subtitle">Classic Number Puzzle</p>
+        <div class="how-to-play">
+          <div class="how-to-play-title">How to Play</div>
+          Fill each row, column, and 3x3 box with 1-9<br>
+          Each number can only appear once per region<br>
+          Use Notes mode to mark possible candidates<br>
+          Use Hints when you're stuck (3 per game)<br>
+          3 difficulties: Easy, Medium, Hard
+        </div>
+        <button id="start-game-btn" class="overlay-btn">Start Game</button>
+      </div>
+    </div>
+
+    <!-- Win Overlay -->
+    <div id="win-overlay" class="hidden">
+      <div class="overlay-box">
+        <h2 id="win-title">Puzzle Complete!</h2>
+        <div id="win-stats"></div>
+        <div id="best-times-section" class="hidden">
+          <h3>Best Times</h3>
+          <ol id="best-times-list"></ol>
+        </div>
+        <button id="play-again-btn" class="overlay-btn">New Puzzle</button>
+      </div>
+      <canvas id="confetti-canvas"></canvas>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+  <script>
+  document.getElementById('start-game-btn').addEventListener('click', function() {
+    document.getElementById('start-overlay').classList.add('hidden');
+  });
+  </script>
+</body>
+</html>

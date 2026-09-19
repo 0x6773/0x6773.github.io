@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle - Free Online Word Game | Daily &amp; Random Modes</title>
+    <meta name="description" content="Play Wordle free online. Guess the 5-letter word in 6 tries. Daily challenge mode and unlimited random play. Track your streak and share results.">
+    <meta name="keywords" content="wordle, word game, daily word puzzle, 5 letter word game, free wordle, online wordle, word puzzle, guess the word">
+    <link rel="canonical" href="https://mnciitbhu.me/games/wordle/">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Wordle - Free Online Word Game | Daily & Random Modes">
+    <meta property="og:description" content="Play Wordle free online. Guess the 5-letter word in 6 tries. Daily challenge mode and unlimited random play. Track your streak and share results.">
+    <meta property="og:url" content="https://mnciitbhu.me/games/wordle/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="mnciitbhu.me">
+    <meta property="og:image" content="https://mnciitbhu.me/games/wordle/og-image.png">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Wordle - Free Online Word Game | Daily & Random Modes">
+    <meta name="twitter:description" content="Play Wordle free online. Guess the 5-letter word in 6 tries. Daily challenge mode and unlimited random play.">
+    <meta name="twitter:image" content="https://mnciitbhu.me/games/wordle/og-image.png">
+
+    <!-- JSON-LD Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Wordle",
+        "description": "Play Wordle free online. Guess the 5-letter word in 6 tries. Daily challenge mode and unlimited random play. Track your streak and share results.",
+        "url": "https://mnciitbhu.me/games/wordle/",
+        "genre": "Word Game",
+        "author": {
+            "@type": "Person",
+            "name": "Govind Sahai"
+        },
+        "gamePlatform": "Web Browser",
+        "applicationCategory": "Game",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        }
+    }
+    </script>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNZT8PLH08"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-FNZT8PLH08');</script>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../platform.css">
+</head>
+<body>
+    <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
+
+    <!-- How To Play Overlay -->
+    <div id="how-to-play-overlay" class="overlay">
+        <div class="overlay-content how-to-play-content">
+            <h2>How To Play</h2>
+            <p>Guess the <strong>WORDLE</strong> in 6 tries.</p>
+            <ul>
+                <li>Each guess must be a valid 5-letter word.</li>
+                <li>The color of the tiles will change to show how close your guess was to the word.</li>
+            </ul>
+            <div class="example-row">
+                <div class="example-tile correct">W</div>
+                <div class="example-tile">E</div>
+                <div class="example-tile">A</div>
+                <div class="example-tile">R</div>
+                <div class="example-tile">Y</div>
+            </div>
+            <p class="example-desc"><strong>W</strong> is in the word and in the correct spot.</p>
+            <div class="example-row">
+                <div class="example-tile">P</div>
+                <div class="example-tile present">I</div>
+                <div class="example-tile">L</div>
+                <div class="example-tile">L</div>
+                <div class="example-tile">S</div>
+            </div>
+            <p class="example-desc"><strong>I</strong> is in the word but in the wrong spot.</p>
+            <div class="example-row">
+                <div class="example-tile">V</div>
+                <div class="example-tile">A</div>
+                <div class="example-tile">G</div>
+                <div class="example-tile absent">U</div>
+                <div class="example-tile">E</div>
+            </div>
+            <p class="example-desc"><strong>U</strong> is not in the word in any spot.</p>
+            <hr>
+            <p>A new <strong>Daily</strong> word is available each day, or switch to <strong>Random</strong> mode for unlimited play!</p>
+            <button id="how-to-play-close" class="btn-primary">Play</button>
+        </div>
+    </div>
+
+    <!-- Stats Overlay -->
+    <div id="stats-overlay" class="overlay hidden">
+        <div class="overlay-content stats-content">
+            <button id="stats-close" class="close-btn">&times;</button>
+            <h2>Statistics</h2>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <span id="stat-played" class="stat-number">0</span>
+                    <span class="stat-label">Played</span>
+                </div>
+                <div class="stat-item">
+                    <span id="stat-win-pct" class="stat-number">0</span>
+                    <span class="stat-label">Win %</span>
+                </div>
+                <div class="stat-item">
+                    <span id="stat-streak" class="stat-number">0</span>
+                    <span class="stat-label">Current Streak</span>
+                </div>
+                <div class="stat-item">
+                    <span id="stat-max-streak" class="stat-number">0</span>
+                    <span class="stat-label">Max Streak</span>
+                </div>
+            </div>
+            <h3>Guess Distribution</h3>
+            <div id="guess-distribution" class="guess-distribution"></div>
+            <button id="share-btn" class="btn-primary hidden">Share Results</button>
+            <div id="share-toast" class="share-toast hidden">Copied to clipboard!</div>
+        </div>
+    </div>
+
+    <!-- Main Game -->
+    <div id="game-container">
+        <header>
+            <div class="header-left">
+                <button id="help-btn" class="icon-btn" title="How to Play">?</button>
+            </div>
+            <h1>Wordle</h1>
+            <div class="header-right">
+                <button id="stats-btn" class="icon-btn" title="Statistics">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="13" width="4" height="9" rx="1"/><rect x="10" y="8" width="4" height="14" rx="1"/><rect x="18" y="3" width="4" height="19" rx="1"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="mode-toggle">
+            <button id="mode-daily" class="mode-btn active">Daily</button>
+            <button id="mode-random" class="mode-btn">Random</button>
+        </div>
+
+        <div id="toast-container"></div>
+
+        <div id="board">
+            <!-- 6 rows x 5 tiles generated by JS -->
+        </div>
+
+        <div id="keyboard">
+            <div class="kb-row">
+                <button data-key="Q">Q</button>
+                <button data-key="W">W</button>
+                <button data-key="E">E</button>
+                <button data-key="R">R</button>
+                <button data-key="T">T</button>
+                <button data-key="Y">Y</button>
+                <button data-key="U">U</button>
+                <button data-key="I">I</button>
+                <button data-key="O">O</button>
+                <button data-key="P">P</button>
+            </div>
+            <div class="kb-row">
+                <div class="kb-spacer-half"></div>
+                <button data-key="A">A</button>
+                <button data-key="S">S</button>
+                <button data-key="D">D</button>
+                <button data-key="F">F</button>
+                <button data-key="G">G</button>
+                <button data-key="H">H</button>
+                <button data-key="J">J</button>
+                <button data-key="K">K</button>
+                <button data-key="L">L</button>
+                <div class="kb-spacer-half"></div>
+            </div>
+            <div class="kb-row">
+                <button data-key="ENTER" class="kb-wide">Enter</button>
+                <button data-key="Z">Z</button>
+                <button data-key="X">X</button>
+                <button data-key="C">C</button>
+                <button data-key="V">V</button>
+                <button data-key="B">B</button>
+                <button data-key="N">N</button>
+                <button data-key="M">M</button>
+                <button data-key="BACKSPACE" class="kb-wide">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 24 20"><path fill="currentColor" d="M22 2H7.6L0 10l7.6 8H22a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-3.5 11.3l-1.4 1.4L14 11.4l-3.1 3.3-1.4-1.4 3.1-3.3-3.1-3.3 1.4-1.4L14 8.6l3.1-3.3 1.4 1.4-3.1 3.3 3.1 3.3z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+    <script src="../platform.js"></script>
+</body>
+</html>

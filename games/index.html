@@ -994,6 +994,90 @@
           </div>
         </a>
 
+        <!-- Connect Four -->
+        <a href="connect4/" class="game-card" data-category="puzzle multiplayer">
+          <div class="game-banner">
+            <canvas id="preview-connect4" width="280" height="160"></canvas>
+          </div>
+          <div class="game-info">
+            <h2>Connect Four</h2>
+            <p>Drop discs and connect 4 in a row to win. Play against AI with 3 difficulty levels or challenge a friend locally.</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Board Game</span>
+            <span class="tag">vs AI</span>
+            <span class="tag">2 Players</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <div class="game-stats-bar" data-game="connect4">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+    <!-- Wordle -->
+    <a href="wordle/" class="game-card" data-category="puzzle">
+      <div class="game-banner">
+        <canvas id="preview-wordle" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Wordle</h2>
+        <p>Guess the 5-letter word in 6 tries. Daily challenge and unlimited random mode. Share your results!</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Word Game</span>
+        <span class="tag">Daily</span>
+        <span class="tag">Puzzle</span>
+        <span class="tag">Mobile</span>
+      </div>
+      <div class="game-stats-bar" data-game="wordle">
+        <span>Best: <strong class="gs-best">--</strong></span>
+        <span>Played: <strong class="gs-played">0</strong> times</span>
+      </div>
+    </a>
+
+    <!-- Sudoku -->
+    <a href="sudoku/" class="game-card" data-category="puzzle">
+      <div class="game-banner">
+        <canvas id="preview-sudoku" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Sudoku</h2>
+        <p>Classic 9x9 number puzzle. 3 difficulties, pencil notes, hints, undo, and best-time tracking.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Puzzle</span>
+        <span class="tag">Logic</span>
+        <span class="tag">Classic</span>
+        <span class="tag">Mobile</span>
+      </div>
+      <div class="game-stats-bar" data-game="sudoku">
+        <span>Best: <strong class="gs-best">--</strong></span>
+        <span>Played: <strong class="gs-played">0</strong> times</span>
+      </div>
+    </a>
+
+    <!-- Doodle Jump -->
+    <a href="doodle-jump/" class="game-card" data-category="arcade">
+      <div class="game-banner">
+        <canvas id="preview-doodle" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Doodle Jump</h2>
+        <p>Endless vertical platformer. Bounce on platforms, avoid falling. Normal, moving, fragile, and spring platforms!</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Arcade</span>
+        <span class="tag">Endless</span>
+        <span class="tag">Canvas</span>
+        <span class="tag">Mobile</span>
+      </div>
+      <div class="game-stats-bar" data-game="doodle-jump">
+        <span>Best: <strong class="gs-best">--</strong></span>
+        <span>Played: <strong class="gs-played">0</strong> times</span>
+      </div>
+    </a>
+
       </div>
     </section>
 
@@ -1479,6 +1563,164 @@
           ctx.fill();
         }
 
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // Connect Four preview
+    (function() {
+      const c = document.getElementById('preview-connect4');
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      const W = c.width, H = c.height;
+      const cols = 7, rows = 6;
+      const cs = 18, pad = 3;
+      const bw = cols * (cs + pad) + pad;
+      const bh = rows * (cs + pad) + pad;
+      const ox = (W - bw) / 2, oy = (H - bh) / 2 + 8;
+      const grid = [];
+      for (let r = 0; r < rows; r++) { grid[r] = []; for (let ci = 0; ci < cols; ci++) grid[r][ci] = 0; }
+      let tick = 0;
+      let turn = 1;
+      function getRow(col) { for (let r = rows - 1; r >= 0; r--) if (grid[r][col] === 0) return r; return -1; }
+      function drop() {
+        const valid = [];
+        for (let ci = 0; ci < cols; ci++) if (grid[0][ci] === 0) valid.push(ci);
+        if (valid.length === 0) { for (let r = 0; r < rows; r++) for (let ci = 0; ci < cols; ci++) grid[r][ci] = 0; return; }
+        const col = valid[Math.floor(Math.random() * valid.length)];
+        const row = getRow(col);
+        if (row >= 0) { grid[row][col] = turn; turn = turn === 1 ? 2 : 1; }
+      }
+      function frame() {
+        tick++;
+        if (tick % 25 === 0) drop();
+        ctx.clearRect(0, 0, W, H);
+        // Board
+        ctx.fillStyle = '#1a1a4e';
+        ctx.beginPath(); ctx.roundRect(ox, oy, bw, bh, 6); ctx.fill();
+        for (let r = 0; r < rows; r++) {
+          for (let ci = 0; ci < cols; ci++) {
+            const x = ox + pad + ci * (cs + pad);
+            const y = oy + pad + r * (cs + pad);
+            const v = grid[r][ci];
+            ctx.beginPath(); ctx.arc(x + cs / 2, y + cs / 2, cs / 2 - 1, 0, Math.PI * 2);
+            ctx.fillStyle = v === 1 ? '#e74c3c' : v === 2 ? '#f1c40f' : '#0f0f1a';
+            ctx.fill();
+          }
+        }
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // Wordle preview
+    (function() {
+      var c = document.getElementById('preview-wordle');
+      if (!c) return;
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height;
+      var colors = ['#3a3a3c','#538d4e','#b59f3b','#538d4e','#538d4e'];
+      var tick = 0;
+      function frame() {
+        tick++;
+        ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0,0,W,H);
+        var cs = 22, gap = 4, rows = 4, cols = 5;
+        var ox = (W - cols*(cs+gap))/2, oy = (H - rows*(cs+gap))/2;
+        for (var r = 0; r < rows; r++) {
+          for (var c2 = 0; c2 < cols; c2++) {
+            var ci = (r * cols + c2 + Math.floor(tick/30)) % colors.length;
+            var revealed = r < 2 || (r === 2 && c2 < (Math.floor(tick/15) % 6));
+            ctx.fillStyle = revealed ? colors[ci] : '#1a1a2e';
+            ctx.fillRect(ox + c2*(cs+gap), oy + r*(cs+gap), cs, cs);
+            if (revealed) {
+              ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif';
+              ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+              ctx.fillText('WORDL'[c2], ox + c2*(cs+gap) + cs/2, oy + r*(cs+gap) + cs/2);
+            }
+          }
+        }
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // Sudoku preview
+    (function() {
+      var c = document.getElementById('preview-sudoku');
+      if (!c) return;
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height;
+      var cs = 14, gap = 1;
+      var ox = (W - 9*(cs+gap))/2, oy = (H - 9*(cs+gap))/2;
+      var nums = [5,3,0,0,7,0,0,0,0, 6,0,0,1,9,5,0,0,0, 0,9,8,0,0,0,0,6,0,
+                  8,0,0,0,6,0,0,0,3, 4,0,0,8,0,3,0,0,1, 7,0,0,0,2,0,0,0,6,
+                  0,6,0,0,0,0,2,8,0, 0,0,0,4,1,9,0,0,5, 0,0,0,0,8,0,0,7,9];
+      var tick = 0;
+      function frame() {
+        tick++;
+        ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0,0,W,H);
+        for (var r = 0; r < 9; r++) for (var c2 = 0; c2 < 9; c2++) {
+          var x = ox + c2*(cs+gap), y = oy + r*(cs+gap);
+          ctx.fillStyle = '#16213e'; ctx.fillRect(x, y, cs, cs);
+          var n = nums[r*9+c2];
+          if (n > 0) {
+            ctx.fillStyle = (r+c2+Math.floor(tick/40))%7===0 ? '#00d4ff' : '#888';
+            ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(n, x+cs/2, y+cs/2+1);
+          }
+        }
+        // Box borders
+        ctx.strokeStyle = '#5a5a7a'; ctx.lineWidth = 1.5;
+        for (var i = 0; i <= 3; i++) {
+          ctx.beginPath(); ctx.moveTo(ox+i*3*(cs+gap)-gap/2, oy); ctx.lineTo(ox+i*3*(cs+gap)-gap/2, oy+9*(cs+gap)); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(ox, oy+i*3*(cs+gap)-gap/2); ctx.lineTo(ox+9*(cs+gap), oy+i*3*(cs+gap)-gap/2); ctx.stroke();
+        }
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    // Doodle Jump preview
+    (function() {
+      var c = document.getElementById('preview-doodle');
+      if (!c) return;
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height;
+      var platforms = [];
+      for (var i = 0; i < 6; i++) platforms.push({x: 30+Math.random()*(W-100), y: 30+i*25, w: 50});
+      var px = W/2, py = H-40, vy = -3;
+      var tick = 0;
+      function frame() {
+        tick++;
+        ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0,0,W,H);
+        // Platforms
+        for (var p of platforms) {
+          ctx.fillStyle = '#2ecc71';
+          ctx.fillRect(p.x, p.y, p.w, 8);
+          ctx.fillStyle = '#27ae60';
+          ctx.fillRect(p.x, p.y+6, p.w, 2);
+        }
+        // Player
+        vy += 0.15;
+        py += vy;
+        px += Math.sin(tick*0.03)*1.5;
+        // Bounce
+        for (var p of platforms) {
+          if (vy > 0 && py >= p.y-8 && py <= p.y && px > p.x-5 && px < p.x+p.w+5) {
+            vy = -4;
+          }
+        }
+        if (py > H) { py = H-40; vy = -3; }
+        // Draw player
+        ctx.fillStyle = '#53d769';
+        ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(px-3, py-2, 2.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(px+3, py-2, 2.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.arc(px-2.5, py-2, 1, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(px+3.5, py-2, 1, 0, Math.PI*2); ctx.fill();
         requestAnimationFrame(frame);
       }
       frame();

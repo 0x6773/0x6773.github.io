@@ -15,7 +15,11 @@
     'tron': 'Tron',
     'tron-online': 'Tron Online',
     'tetris': 'Tetris',
-    'ludo': 'Ludo'
+    'ludo': 'Ludo',
+    'connect4': 'Connect Four',
+    'doodle-jump': 'Doodle Jump',
+    'wordle': 'Wordle',
+    'sudoku': 'Sudoku'
   };
 
   const GAME_EMOJIS = {
@@ -27,7 +31,11 @@
     'tron': '\u{1F3CD}\uFE0F',
     'tron-online': '\u{1F310}',
     'tetris': '\u{1F7E6}',
-    'ludo': '\u{1F3B2}'
+    'ludo': '\u{1F3B2}',
+    'connect4': '\u{1F534}',
+    'doodle-jump': '\u{1F438}',
+    'wordle': '\u{1F520}',
+    'sudoku': '\u{1F9E9}'
   };
 
   const ACHIEVEMENT_DEFS = [
@@ -36,7 +44,7 @@
     { id: 'twenty-five',     name: 'Dedicated',          desc: 'Play 25 games',              icon: '\u{1F4AA}' },
     { id: 'hundred',         name: 'Centurion',          desc: 'Play 100 games',             icon: '\u{1F4AF}' },
     { id: 'try-3',           name: 'Explorer',           desc: 'Try 3 different games',      icon: '\u{1F9ED}' },
-    { id: 'try-all',         name: 'Completionist',      desc: 'Play all 9 games',           icon: '\u{1F31F}' },
+    { id: 'try-all',         name: 'Completionist',      desc: 'Play all 13 games',          icon: '\u{1F31F}' },
     { id: 'score-1k',        name: 'High Scorer',        desc: 'Score over 1,000',           icon: '\u{1F3AF}' },
     { id: 'breakout-500',    name: 'Brick Breaker',      desc: 'Score 500+ in Breakout',     icon: '\u{1F9F1}' },
     { id: 'snake-50',        name: 'Snake Charmer',      desc: 'Score 50+ in Snake',         icon: '\u{1F40D}' },
@@ -107,7 +115,7 @@
 
     // Titles played
     if (stats.titlesPlayed >= 3) tryUnlock('try-3');
-    if (stats.titlesPlayed >= 9) tryUnlock('try-all');
+    if (stats.titlesPlayed >= 13) tryUnlock('try-all');
 
     // Score achievements
     let anyOver1k = false;

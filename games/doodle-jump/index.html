@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNZT8PLH08"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-FNZT8PLH08');</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Play Doodle Jump free online. Jump from platform to platform in this endless vertical scroller. Watch out for fragile and moving platforms!">
+  <meta name="keywords" content="doodle jump, online doodle jump, free doodle jump game, endless platformer, jumping game">
+  <link rel="canonical" href="https://mnciitbhu.me/games/doodle-jump/">
+  <meta property="og:title" content="Doodle Jump - Free Online Endless Platformer Game">
+  <meta property="og:description" content="Play Doodle Jump free online. Jump from platform to platform in this endless vertical scroller. Watch out for fragile and moving platforms!">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mnciitbhu.me/games/doodle-jump/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Doodle Jump - Free Online Endless Platformer Game">
+  <meta name="twitter:description" content="Play Doodle Jump free online. Jump from platform to platform in this endless vertical scroller. Watch out for fragile and moving platforms!">
+  <title>Doodle Jump - Free Online Endless Platformer Game</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../platform.css">
+  <script src="../platform.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Doodle Jump",
+    "description": "Play Doodle Jump free online. Jump from platform to platform in this endless vertical scroller. Watch out for fragile and moving platforms!",
+    "url": "https://mnciitbhu.me/games/doodle-jump/",
+    "genre": "Arcade",
+    "gamePlatform": "Web Browser",
+    "applicationCategory": "Game",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Govind Sahai"
+    }
+  }
+  </script>
+</head>
+<body>
+  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
+  <div id="game-wrapper">
+    <div id="hud">
+      <div id="hud-score-label">SCORE</div>
+      <div id="hud-score">0</div>
+      <div id="hud-milestone"></div>
+    </div>
+    <div id="canvas-container">
+      <canvas id="game-canvas" width="400" height="600"></canvas>
+      <!-- Start Screen Overlay -->
+      <div id="start-overlay" class="overlay">
+        <div class="overlay-content">
+          <h1 class="game-title">Doodle Jump</h1>
+          <div class="start-doodler"></div>
+          <div style="max-width:340px;text-align:left;margin:16px 0;padding:14px 18px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;line-height:1.7;color:#aaa">
+            <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#666;margin-bottom:8px;text-transform:uppercase">How to Play</div>
+            Use Arrow Keys or A/D to move left/right<br>
+            On mobile: drag left/right or tilt your device<br>
+            Auto-bounce on platforms to climb higher<br>
+            Green = safe, Blue = moving, Brown = fragile<br>
+            Red springs launch you extra high!<br>
+            Screen wraps: go off one side, appear on the other
+          </div>
+          <p class="start-hint">Click or tap to start</p>
+          <p class="start-controls">Arrow Keys / A-D / Touch / Tilt</p>
+        </div>
+      </div>
+      <!-- Game Over Overlay -->
+      <div id="gameover-overlay" class="overlay hidden">
+        <div class="overlay-content">
+          <h2 class="gameover-title">Game Over</h2>
+          <div id="final-score-box">
+            <div class="final-score-label">SCORE</div>
+            <div id="final-score">0</div>
+          </div>
+          <div id="highscore-board">
+            <h3>Top Scores</h3>
+            <ol id="highscore-list"></ol>
+          </div>
+          <button id="play-again-btn">Play Again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>

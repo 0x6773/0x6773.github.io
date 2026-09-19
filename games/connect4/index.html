@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNZT8PLH08"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-FNZT8PLH08');</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="Play Connect Four free online. Drop discs, connect 4 to win. Play vs AI (3 difficulties) or 2 players locally. Mobile friendly.">
+  <meta name="keywords" content="connect four, connect 4, four in a row, free online game, board game, 2 player game, AI game">
+  <link rel="canonical" href="https://mnciitbhu.me/games/connect4/">
+  <meta property="og:title" content="Connect Four - Free Online | Play vs AI or 2 Players">
+  <meta property="og:description" content="Play Connect Four free online. Drop discs, connect 4 to win. Play vs AI (3 difficulties) or 2 players locally. Mobile friendly.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mnciitbhu.me/games/connect4/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Connect Four - Free Online | Play vs AI or 2 Players">
+  <meta name="twitter:description" content="Play Connect Four free online. Drop discs, connect 4 to win. Play vs AI (3 difficulties) or 2 players locally. Mobile friendly.">
+  <title>Connect Four - Free Online | Play vs AI or 2 Players</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../platform.css">
+  <script src="../platform.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Connect Four",
+    "description": "Play Connect Four free online. Drop discs, connect 4 to win. Play vs AI (3 difficulties) or 2 players locally. Mobile friendly.",
+    "url": "https://mnciitbhu.me/games/connect4/",
+    "genre": "Board Game",
+    "gamePlatform": "Web Browser",
+    "applicationCategory": "Game",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Govind Sahai"
+    }
+  }
+  </script>
+</head>
+<body>
+  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
+
+  <div id="app">
+    <!-- HUD -->
+    <header id="hud">
+      <div class="hud-player" id="hud-p1">
+        <span class="hud-disc red"></span>
+        <span class="hud-name">Player 1</span>
+        <span class="hud-score" id="score-p1">0</span>
+      </div>
+      <div id="hud-center">
+        <div id="turn-indicator">
+          <span class="turn-disc red" id="turn-disc"></span>
+          <span id="turn-text">Player 1's Turn</span>
+        </div>
+        <div id="hud-buttons">
+          <button id="btn-new-game" title="New Game">New Game</button>
+          <button id="btn-undo" title="Undo Last Move">Undo</button>
+        </div>
+      </div>
+      <div class="hud-player" id="hud-p2">
+        <span class="hud-disc yellow"></span>
+        <span class="hud-name" id="p2-name">Player 2</span>
+        <span class="hud-score" id="score-p2">0</span>
+      </div>
+    </header>
+
+    <!-- Board -->
+    <div id="board-container">
+      <div id="ghost-row"></div>
+      <div id="board"></div>
+    </div>
+
+    <!-- Start Overlay -->
+    <div id="start-overlay">
+      <div class="overlay-box">
+        <h1>Connect Four</h1>
+        <p class="subtitle">Drop discs, connect 4 to win!</p>
+        <div class="how-to-play">
+          <div class="how-label">How to Play</div>
+          Players take turns dropping colored discs into the grid<br>
+          Discs fall to the lowest available row<br>
+          Connect 4 discs in a row &mdash; horizontally, vertically, or diagonally &mdash; to win<br>
+          If the board fills up with no winner, it's a draw
+        </div>
+        <div class="mode-buttons">
+          <button class="mode-btn" data-mode="local">2 Player Local</button>
+          <button class="mode-btn" data-mode="ai-easy">vs AI Easy</button>
+          <button class="mode-btn" data-mode="ai-medium">vs AI Medium</button>
+          <button class="mode-btn" data-mode="ai-hard">vs AI Hard</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div id="gameover-overlay" class="hidden">
+      <div class="overlay-box">
+        <h2 id="gameover-title"></h2>
+        <p id="gameover-msg"></p>
+        <div class="mode-buttons">
+          <button id="btn-play-again">Play Again</button>
+          <button id="btn-change-mode">Change Mode</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
