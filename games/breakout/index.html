@@ -16,27 +16,34 @@
   <div id="game-container">
     <div id="hud">
       <span id="score">Score: 0</span>
-      <span id="level">Level: 1</span>
+      <span id="level">World 1-1</span>
       <span id="lives">Lives: 3</span>
     </div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <div id="overlay">
       <h1 id="overlay-title">Breakout</h1>
       <p id="overlay-message">Click or tap to start</p>
-      <div style="max-width:340px;text-align:left;margin:16px 0;padding:14px 18px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;line-height:1.7;color:#aaa">
+      <div class="how-to-play" style="max-width:360px;text-align:left;margin:16px 0;padding:14px 18px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;line-height:1.7;color:#aaa">
         <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#666;margin-bottom:8px;text-transform:uppercase">How to Play</div>
         Move paddle with mouse or touch<br>
         Arrow keys / A, D for keyboard<br>
         Break all bricks to advance levels<br>
-        Catch falling power-ups: W = Wide Paddle (10s), M = Multi-Ball, S = Slow Motion (8s), + = Extra Life<br>
-        5 levels, score multiplied by level
+        3 Worlds x 5 Levels = 15 stages<br>
+        <span style="color:#00e676">W</span> Wide Paddle &middot;
+        <span style="color:#e040fb">M</span> Multi-Ball &middot;
+        <span style="color:#00d4ff">S</span> Slow Motion &middot;
+        <span style="color:#ff4d6d">+</span> Extra Life<br>
+        <span style="color:#ff6600">F</span> Fireball &middot;
+        <span style="color:#ffff00">L</span> Laser &middot;
+        <span style="color:#ff69b4">G</span> Magnet
       </div>
       <div id="highscores" class="hidden">
         <h2>High Scores</h2>
         <ol id="score-list"></ol>
       </div>
-      <button id="overlay-btn">Start Game</button>
+      <button id="overlay-btn">Play</button>
     </div>
+    <div id="level-select" class="hidden"></div>
     <div id="powerup-hud"></div>
   </div>
   <script src="game.js"></script>

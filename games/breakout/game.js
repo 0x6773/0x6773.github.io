@@ -13,6 +13,7 @@ const overlayBtn = document.getElementById('overlay-btn');
 const highscoresDiv = document.getElementById('highscores');
 const scoreList = document.getElementById('score-list');
 const powerupHud = document.getElementById('powerup-hud');
+const levelSelect = document.getElementById('level-select');
 
 // ── Game Constants ──
 const PADDLE_WIDTH = 120;
@@ -26,20 +27,180 @@ const BRICK_HEIGHT = 24;
 const BRICK_PADDING = 6;
 const BRICK_OFFSET_TOP = 50;
 const BRICK_OFFSET_LEFT = (canvas.width - (BRICK_COLS * (BRICK_WIDTH + BRICK_PADDING) - BRICK_PADDING)) / 2;
-const MAX_LEVEL = 5;
 const POWERUP_DROP_CHANCE = 0.2;
 const POWERUP_RADIUS = 12;
 const POWERUP_SPEED = 2.5;
 
-const ROW_COLORS = ['#ff4d6d', '#ff8c42', '#ffd700', '#00e676', '#00d4ff'];
+// ── World / Level System ──
+const WORLDS = {
+  1: {
+    name: 'Classic',
+    colors: ['#ff4d6d', '#ff8c42', '#ffd700', '#00e676', '#00d4ff'],
+    baseSpeed: 4
+  },
+  2: {
+    name: 'Neon',
+    colors: ['#ff00ff', '#00ffff', '#ff6600', '#66ff00', '#ffff00'],
+    baseSpeed: 5
+  },
+  3: {
+    name: 'Dark',
+    colors: ['#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#f59e0b'],
+    baseSpeed: 6
+  }
+};
+
+const LEVELS_PER_WORLD = 5;
 const ROW_POINTS = [7, 5, 3, 2, 1];
 
 const POWERUP_TYPES = [
-  { id: 'wide',  label: 'W', color: '#00e676', name: 'Wide Paddle', duration: 10000 },
-  { id: 'multi', label: 'M', color: '#e040fb', name: 'Multi-Ball',  duration: 0 },
-  { id: 'slow',  label: 'S', color: '#00d4ff', name: 'Slow Motion', duration: 8000 },
-  { id: 'life',  label: '+', color: '#ff4d6d', name: 'Extra Life',  duration: 0 },
+  { id: 'wide',    label: 'W', color: '#00e676', name: 'Wide Paddle',  duration: 10000 },
+  { id: 'multi',   label: 'M', color: '#e040fb', name: 'Multi-Ball',   duration: 0 },
+  { id: 'slow',    label: 'S', color: '#00d4ff', name: 'Slow Motion',  duration: 8000 },
+  { id: 'life',    label: '+', color: '#ff4d6d', name: 'Extra Life',   duration: 0 },
+  { id: 'fire',    label: 'F', color: '#ff6600', name: 'Fireball',     duration: 8000 },
+  { id: 'laser',   label: 'L', color: '#ffff00', name: 'Laser',        duration: 10000 },
+  { id: 'magnet',  label: 'G', color: '#ff69b4', name: 'Magnet',       duration: 5000 },
 ];
+
+// ── Level Patterns (15 unique, symmetric left-right) ──
+const LEVEL_PATTERNS = {
+  // World 1 - Classic
+  '1-1': [ // Full Grid
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1]
+  ],
+  '1-2': [ // Diamond
+    [0,0,0,0,1,1,0,0,0,0],
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,1,1,1,1,1,1,0,0],
+    [0,1,1,1,1,1,1,1,1,0],
+    [0,0,1,1,1,1,1,1,0,0],
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,0,0,1,1,0,0,0,0]
+  ],
+  '1-3': [ // Checkerboard
+    [1,0,1,0,1,1,0,1,0,1],
+    [0,1,0,1,0,0,1,0,1,0],
+    [1,0,1,0,1,1,0,1,0,1],
+    [0,1,0,1,0,0,1,0,1,0],
+    [1,0,1,0,1,1,0,1,0,1],
+    [0,1,0,1,0,0,1,0,1,0]
+  ],
+  '1-4': [ // V / Chevron
+    [1,0,0,0,0,0,0,0,0,1],
+    [0,1,0,0,0,0,0,0,1,0],
+    [0,0,1,0,0,0,0,1,0,0],
+    [0,0,0,1,0,0,1,0,0,0],
+    [0,0,0,0,1,1,0,0,0,0],
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,1,1,1,1,1,1,0,0]
+  ],
+  '1-5': [ // Fortress
+    [1,0,1,0,1,1,0,1,0,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,0,0,0,0,0,0,1,1],
+    [1,1,0,0,0,0,0,0,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,1,1,1,0,0,1,1,1,0],
+    [0,0,1,1,0,0,1,1,0,0]
+  ],
+  // World 2 - Neon
+  '2-1': [ // Horizontal Stripes
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,0,0,0,0,0,0,0,0,0],
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,0,0,0,0,0,0,0,0,0],
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,0,0,0,0,0,0,0,0,0]
+  ],
+  '2-2': [ // Pyramid
+    [0,0,0,0,1,1,0,0,0,0],
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,1,1,1,1,1,1,0,0],
+    [0,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1]
+  ],
+  '2-3': [ // Hourglass
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,1,1,1,0],
+    [0,0,1,1,1,1,1,1,0,0],
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,1,1,1,1,1,1,0,0],
+    [0,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,1]
+  ],
+  '2-4': [ // Cross / Plus
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,0,1,1,1,1,0,0,0],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,0,1,1,1,1,0,0,0]
+  ],
+  '2-5': [ // Spiral
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,1,0,1],
+    [1,0,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1]
+  ],
+  // World 3 - Dark
+  '3-1': [ // Double Diamond
+    [0,1,0,0,0,0,0,0,1,0],
+    [1,1,1,0,0,0,0,1,1,1],
+    [1,1,1,1,0,0,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,0,0,1,1,1,1],
+    [1,1,1,0,0,0,0,1,1,1],
+    [0,1,0,0,0,0,0,0,1,0],
+    [0,0,0,0,0,0,0,0,0,0]
+  ],
+  '3-2': [ // Arrow Down
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,1,1,1,0],
+    [0,0,1,1,1,1,1,1,0,0],
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,0,0,1,1,0,0,0,0],
+    [0,0,0,0,1,1,0,0,0,0]
+  ],
+  '3-3': [ // Frame / Border
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1]
+  ],
+  '3-4': [ // Zigzag
+    [1,1,0,0,0,0,0,0,1,1],
+    [0,1,1,0,0,0,0,1,1,0],
+    [0,0,1,1,0,0,1,1,0,0],
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,1,1,0,0,1,1,0,0],
+    [0,1,1,0,0,0,0,1,1,0],
+    [1,1,0,0,0,0,0,0,1,1],
+    [0,1,1,0,0,0,0,1,1,0]
+  ],
+  '3-5': [ // Heart
+    [0,1,1,0,0,0,0,1,1,0],
+    [1,1,1,1,0,0,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,1,1,1,0],
+    [0,0,1,1,1,1,1,1,0,0],
+    [0,0,0,1,1,1,1,0,0,0]
+  ]
+};
 
 // ── Audio (Web Audio API) ──
 let audioCtx;
@@ -69,6 +230,13 @@ function sfxPowerup()    { playTone(880, 0.08, 'sine', 0.12); setTimeout(() => p
 function sfxLevelUp()    { [660, 880, 1100].forEach((f, i) => setTimeout(() => playTone(f, 0.15, 'triangle', 0.12), i * 100)); }
 function sfxGameOver()   { [300, 250, 200, 150].forEach((f, i) => setTimeout(() => playTone(f, 0.25, 'sawtooth', 0.1), i * 150)); }
 function sfxWin()        { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.2, 'triangle', 0.14), i * 120)); }
+function sfxFireball()   { playTone(200, 0.15, 'sawtooth', 0.14); setTimeout(() => playTone(400, 0.2, 'square', 0.1), 80); }
+function sfxLaserShoot() { playTone(1200, 0.05, 'square', 0.08); }
+function sfxMagnetCatch(){ playTone(600, 0.1, 'sine', 0.1); setTimeout(() => playTone(800, 0.1, 'sine', 0.08), 50); }
+function sfxLevelComplete() { [523, 659, 784, 880, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.18, 'triangle', 0.13), i * 90)); }
+function sfxWorldUnlock() {
+  [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => playTone(f, 0.22, 'triangle', 0.14), i * 100));
+}
 
 // ── High Scores ──
 const HS_KEY = 'breakout_highscores';
@@ -89,6 +257,69 @@ function renderHighScores() {
   scoreList.innerHTML = scores
     .map((s, i) => `<li>#${i + 1}  ${String(s.score).padStart(5, ' ')}  ${s.date}</li>`)
     .join('');
+}
+
+// ── Progress System (localStorage) ──
+const PROGRESS_KEY = 'breakout_progress';
+
+function loadProgress() {
+  try {
+    const data = JSON.parse(localStorage.getItem(PROGRESS_KEY));
+    if (data && data.worlds) return data;
+  } catch {}
+  return { worlds: { 1: {}, 2: {}, 3: {} } };
+}
+
+function saveProgress(progress) {
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+}
+
+function isLevelUnlocked(world, level) {
+  if (world === 1 && level === 1) return true;
+  const progress = loadProgress();
+  if (level === 1) {
+    // First level of a world: need all previous world levels completed
+    const prevWorld = world - 1;
+    for (let l = 1; l <= LEVELS_PER_WORLD; l++) {
+      if (!progress.worlds[prevWorld] || !progress.worlds[prevWorld][l]) return false;
+    }
+    return true;
+  }
+  // Need previous level in same world completed
+  return !!(progress.worlds[world] && progress.worlds[world][level - 1]);
+}
+
+function isWorldUnlocked(world) {
+  if (world === 1) return true;
+  return isLevelUnlocked(world, 1);
+}
+
+function getLevelStars(world, level) {
+  const progress = loadProgress();
+  if (progress.worlds[world] && progress.worlds[world][level]) {
+    return progress.worlds[world][level].stars || 0;
+  }
+  return 0;
+}
+
+function saveLevelResult(world, level, score) {
+  const progress = loadProgress();
+  if (!progress.worlds[world]) progress.worlds[world] = {};
+
+  const globalLevel = (world - 1) * LEVELS_PER_WORLD + level;
+  let stars = 1; // completed
+  if (score >= 200 * globalLevel) stars = 2;
+  if (score >= 500 * globalLevel) stars = 3;
+
+  const existing = progress.worlds[world][level];
+  if (!existing || stars > existing.stars || score > existing.bestScore) {
+    progress.worlds[world][level] = {
+      stars: existing ? Math.max(stars, existing.stars) : stars,
+      bestScore: existing ? Math.max(score, existing.bestScore) : score
+    };
+  }
+  saveProgress(progress);
+  return stars;
 }
 
 // ── Particles ──
@@ -127,12 +358,51 @@ function spawnPaddleSparkle(x, y) {
   }
 }
 
+function spawnFireTrail(x, y) {
+  for (let i = 0; i < 3; i++) {
+    const angle = Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+    const speed = 0.5 + Math.random() * 1.5;
+    const colors = ['#ff6600', '#ff4400', '#ff2200', '#ffaa00'];
+    particles.push({
+      x: x + (Math.random() - 0.5) * 6,
+      y: y + (Math.random() - 0.5) * 6,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 2 + Math.random() * 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 0.8,
+      decay: 0.04 + Math.random() * 0.03
+    });
+  }
+}
+
+function spawnMagnetParticles(ballX, ballY, paddleX, paddleY) {
+  const dx = paddleX - ballX;
+  const dy = paddleY - ballY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 5) return;
+  const steps = 3;
+  for (let i = 0; i < steps; i++) {
+    const t = (i + Math.random()) / steps;
+    particles.push({
+      x: ballX + dx * t + (Math.random() - 0.5) * 8,
+      y: ballY + dy * t + (Math.random() - 0.5) * 8,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      r: 1 + Math.random() * 2,
+      color: '#ff69b4',
+      life: 0.5,
+      decay: 0.05 + Math.random() * 0.05
+    });
+  }
+}
+
 function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.x += p.vx;
     p.y += p.vy;
-    p.vy += 0.08; // gravity
+    p.vy += 0.08;
     p.life -= p.decay;
     p.r *= 0.98;
     if (p.life <= 0 || p.r < 0.3) particles.splice(i, 1);
@@ -183,10 +453,9 @@ function drawFloatingTexts() {
 
 // ── Ball trail ──
 const TRAIL_LENGTH = 8;
-let ballTrails = new Map(); // ball index -> [{x, y}]
+let ballTrails = new Map();
 
 function updateTrails() {
-  // Clean up trails for balls that no longer exist
   const currentIds = new Set(balls.map((_, i) => i));
   for (const key of ballTrails.keys()) {
     if (!currentIds.has(key)) ballTrails.delete(key);
@@ -207,7 +476,10 @@ function drawTrails() {
       const r = BALL_RADIUS * (i / trail.length) * 0.7;
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = activeEffects['slow'] ? '#e040fb' : '#00d4ff';
+      let trailColor = '#00d4ff';
+      if (activeEffects['fire']) trailColor = '#ff6600';
+      else if (activeEffects['slow']) trailColor = '#e040fb';
+      ctx.fillStyle = trailColor;
       ctx.beginPath();
       ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
       ctx.fill();
@@ -248,14 +520,12 @@ for (let i = 0; i < 60; i++) {
 }
 
 function drawBackground(time) {
-  // Subtle gradient bg
   const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
   bgGrad.addColorStop(0, '#0a0a1a');
   bgGrad.addColorStop(1, '#16213e');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Stars
   for (const s of stars) {
     const alpha = 0.3 + 0.4 * Math.sin(time * s.speed * 0.002 + s.phase);
     ctx.save();
@@ -269,9 +539,24 @@ function drawBackground(time) {
 }
 
 // ── Game State ──
-let score, lives, level, balls, paddle, bricks, powerups, activeEffects, running, animId;
+let score, lives, currentWorld, currentLevel, balls, paddle, bricks, powerups, activeEffects, running, animId;
 let keys = {};
 let gameTime = 0;
+let lasers = [];       // active laser beams
+let laserTimer = 0;    // countdown to next laser shot
+let magnetStuck = false; // is ball stuck to paddle via magnet
+let magnetBallOffset = 0; // offset of stuck ball from paddle center
+
+// ── Laser beam object ──
+function spawnLaser() {
+  sfxLaserShoot();
+  lasers.push({
+    x: paddle.x + paddle.w / 2,
+    y: paddle.y,
+    vy: -10,
+    alive: true
+  });
+}
 
 // ── Input: Keyboard ──
 document.addEventListener('keydown', e => { keys[e.key] = true; });
@@ -284,6 +569,13 @@ canvas.addEventListener('mousemove', e => {
   const scaleX = canvas.width / rect.width;
   const mouseX = (e.clientX - rect.left) * scaleX;
   paddle.x = Math.max(0, Math.min(canvas.width - paddle.w, mouseX - paddle.w / 2));
+});
+
+canvas.addEventListener('click', e => {
+  ensureAudio();
+  if (running && magnetStuck) {
+    releaseMagnetBall();
+  }
 });
 
 // ── Input: Touch ──
@@ -299,25 +591,170 @@ canvas.addEventListener('touchmove', e => {
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   ensureAudio();
+  if (running && magnetStuck) {
+    releaseMagnetBall();
+  }
 }, { passive: false });
 
-// ── Overlay button ──
+function releaseMagnetBall() {
+  if (!magnetStuck) return;
+  magnetStuck = false;
+  // Launch ball upward
+  const ball = balls[0];
+  if (ball) {
+    const speed = getBallSpeed();
+    ball.dy = -speed;
+    ball.dx = (Math.random() - 0.5) * speed * 0.8;
+  }
+}
+
+function getBallSpeed() {
+  const world = WORLDS[currentWorld];
+  return world.baseSpeed + (currentLevel - 1) * 0.3;
+}
+
+// ── Level Select Screen ──
+let selectedWorldTab = 1;
+
+function showLevelSelect() {
+  overlay.classList.add('hidden');
+  levelSelect.classList.remove('hidden');
+  renderLevelSelect();
+}
+
+function hideLevelSelect() {
+  levelSelect.classList.add('hidden');
+}
+
+function renderLevelSelect() {
+  const progress = loadProgress();
+
+  let html = '<h1 class="ls-title">Select Level</h1>';
+  html += '<div class="ls-world-tabs">';
+  for (let w = 1; w <= 3; w++) {
+    const unlocked = isWorldUnlocked(w);
+    const active = w === selectedWorldTab;
+    html += `<button class="ls-tab${active ? ' active' : ''}${!unlocked ? ' locked' : ''}" 
+             data-world="${w}" ${!unlocked ? 'disabled' : ''}>
+             ${unlocked ? '' : '<span class="lock-icon">&#128274;</span>'}
+             World ${w}: ${WORLDS[w].name}
+           </button>`;
+  }
+  html += '</div>';
+
+  html += '<div class="ls-levels">';
+  const w = selectedWorldTab;
+  for (let l = 1; l <= LEVELS_PER_WORLD; l++) {
+    const unlocked = isLevelUnlocked(w, l);
+    const levelData = progress.worlds[w] && progress.worlds[w][l];
+    const starCount = levelData ? levelData.stars : 0;
+
+    let starsHtml = '';
+    for (let s = 1; s <= 3; s++) {
+      starsHtml += `<span class="star ${s <= starCount ? 'earned' : ''}">${s <= starCount ? '\u2605' : '\u2606'}</span>`;
+    }
+
+    html += `<button class="ls-level-btn${!unlocked ? ' locked' : ''}" 
+             data-world="${w}" data-level="${l}" ${!unlocked ? 'disabled' : ''}>
+             <div class="ls-level-num">${!unlocked ? '&#128274;' : l}</div>
+             <div class="ls-level-stars">${starsHtml}</div>
+           </button>`;
+  }
+  html += '</div>';
+
+  html += '<button class="ls-back-btn" id="ls-back">Back</button>';
+
+  levelSelect.innerHTML = html;
+
+  // Bind events
+  levelSelect.querySelectorAll('.ls-tab:not([disabled])').forEach(tab => {
+    tab.addEventListener('click', () => {
+      selectedWorldTab = parseInt(tab.dataset.world);
+      renderLevelSelect();
+    });
+  });
+
+  levelSelect.querySelectorAll('.ls-level-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const w = parseInt(btn.dataset.world);
+      const l = parseInt(btn.dataset.level);
+      hideLevelSelect();
+      startLevel(w, l);
+    });
+  });
+
+  document.getElementById('ls-back').addEventListener('click', () => {
+    hideLevelSelect();
+    showStartScreen();
+  });
+}
+
+// ── Overlay / Start Screen ──
+function showStartScreen() {
+  overlayTitle.textContent = 'Breakout';
+  overlayTitle.style.color = '#00d4ff';
+  overlayMsg.textContent = 'Click or tap to start';
+  overlayBtn.textContent = 'Play';
+  // Show how-to-play and highscores
+  const howTo = overlay.querySelector('.how-to-play');
+  if (howTo) howTo.style.display = '';
+  renderHighScores();
+  overlay.classList.remove('hidden');
+}
+
 overlayBtn.addEventListener('click', () => {
   ensureAudio();
-  overlay.classList.add('hidden');
-  init();
+  const btnText = overlayBtn.textContent;
+  if (btnText === 'Play' || btnText === 'Start Game') {
+    overlay.classList.add('hidden');
+    showLevelSelect();
+  } else if (btnText === 'Next Level') {
+    overlay.classList.add('hidden');
+    goToNextLevel();
+  } else if (btnText === 'Retry') {
+    overlay.classList.add('hidden');
+    startLevel(currentWorld, currentLevel);
+  }
 });
 
+// Secondary button handler (Level Select from result screen)
+function setupSecondaryBtn() {
+  let secBtn = document.getElementById('overlay-btn-secondary');
+  if (!secBtn) {
+    secBtn = document.createElement('button');
+    secBtn.id = 'overlay-btn-secondary';
+    overlayBtn.parentNode.insertBefore(secBtn, overlayBtn.nextSibling);
+  }
+  secBtn.style.display = '';
+  secBtn.textContent = 'Level Select';
+  secBtn.onclick = () => {
+    overlay.classList.add('hidden');
+    secBtn.style.display = 'none';
+    showLevelSelect();
+  };
+  return secBtn;
+}
+
+function hideSecondaryBtn() {
+  const secBtn = document.getElementById('overlay-btn-secondary');
+  if (secBtn) secBtn.style.display = 'none';
+}
+
 // ── Initialisation ──
-function init() {
+function startLevel(world, level) {
+  currentWorld = world;
+  currentLevel = level;
   score = 0;
   lives = 3;
-  level = 1;
   powerups = [];
   activeEffects = {};
   particles = [];
   floatingTexts = [];
   ballTrails = new Map();
+  lasers = [];
+  laserTimer = 0;
+  magnetStuck = false;
+  magnetBallOffset = 0;
   shakeAmount = 0;
   shakeDuration = 0;
   running = true;
@@ -326,12 +763,29 @@ function init() {
   buildBricks();
   updateHUD();
   updatePowerupHUD();
+  hideSecondaryBtn();
   if (animId) cancelAnimationFrame(animId);
+  if (window.GamePlatform) GamePlatform.startTimer();
   loop();
 }
 
+function goToNextLevel() {
+  let nextWorld = currentWorld;
+  let nextLevel = currentLevel + 1;
+  if (nextLevel > LEVELS_PER_WORLD) {
+    nextWorld++;
+    nextLevel = 1;
+  }
+  if (nextWorld > 3) {
+    // All done
+    showStartScreen();
+    return;
+  }
+  startLevel(nextWorld, nextLevel);
+}
+
 function makeBall() {
-  const speed = 4 + level * 0.5;
+  const speed = getBallSpeed();
   return {
     x: canvas.width / 2,
     y: canvas.height - 50,
@@ -344,6 +798,7 @@ function makeBall() {
 function resetBalls() {
   balls = [makeBall()];
   ballTrails = new Map();
+  magnetStuck = false;
 }
 
 function resetPaddle() {
@@ -357,85 +812,22 @@ function resetPaddle() {
 
 function buildBricks() {
   bricks = [];
-
-  // Define symmetric brick patterns per level (1 = brick, 0 = empty)
-  var pattern;
-  switch (level) {
-    case 1: // Classic Full Grid
-      pattern = [
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1,1]
-      ];
-      break;
-    case 2: // Diamond
-      pattern = [
-        [0,0,0,0,1,1,0,0,0,0],
-        [0,0,0,1,1,1,1,0,0,0],
-        [0,0,1,1,1,1,1,1,0,0],
-        [0,1,1,1,1,1,1,1,1,0],
-        [0,0,1,1,1,1,1,1,0,0],
-        [0,0,0,1,1,1,1,0,0,0],
-        [0,0,0,0,1,1,0,0,0,0]
-      ];
-      break;
-    case 3: // Checkerboard (symmetric left-right)
-      pattern = [
-        [1,0,1,0,1,1,0,1,0,1],
-        [0,1,0,1,0,0,1,0,1,0],
-        [1,0,1,0,1,1,0,1,0,1],
-        [0,1,0,1,0,0,1,0,1,0],
-        [1,0,1,0,1,1,0,1,0,1],
-        [0,1,0,1,0,0,1,0,1,0]
-      ];
-      break;
-    case 4: // V / Chevron
-      pattern = [
-        [1,0,0,0,0,0,0,0,0,1],
-        [0,1,0,0,0,0,0,0,1,0],
-        [0,0,1,0,0,0,0,1,0,0],
-        [0,0,0,1,0,0,1,0,0,0],
-        [0,0,0,0,1,1,0,0,0,0],
-        [0,0,0,1,1,1,1,0,0,0],
-        [0,0,1,1,1,1,1,1,0,0]
-      ];
-      break;
-    case 5: // Fortress
-      pattern = [
-        [1,0,1,0,1,1,0,1,0,1],
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,1,0,0,0,0,0,0,1,1],
-        [1,1,0,0,0,0,0,0,1,1],
-        [1,1,1,1,1,1,1,1,1,1],
-        [0,1,1,1,0,0,1,1,1,0],
-        [0,0,1,1,0,0,1,1,0,0]
-      ];
-      break;
-    default:
-      pattern = [
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1,1]
-      ];
-  }
-
+  const key = currentWorld + '-' + currentLevel;
+  const pattern = LEVEL_PATTERNS[key] || LEVEL_PATTERNS['1-1'];
+  const worldColors = WORLDS[currentWorld].colors;
   BRICK_ROWS = pattern.length;
 
-  for (var r = 0; r < BRICK_ROWS; r++) {
+  for (let r = 0; r < BRICK_ROWS; r++) {
     bricks[r] = [];
-    for (var c = 0; c < BRICK_COLS; c++) {
-      var colorIdx = r % ROW_COLORS.length;
+    for (let c = 0; c < BRICK_COLS; c++) {
+      const colorIdx = r % worldColors.length;
       bricks[r][c] = {
         x: BRICK_OFFSET_LEFT + c * (BRICK_WIDTH + BRICK_PADDING),
         y: BRICK_OFFSET_TOP + r * (BRICK_HEIGHT + BRICK_PADDING),
         w: BRICK_WIDTH,
         h: BRICK_HEIGHT,
         alive: !!pattern[r][c],
-        color: ROW_COLORS[colorIdx],
+        color: worldColors[colorIdx],
         points: ROW_POINTS[colorIdx],
         row: colorIdx
       };
@@ -470,6 +862,7 @@ function activatePowerup(type) {
         newBalls.push(b);
       }
       balls.push(...newBalls);
+      if (magnetStuck) releaseMagnetBall();
       break;
     }
     case 'slow':
@@ -479,6 +872,18 @@ function activatePowerup(type) {
     case 'life':
       lives++;
       updateHUD();
+      break;
+    case 'fire':
+      sfxFireball();
+      setTimedEffect('fire', type.duration);
+      break;
+    case 'laser':
+      laserTimer = 0;
+      setTimedEffect('laser', type.duration);
+      break;
+    case 'magnet':
+      sfxMagnetCatch();
+      setTimedEffect('magnet', type.duration);
       break;
   }
   updatePowerupHUD();
@@ -499,6 +904,9 @@ function setTimedEffect(id, duration) {
       if (id === 'slow') {
         balls.forEach(b => { b.dx *= 2; b.dy *= 2; });
       }
+      if (id === 'magnet' && magnetStuck) {
+        releaseMagnetBall();
+      }
       updatePowerupHUD();
     }, duration)
   };
@@ -509,6 +917,7 @@ function updatePowerupHUD() {
   if (active.length === 0) { powerupHud.innerHTML = ''; return; }
   powerupHud.innerHTML = active.map(id => {
     const t = POWERUP_TYPES.find(p => p.id === id);
+    if (!t) return '';
     const effect = activeEffects[id];
     const remaining = Math.max(0, Math.ceil((effect.expiresAt - Date.now()) / 1000));
     const fraction = Math.max(0, (effect.expiresAt - Date.now()) / effect.duration);
@@ -527,21 +936,80 @@ function update() {
   if (keys['ArrowRight'] || keys['d']) paddle.x += PADDLE_SPEED;
   paddle.x = Math.max(0, Math.min(canvas.width - paddle.w, paddle.x));
 
+  // Magnet: if ball is stuck, keep it on paddle
+  if (magnetStuck && balls.length > 0) {
+    const ball = balls[0];
+    ball.x = paddle.x + paddle.w / 2 + magnetBallOffset;
+    ball.y = paddle.y - ball.r;
+    ball.dx = 0;
+    ball.dy = 0;
+    // Magnet particles
+    if (gameTime % 3 === 0) {
+      spawnMagnetParticles(ball.x, ball.y, paddle.x + paddle.w / 2, paddle.y);
+    }
+  }
+
+  // Laser: shoot periodically
+  if (activeEffects['laser']) {
+    laserTimer++;
+    if (laserTimer >= 24) { // ~400ms at 60fps
+      spawnLaser();
+      laserTimer = 0;
+    }
+  }
+
+  // Update lasers
+  for (let i = lasers.length - 1; i >= 0; i--) {
+    const laser = lasers[i];
+    laser.y += laser.vy;
+    if (laser.y < 0) { lasers.splice(i, 1); continue; }
+
+    // Check laser-brick collision
+    let hit = false;
+    for (let r = BRICK_ROWS - 1; r >= 0 && !hit; r--) {
+      for (let c = 0; c < BRICK_COLS && !hit; c++) {
+        const b = bricks[r][c];
+        if (!b.alive) continue;
+        if (laser.x >= b.x && laser.x <= b.x + b.w &&
+            laser.y >= b.y && laser.y <= b.y + b.h) {
+          b.alive = false;
+          const globalLevel = (currentWorld - 1) * LEVELS_PER_WORLD + currentLevel;
+          const pts = b.points * globalLevel;
+          score += pts;
+          sfxBrickBreak(b.row);
+          spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#ffff00', 8);
+          spawnFloatingText(b.x + b.w / 2, b.y, '+' + pts, '#ffff00');
+          updateHUD();
+          lasers.splice(i, 1);
+          hit = true;
+        }
+      }
+    }
+  }
+
   // Update each ball
   const ballsToRemove = [];
   for (let bi = 0; bi < balls.length; bi++) {
     const ball = balls[bi];
 
+    if (magnetStuck && bi === 0) continue; // skip stuck ball
+
     ball.x += ball.dx;
     ball.y += ball.dy;
+
+    // Fire trail particles
+    if (activeEffects['fire'] && gameTime % 2 === 0) {
+      spawnFireTrail(ball.x, ball.y);
+    }
 
     // Wall collisions
     if (ball.x - ball.r <= 0 || ball.x + ball.r >= canvas.width) {
       ball.dx *= -1;
+      ball.x = Math.max(ball.r, Math.min(canvas.width - ball.r, ball.x));
       sfxWallBounce();
     }
     if (ball.y - ball.r <= 0) {
-      ball.dy *= -1;
+      ball.dy = Math.abs(ball.dy);
       sfxWallBounce();
     }
 
@@ -555,10 +1023,21 @@ function update() {
     if (
       ball.dy > 0 &&
       ball.y + ball.r >= paddle.y &&
-      ball.y + ball.r <= paddle.y + paddle.h &&
+      ball.y + ball.r <= paddle.y + paddle.h + 4 &&
       ball.x >= paddle.x &&
       ball.x <= paddle.x + paddle.w
     ) {
+      // Magnet: stick ball
+      if (activeEffects['magnet'] && !magnetStuck && bi === 0) {
+        magnetStuck = true;
+        magnetBallOffset = ball.x - (paddle.x + paddle.w / 2);
+        ball.dx = 0;
+        ball.dy = 0;
+        ball.y = paddle.y - ball.r;
+        sfxMagnetCatch();
+        continue;
+      }
+
       sfxPaddleHit();
       spawnPaddleSparkle(ball.x, paddle.y);
       const hitPos = (ball.x - paddle.x) / paddle.w;
@@ -580,7 +1059,8 @@ function update() {
           ball.y - ball.r < b.y + b.h
         ) {
           b.alive = false;
-          const pts = b.points * level;
+          const globalLevel = (currentWorld - 1) * LEVELS_PER_WORLD + currentLevel;
+          const pts = b.points * globalLevel;
           score += pts;
           sfxBrickBreak(b.row);
           spawnParticles(b.x + b.w / 2, b.y + b.h / 2, b.color, 14);
@@ -588,15 +1068,17 @@ function update() {
           updateHUD();
           spawnPowerup(b.x + b.w / 2, b.y + b.h);
 
-          const overlapLeft = (ball.x + ball.r) - b.x;
-          const overlapRight = (b.x + b.w) - (ball.x - ball.r);
-          const overlapTop = (ball.y + ball.r) - b.y;
-          const overlapBottom = (b.y + b.h) - (ball.y - ball.r);
-          const minOverlapX = Math.min(overlapLeft, overlapRight);
-          const minOverlapY = Math.min(overlapTop, overlapBottom);
-
-          if (minOverlapX < minOverlapY) ball.dx *= -1;
-          else ball.dy *= -1;
+          // Fireball: don't reverse ball direction
+          if (!activeEffects['fire']) {
+            const overlapLeft = (ball.x + ball.r) - b.x;
+            const overlapRight = (b.x + b.w) - (ball.x - ball.r);
+            const overlapTop = (ball.y + ball.r) - b.y;
+            const overlapBottom = (b.y + b.h) - (ball.y - ball.r);
+            const minOverlapX = Math.min(overlapLeft, overlapRight);
+            const minOverlapY = Math.min(overlapTop, overlapBottom);
+            if (minOverlapX < minOverlapY) ball.dx *= -1;
+            else ball.dy *= -1;
+          }
         }
       }
     }
@@ -617,6 +1099,9 @@ function update() {
     Object.values(activeEffects).forEach(e => clearTimeout(e.timer));
     activeEffects = {};
     paddle.w = PADDLE_WIDTH;
+    lasers = [];
+    laserTimer = 0;
+    magnetStuck = false;
     updatePowerupHUD();
     if (lives <= 0) return gameOver(false);
     resetBalls();
@@ -627,7 +1112,6 @@ function update() {
     const p = powerups[i];
     p.y += p.vy;
     p.angle += 0.05;
-    // Collect with paddle
     if (
       p.y + POWERUP_RADIUS >= paddle.y &&
       p.y - POWERUP_RADIUS <= paddle.y + paddle.h &&
@@ -639,7 +1123,6 @@ function update() {
       powerups.splice(i, 1);
       continue;
     }
-    // Off screen
     if (p.y - POWERUP_RADIUS > canvas.height) {
       powerups.splice(i, 1);
     }
@@ -660,29 +1143,17 @@ function update() {
       if (bricks[r][c].alive) allCleared = false;
 
   if (allCleared) {
-    if (level >= MAX_LEVEL) return gameOver(true);
-    sfxLevelUp();
-    level++;
-    updateHUD();
-    // Clear timed effects
-    Object.values(activeEffects).forEach(e => clearTimeout(e.timer));
-    activeEffects = {};
-    paddle.w = PADDLE_WIDTH;
-    powerups = [];
-    updatePowerupHUD();
-    resetBalls();
-    buildBricks();
+    return levelComplete();
   }
 }
 
 // ── Draw ──
 function draw() {
   const shake = getShakeOffset();
-
   ctx.save();
   ctx.translate(shake.x, shake.y);
 
-  // Background with stars
+  // Background
   drawBackground(gameTime);
 
   // Bricks with gradient and shine
@@ -691,7 +1162,6 @@ function draw() {
       const b = bricks[r][c];
       if (!b.alive) continue;
 
-      // Main brick with gradient
       const brickGrad = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
       brickGrad.addColorStop(0, lightenColor(b.color, 30));
       brickGrad.addColorStop(0.5, b.color);
@@ -701,7 +1171,7 @@ function draw() {
       roundRect(ctx, b.x, b.y, b.w, b.h, 4);
       ctx.fill();
 
-      // Shine highlight on top
+      // Shine highlight
       ctx.save();
       ctx.globalAlpha = 0.25;
       ctx.fillStyle = '#fff';
@@ -714,6 +1184,27 @@ function draw() {
 
   // Ball trails
   drawTrails();
+
+  // Laser beams
+  for (const laser of lasers) {
+    ctx.save();
+    ctx.strokeStyle = '#ffff00';
+    ctx.shadowColor = '#ffff00';
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(laser.x, laser.y);
+    ctx.lineTo(laser.x, laser.y + 20);
+    ctx.stroke();
+    // Inner bright line
+    ctx.strokeStyle = '#ffffcc';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(laser.x, laser.y);
+    ctx.lineTo(laser.x, laser.y + 20);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   // Particles
   drawParticles();
@@ -729,7 +1220,6 @@ function draw() {
     ctx.fillStyle = p.type.color;
     ctx.shadowColor = p.type.color;
     ctx.shadowBlur = 12;
-    // Diamond shape
     ctx.beginPath();
     ctx.moveTo(0, -POWERUP_RADIUS);
     ctx.lineTo(POWERUP_RADIUS * 0.7, 0);
@@ -738,8 +1228,7 @@ function draw() {
     ctx.closePath();
     ctx.fill();
     ctx.shadowBlur = 0;
-    // Label
-    ctx.rotate(-p.angle); // counter-rotate text so it stays upright
+    ctx.rotate(-p.angle);
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
@@ -752,29 +1241,74 @@ function draw() {
   ctx.save();
   const grad = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x + paddle.w, paddle.y);
   const isWide = !!activeEffects['wide'];
-  grad.addColorStop(0, isWide ? '#00e676' : '#00d4ff');
-  grad.addColorStop(0.5, isWide ? '#69f0ae' : '#48e5ff');
-  grad.addColorStop(1, isWide ? '#00c853' : '#0077b6');
+  const hasMagnet = !!activeEffects['magnet'];
+  const hasLaser = !!activeEffects['laser'];
+  let pColor1, pColor2, pColor3, pGlow;
+  if (hasMagnet) {
+    pColor1 = '#ff69b4'; pColor2 = '#ffb6c1'; pColor3 = '#ff1493'; pGlow = '#ff69b4';
+  } else if (hasLaser) {
+    pColor1 = '#ffff00'; pColor2 = '#ffffaa'; pColor3 = '#cccc00'; pGlow = '#ffff00';
+  } else if (isWide) {
+    pColor1 = '#00e676'; pColor2 = '#69f0ae'; pColor3 = '#00c853'; pGlow = '#00e676';
+  } else {
+    pColor1 = '#00d4ff'; pColor2 = '#48e5ff'; pColor3 = '#0077b6'; pGlow = '#00d4ff';
+  }
+  grad.addColorStop(0, pColor1);
+  grad.addColorStop(0.5, pColor2);
+  grad.addColorStop(1, pColor3);
   ctx.fillStyle = grad;
-  ctx.shadowColor = isWide ? '#00e676' : '#00d4ff';
+  ctx.shadowColor = pGlow;
   ctx.shadowBlur = 12;
   ctx.beginPath();
   roundRect(ctx, paddle.x, paddle.y, paddle.w, paddle.h, 6);
   ctx.fill();
   ctx.restore();
 
+  // Laser barrel indicator
+  if (hasLaser) {
+    ctx.save();
+    ctx.fillStyle = '#ffff00';
+    ctx.shadowColor = '#ffff00';
+    ctx.shadowBlur = 6;
+    ctx.fillRect(paddle.x + paddle.w / 2 - 2, paddle.y - 4, 4, 4);
+    ctx.restore();
+  }
+
   // Balls with glow
   for (const ball of balls) {
     ctx.save();
-    const ballColor = activeEffects['slow'] ? '#e040fb' : '#00d4ff';
-    // Outer glow
+    let ballColor = '#00d4ff';
+    if (activeEffects['fire']) ballColor = '#ff6600';
+    else if (activeEffects['slow']) ballColor = '#e040fb';
+
+    // Magnet glow when stuck
+    if (magnetStuck && ball === balls[0]) {
+      ctx.shadowColor = '#ff69b4';
+      ctx.shadowBlur = 25;
+      ctx.fillStyle = '#ffb6c1';
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r + 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Fireball outer glow
+    if (activeEffects['fire']) {
+      ctx.shadowColor = '#ff6600';
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = 'rgba(255,102,0,0.3)';
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r + 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Main ball
     ctx.shadowColor = ballColor;
     ctx.shadowBlur = 20;
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
     ctx.fill();
-    // Inner bright core
+    // Inner core
     ctx.shadowBlur = 0;
     const coreGrad = ctx.createRadialGradient(ball.x - 2, ball.y - 2, 0, ball.x, ball.y, ball.r);
     coreGrad.addColorStop(0, '#fff');
@@ -819,32 +1353,109 @@ function roundRect(ctx, x, y, w, h, r) {
 // ── HUD ──
 function updateHUD() {
   scoreEl.textContent = 'Score: ' + score;
-  levelEl.textContent = 'Level: ' + level;
+  levelEl.textContent = 'World ' + currentWorld + '-' + currentLevel;
   livesEl.textContent = 'Lives: ' + lives;
   if (window.GamePlatform) GamePlatform.updateScore(score);
 }
 
-// ── Game Over / Win ──
+// ── Level Complete ──
+function levelComplete() {
+  running = false;
+  cancelAnimationFrame(animId);
+  Object.values(activeEffects).forEach(e => clearTimeout(e.timer));
+  activeEffects = {};
+  powerupHud.innerHTML = '';
+  lasers = [];
+  magnetStuck = false;
+
+  sfxLevelComplete();
+
+  const starsEarned = saveLevelResult(currentWorld, currentLevel, score);
+  saveHighScore(score);
+
+  if (window.GamePlatform) {
+    var t = GamePlatform.stopTimer();
+    GamePlatform.recordGame('breakout', score, t * 1000, {
+      win: true,
+      world: currentWorld,
+      level: currentLevel
+    });
+    GamePlatform.updateScore(score);
+  }
+
+  // Check if a new world was just unlocked
+  const nextWorld = currentWorld + (currentLevel === LEVELS_PER_WORLD ? 1 : 0);
+  if (currentLevel === LEVELS_PER_WORLD && nextWorld <= 3 && isWorldUnlocked(nextWorld)) {
+    sfxWorldUnlock();
+  }
+
+  // Check if all worlds completed
+  const allDone = currentWorld === 3 && currentLevel === LEVELS_PER_WORLD;
+
+  // Stars display
+  let starStr = '';
+  for (let i = 1; i <= 3; i++) {
+    starStr += i <= starsEarned ? '\u2605' : '\u2606';
+  }
+
+  overlayTitle.textContent = allDone ? 'Congratulations!' : 'Level Complete!';
+  overlayTitle.style.color = '#ffd700';
+
+  let msgText = allDone
+    ? 'All worlds completed!\nScore: ' + score + '  ' + starStr
+    : 'World ' + currentWorld + '-' + currentLevel + '\nScore: ' + score + '  ' + starStr;
+  overlayMsg.textContent = msgText;
+
+  // Hide how-to-play
+  const howTo = overlay.querySelector('.how-to-play');
+  if (howTo) howTo.style.display = 'none';
+  highscoresDiv.classList.add('hidden');
+
+  if (allDone) {
+    overlayBtn.textContent = 'Play';
+    hideSecondaryBtn();
+  } else {
+    overlayBtn.textContent = 'Next Level';
+    setupSecondaryBtn();
+  }
+
+  overlay.classList.remove('hidden');
+}
+
+// ── Game Over ──
 function gameOver(won) {
   running = false;
   cancelAnimationFrame(animId);
   Object.values(activeEffects).forEach(e => clearTimeout(e.timer));
   activeEffects = {};
   powerupHud.innerHTML = '';
+  lasers = [];
+  magnetStuck = false;
 
-  if (won) sfxWin(); else sfxGameOver();
+  sfxGameOver();
 
   saveHighScore(score);
   if (window.GamePlatform) {
     var t = GamePlatform.stopTimer();
-    GamePlatform.recordGame('breakout', score, t * 1000, { win: won });
+    GamePlatform.recordGame('breakout', score, t * 1000, {
+      win: false,
+      world: currentWorld,
+      level: currentLevel
+    });
     GamePlatform.updateScore(score);
   }
-  overlayTitle.textContent = won ? 'You Win!' : 'Game Over';
-  overlayTitle.style.color = won ? '#ffd700' : '#ff4d6d';
-  overlayMsg.textContent = 'Final Score: ' + score;
-  overlayBtn.textContent = 'Play Again';
-  renderHighScores();
+
+  overlayTitle.textContent = 'Game Over';
+  overlayTitle.style.color = '#ff4d6d';
+  overlayMsg.textContent = 'World ' + currentWorld + '-' + currentLevel + '\nScore: ' + score;
+  overlayBtn.textContent = 'Retry';
+
+  // Hide how-to-play
+  const howTo = overlay.querySelector('.how-to-play');
+  if (howTo) howTo.style.display = 'none';
+  highscoresDiv.classList.add('hidden');
+
+  setupSecondaryBtn();
   overlay.classList.remove('hidden');
 }
 
@@ -861,7 +1472,6 @@ function loop() {
 // Platform integration
 if (window.GamePlatform) {
   GamePlatform.initHeader('Breakout');
-  // Save stats if user leaves mid-game
   window.addEventListener('beforeunload', function() {
     if (score > 0) {
       var t = GamePlatform.stopTimer();
@@ -871,4 +1481,4 @@ if (window.GamePlatform) {
 }
 
 // ── Show start screen ──
-renderHighScores();
+showStartScreen();
