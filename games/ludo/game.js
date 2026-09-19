@@ -193,7 +193,11 @@
       turnTimer: 0,
       spectatorMode: false
     },
-    winner: null
+    winner: null,
+    stateVersion: 0,
+    turnStartedAt: 0,
+    turnDeadline: 0,
+    turnId: 0
   };
 
   // Networking
@@ -205,6 +209,7 @@
   var connections = new Map();   // peerId -> { conn, playerId }
   var spectators = new Map();    // peerId -> conn
   var disconnectTimers = {};     // playerId -> timeout
+  var kickedPlayerIds = new Set();
 
   // UI
   var showHints = true;
@@ -263,6 +268,10 @@
 
   function currentPlayerObj() {
     return gameState.players[gameState.currentPlayer] || null;
+  }
+
+  function getColorHex(colorName) {
+    return COLORS[colorName] ? COLORS[colorName].main : '#aaa';
   }
 
   function getPlayerByColor(color) {
@@ -652,7 +661,7 @@
 
   function drawToken(ctx, x, y, color, pi, ti) {
     var colData = COLORS[color];
-    var isCurrentPlayer = pi === gameState.currentPlayer && gameState.phase !== 'waiting' && gameState.phase !== 'gameover';
+    var isCurrentPlayer = pi === gameState.currentPlayer && gameState.phase !== 'waiting' && gameState.phase !== 'gameover' && gameState.phase !== 'advancing';
     var radius = TOKEN_RADIUS;
 
     // Shadow
@@ -726,7 +735,7 @@
   }
 
   function drawCurrentPlayerHighlight(ctx) {
-    if (gameState.phase === 'waiting' || gameState.phase === 'gameover') return;
+    if (gameState.phase === 'waiting' || gameState.phase === 'gameover' || gameState.phase === 'advancing') return;
     var player = currentPlayerObj();
     if (!player) return;
     var color = player.color;
@@ -831,10 +840,14 @@
     gameState.diceValue = value;
     gameState.rollsInTurn++;
 
+    if (value === 6) {
+      player.sixes = (player.sixes || 0) + 1;
+    }
+
     // Triple-6 check
     if (gameState.settings.tripleSix && value === 6 && gameState.rollsInTurn >= 3) {
       addLog(player.name + ' rolled three 6s in a row! Turn lost.');
-      gameState.phase = 'rolling';
+      gameState.phase = 'animating';
       broadcastState({ type: 'roll', value: value });
       setTimeout(function () {
         advanceTurn();
@@ -845,7 +858,7 @@
     var moves = getValidMoves(playerIdx, value);
 
     if (moves.length === 0) {
-      gameState.phase = 'rolling'; // temporary for animation
+      gameState.phase = 'animating';
       addLog(player.name + ' rolled ' + value + ' - no valid moves.');
       broadcastState({ type: 'roll', value: value });
       setTimeout(function () {
@@ -856,7 +869,7 @@
 
     if (moves.length === 1) {
       // Auto-select only move
-      gameState.phase = 'moving';
+      gameState.phase = 'animating';
       addLog(player.name + ' rolled ' + value + '.');
       broadcastState({ type: 'roll', value: value });
       setTimeout(function () {
@@ -865,14 +878,19 @@
       return;
     }
 
-    gameState.phase = 'moving';
+    gameState.phase = 'animating';
     addLog(player.name + ' rolled ' + value + '.');
     broadcastState({ type: 'roll', value: value });
-    startTurnTimer();
+    // After dice animation, transition to moving phase
+    setTimeout(function () {
+      gameState.phase = 'moving';
+      broadcastState(null);
+      startTurnTimer();
+    }, DICE_ANIM_MS);
   }
 
   function executeMove(playerIdx, tokenIdx) {
-    if (gameState.phase !== 'moving' && gameState.phase !== 'rolling') return;
+    if (gameState.phase !== 'moving' && gameState.phase !== 'animating') return;
     var player = gameState.players[playerIdx];
     if (!player || playerIdx !== gameState.currentPlayer) return;
 
@@ -914,7 +932,7 @@
 
     // Apply move
     token.pathIndex = newPathIndex;
-    gameState.phase = 'animating';
+    gameState.phase = 'resolving';
 
     var animDuration = animCells.length * MOVE_ANIM_MS_PER_CELL;
 
@@ -976,6 +994,7 @@
               var oppCell = oppPath[oppToken.pathIndex];
               if (oppCell.r === landCell.r && oppCell.c === landCell.c) {
                 oppToken.pathIndex = -1;
+                player.captures = (player.captures || 0) + 1;
                 addLog(player.name + ' captured ' + opp.name + '\'s token!');
                 SFX.capture();
                 if (gameState.settings.captureBonus) {
@@ -1005,6 +1024,8 @@
     var numPlayers = gameState.players.length;
     if (numPlayers === 0) return;
 
+    gameState.phase = 'advancing';
+
     var nextPlayer = (gameState.currentPlayer + 1) % numPlayers;
     var tries = 0;
     while (tries < numPlayers) {
@@ -1030,22 +1051,31 @@
 
   function startTurnTimer() {
     stopTurnTimer();
-    if (!isHost) return;
     var seconds = gameState.settings.turnTimer;
     if (!seconds || seconds <= 0) {
+      gameState.turnDeadline = 0;
+      gameState.turnStartedAt = 0;
       hide(DOM.turnTimer);
       return;
     }
-    timerRemaining = seconds;
-    timerStartedAt = Date.now();
+    if (isHost) {
+      gameState.turnStartedAt = Date.now();
+      gameState.turnDeadline = Date.now() + (seconds * 1000);
+      gameState.turnId++;
+    }
     show(DOM.turnTimer);
     updateTimerDisplay();
+    var currentTurnId = gameState.turnId;
     timerInterval = setInterval(function () {
-      timerRemaining = seconds - Math.floor((Date.now() - timerStartedAt) / 1000);
-      if (timerRemaining < 0) timerRemaining = 0;
+      if (gameState.turnId !== currentTurnId) {
+        stopTurnTimer();
+        return;
+      }
+      var remaining = Math.max(0, Math.ceil((gameState.turnDeadline - Date.now()) / 1000));
+      timerRemaining = remaining;
       updateTimerDisplay();
-      if (timerRemaining <= 5 && timerRemaining > 0) SFX.timerTick();
-      if (timerRemaining <= 0) {
+      if (remaining <= 5 && remaining > 0) SFX.timerTick();
+      if (remaining <= 0) {
         stopTurnTimer();
         if (isHost) {
           addLog(currentPlayerObj().name + '\'s turn timed out.');
@@ -1063,17 +1093,23 @@
   }
 
   function updateTimerDisplay() {
-    if (DOM.timerText) DOM.timerText.textContent = timerRemaining;
+    var remaining;
+    if (gameState.turnDeadline > 0) {
+      remaining = Math.max(0, Math.ceil((gameState.turnDeadline - Date.now()) / 1000));
+    } else {
+      remaining = timerRemaining;
+    }
+    if (DOM.timerText) DOM.timerText.textContent = remaining;
     var total = gameState.settings.turnTimer || 30;
-    var frac = timerRemaining / total;
+    var frac = remaining / total;
     var fg = DOM.turnTimer ? DOM.turnTimer.querySelector('.timer-fg') : null;
     if (fg) {
       var circumference = 2 * Math.PI * 15.9;
       fg.style.strokeDasharray = circumference;
       fg.style.strokeDashoffset = circumference * (1 - frac);
-      fg.style.stroke = timerRemaining <= 5 ? '#e74c3c' : '#00d4ff';
+      fg.style.stroke = remaining <= 5 ? '#e74c3c' : '#00d4ff';
     }
-    if (timerRemaining > 0) {
+    if (remaining > 0) {
       show(DOM.turnTimer);
     }
   }
@@ -1114,7 +1150,9 @@
         color: defaultColor,
         tokens: createTokens(),
         connected: true,
-        isHost: true
+        isHost: true,
+        captures: 0,
+        sixes: 0
       }];
 
       showRoomLobby();
@@ -1227,12 +1265,14 @@
         handleJoinRequest(data, conn);
         break;
       case 'roll':
+        if (gameState.phase !== 'rolling') break;
         var pi = getPlayerIdx(data.id);
-        if (pi >= 0) executeRoll(pi);
+        if (pi >= 0 && pi === gameState.currentPlayer) executeRoll(pi);
         break;
       case 'move':
+        if (gameState.phase !== 'moving') break;
         var pi2 = getPlayerIdx(data.id);
-        if (pi2 >= 0) executeMove(pi2, data.tokenIdx);
+        if (pi2 >= 0 && pi2 === gameState.currentPlayer) executeMove(pi2, data.tokenIdx);
         break;
       case 'chat':
         var pi3 = getPlayerIdx(data.id);
@@ -1266,6 +1306,9 @@
 
     switch (data.t) {
       case 'state':
+        if (data.s.stateVersion && gameState.stateVersion && data.s.stateVersion <= gameState.stateVersion) {
+          break; // ignore stale state
+        }
         applyState(data.s, data.action);
         break;
       case 'joined':
@@ -1300,6 +1343,12 @@
   }
 
   function handleJoinRequest(data, conn) {
+    if (kickedPlayerIds.has(data.id)) {
+      conn.send({ t: 'error', msg: 'You have been kicked from this room.' });
+      setTimeout(function() { conn.close(); }, 100);
+      return;
+    }
+
     var maxPlayers = gameState.settings.numPlayers;
     var currentCount = gameState.players.length;
 
@@ -1340,7 +1389,9 @@
       color: desiredColor,
       tokens: createTokens(),
       connected: true,
-      isHost: false
+      isHost: false,
+      captures: 0,
+      sixes: 0
     };
 
     gameState.players.push(newPlayer);
@@ -1429,6 +1480,7 @@
 
   function kickPlayer(playerId) {
     if (!isHost) return;
+    kickedPlayerIds.add(playerId);
     var entry = connections.get(playerId);
     if (entry && entry.conn) {
       entry.conn.send({ t: 'kicked' });
@@ -1481,6 +1533,7 @@
 
   function broadcastState(action) {
     if (!isHost) return;
+    gameState.stateVersion++;
     var msg = { t: 'state', s: cloneState(gameState), action: action || null };
     connections.forEach(function (val) {
       if (val.conn && val.conn.open) {
@@ -1542,10 +1595,21 @@
       }
     }
 
-    // Update timer display
-    if (gameState.settings.turnTimer > 0) {
+    // Update timer display from authoritative deadline
+    if (gameState.settings.turnTimer > 0 && gameState.turnDeadline > 0) {
       show(DOM.turnTimer);
-    } else {
+      updateTimerDisplay();
+      // Restart client-side interval to keep display ticking
+      stopTurnTimer();
+      var currentTurnId = gameState.turnId;
+      timerInterval = setInterval(function () {
+        if (gameState.turnId !== currentTurnId) {
+          stopTurnTimer();
+          return;
+        }
+        updateTimerDisplay();
+      }, 1000);
+    } else if (gameState.settings.turnTimer <= 0) {
       hide(DOM.turnTimer);
     }
 
@@ -1816,7 +1880,7 @@
     var isMyRoll = isMyTurn() && gameState.phase === 'rolling';
     DOM.btnRoll.disabled = !isMyRoll;
 
-    if (gameState.phase === 'gameover') {
+    if (gameState.phase === 'gameover' || gameState.phase === 'animating' || gameState.phase === 'resolving' || gameState.phase === 'advancing') {
       DOM.btnRoll.disabled = true;
     }
 
@@ -1897,29 +1961,58 @@
 
   function showWinOverlay(player) {
     if (window.GamePlatform) {
-      var isWinner = gameState.winner === myPlayerIndex();
-      GamePlatform.recordGame('ludo', 0, 0, { win: isWinner });
+      var isWinnerMe = gameState.winner === myPlayerIndex();
+      GamePlatform.recordGame('ludo', 0, 0, { win: isWinnerMe });
     }
+
+    // Collect match statistics
+    var stats = [];
+    for (var i = 0; i < gameState.players.length; i++) {
+      var p = gameState.players[i];
+      var tokensHome = 0, tokensOut = 0, tokensDone = 0;
+      for (var j = 0; j < p.tokens.length; j++) {
+        if (p.tokens[j].pathIndex === -1) tokensHome++;
+        else if (p.tokens[j].pathIndex >= 56) tokensDone++;
+        else tokensOut++;
+      }
+      stats.push({
+        name: p.name,
+        color: p.color,
+        tokensHome: tokensHome,
+        tokensOut: tokensOut,
+        tokensDone: tokensDone,
+        captures: p.captures || 0,
+        sixes: p.sixes || 0
+      });
+    }
+
+    // Build result HTML
+    var html = '<div style="text-align:center">';
+    html += '<div style="font-size:48px;margin-bottom:8px">' + (gameState.winner === myPlayerIndex() ? '\uD83C\uDFC6' : '') + '</div>';
+    html += '</div>';
+    html += '<div style="max-width:320px;margin:16px auto 0;text-align:left">';
+    for (var si = 0; si < stats.length; si++) {
+      var s = stats[si];
+      var isWinner = (si === gameState.winner);
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;margin:4px 0;border-radius:6px;background:rgba(255,255,255,' + (isWinner ? '0.08' : '0.03') + ')">';
+      html += '<div style="width:12px;height:12px;border-radius:50%;background:' + getColorHex(s.color) + '"></div>';
+      html += '<div style="flex:1;font-weight:' + (isWinner ? '700' : '400') + ';color:' + (isWinner ? '#fff' : '#aaa') + '">' + s.name + '</div>';
+      html += '<div style="font-size:12px;color:#888">' + s.tokensDone + '/' + (s.tokensHome + s.tokensOut + s.tokensDone) + ' home</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+
     DOM.overlayTitle.textContent = player.name + ' Wins!';
-    DOM.overlayMsg.textContent = 'All tokens have reached home. Congratulations!';
+    DOM.overlayTitle.style.color = getColorHex(player.color);
+    DOM.overlayMsg.innerHTML = html;
     DOM.overlayActions.innerHTML = '';
 
-    if (isHost) {
-      var rematchBtn = document.createElement('button');
-      rematchBtn.className = 'btn btn-cyan';
-      rematchBtn.textContent = 'Rematch';
-      rematchBtn.onclick = function () {
-        hideOverlay();
-        startRematch();
-      };
-      DOM.overlayActions.appendChild(rematchBtn);
-    }
-
-    var closeBtn = document.createElement('button');
-    closeBtn.className = 'btn btn-green';
-    closeBtn.textContent = 'Close';
-    closeBtn.onclick = hideOverlay;
-    DOM.overlayActions.appendChild(closeBtn);
+    // Add rematch and lobby buttons
+    var btnHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:16px">';
+    btnHtml += '<button onclick="document.getElementById(\'game-overlay\').classList.add(\'hidden\');if(window._ludoRematch)window._ludoRematch()" style="padding:10px 24px;font-size:14px;font-weight:700;border:2px solid #00d4ff;border-radius:6px;background:transparent;color:#00d4ff;cursor:pointer">Rematch</button>';
+    btnHtml += '<button onclick="if(window._ludoBackToLobby)window._ludoBackToLobby()" style="padding:10px 24px;font-size:14px;font-weight:700;border:2px solid #666;border-radius:6px;background:transparent;color:#888;cursor:pointer">Lobby</button>';
+    btnHtml += '</div>';
+    DOM.overlayMsg.innerHTML += btnHtml;
 
     show(DOM.gameOverlay);
   }
@@ -1968,6 +2061,8 @@
     if (!isHost) return;
     gameState.players.forEach(function (p) {
       p.tokens = createTokens();
+      p.captures = 0;
+      p.sixes = 0;
     });
     gameState.currentPlayer = 0;
     gameState.diceValue = null;
@@ -1994,9 +2089,11 @@
       addLog(removed.name + ' was removed (too many players).');
     }
 
-    // Ensure all players have correct number of tokens
+    // Ensure all players have correct number of tokens and reset stats
     gameState.players.forEach(function (p) {
       p.tokens = createTokens();
+      p.captures = 0;
+      p.sixes = 0;
     });
 
     gameState.phase = 'rolling';
@@ -2004,6 +2101,8 @@
     gameState.diceValue = null;
     gameState.rollsInTurn = 0;
     gameState.winner = null;
+    gameState.turnStartedAt = 0;
+    gameState.turnDeadline = 0;
 
     addLog('Game started!');
 
@@ -2027,12 +2126,17 @@
     hide(DOM.roomLobby);
     gameState.players = [];
     gameState.phase = 'waiting';
+    gameState.stateVersion = 0;
+    gameState.turnStartedAt = 0;
+    gameState.turnDeadline = 0;
+    gameState.turnId = 0;
     if (peer) {
       peer.destroy();
       peer = null;
     }
     connections.clear();
     spectators.clear();
+    kickedPlayerIds.clear();
   }
 
   // =====================================================================
@@ -2277,6 +2381,10 @@
       }
     });
   }
+
+  // Expose rematch/lobby actions for overlay buttons
+  window._ludoRematch = function() { startRematch(); };
+  window._ludoBackToLobby = function() { resetToLobby(); };
 
   // =====================================================================
   //  15. INITIALIZATION
