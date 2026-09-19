@@ -173,6 +173,17 @@
     };
   }
 
+  // ── Hash helper for daily challenges ──
+
+  function hashDate(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  }
+
   // ── Toast notifications ──
 
   function showToast(html, type) {
@@ -235,6 +246,27 @@
 
     document.body.prepend(header);
     document.body.classList.add('gp-has-header');
+
+    // Auto-start session timing
+    if (gameId) {
+      GamePlatform.startSession(gameId);
+    }
+
+    // Auto-save session time when user leaves
+    var self = GamePlatform;
+    window.addEventListener('beforeunload', function() {
+      if (self._sessionGameId) {
+        var time = self.endSession();
+        // Don't double-record if the game already called recordGame
+        // Just save the time to the existing stats
+        var data = loadData();
+        if (data.gameStats && data.gameStats[self._sessionGameId]) {
+          data.gameStats[self._sessionGameId].totalPlayTime =
+            (data.gameStats[self._sessionGameId].totalPlayTime || 0) + time;
+          saveData(data);
+        }
+      }
+    });
   }
 
   // ── Public API ──
@@ -290,6 +322,7 @@
     },
 
     recordGame: function(gameId, score, playTimeMs, extra) {
+      var pt = playTimeMs || this.getSessionTime();
       const data = loadData();
       if (!data.gameStats) data.gameStats = {};
       if (!data.gameStats[gameId]) {
@@ -298,7 +331,7 @@
       const gs = data.gameStats[gameId];
       gs.timesPlayed = (gs.timesPlayed || 0) + 1;
       if (score > (gs.bestScore || 0)) gs.bestScore = score;
-      gs.totalPlayTime = (gs.totalPlayTime || 0) + (playTimeMs || 0);
+      gs.totalPlayTime = (gs.totalPlayTime || 0) + (pt || 0);
       gs.lastPlayed = Date.now();
 
       if (extra) {
@@ -311,7 +344,7 @@
       data.recentGames.unshift({
         gameId: gameId,
         score: score || 0,
-        playTime: playTimeMs || 0,
+        playTime: pt || 0,
         timestamp: Date.now()
       });
       if (data.recentGames.length > 50) data.recentGames = data.recentGames.slice(0, 50);
@@ -344,6 +377,19 @@
             '<span class="gp-toast-icon">' + def.icon + '</span>' +
             '<span class="gp-toast-title">Achievement Unlocked!</span>' +
             '<span class="gp-toast-desc">' + def.name + ' \u2014 ' + def.desc + '</span>',
+            'achievement'
+          );
+        }
+      }
+
+      // Check daily challenges
+      if (GamePlatform.checkDailyChallenge) {
+        var ch = GamePlatform.checkDailyChallenge(gameId, score);
+        if (ch) {
+          showToast(
+            '<span class="gp-toast-icon">\uD83C\uDFAF</span>' +
+            '<span class="gp-toast-title">Daily Challenge Complete!</span>' +
+            '<span class="gp-toast-desc">' + (GAME_NAMES[gameId] || gameId) + ': ' + ch.desc + '</span>',
             'achievement'
           );
         }
@@ -432,6 +478,136 @@
       var btn = document.querySelector('.gp-btn-sound');
       if (btn) btn.textContent = muted ? '\uD83D\uDD07' : '\uD83D\uDD0A';
       return muted;
+    },
+
+    // ── Auto Play-Time Tracking ──
+
+    _sessionGameId: null,
+    _sessionStart: 0,
+    _sessionHiddenTime: 0,
+    _sessionHiddenAt: 0,
+
+    startSession: function(gameId) {
+      this._sessionGameId = gameId;
+      this._sessionStart = Date.now();
+      this._sessionHiddenTime = 0;
+      this._sessionHiddenAt = 0;
+
+      // Track tab visibility to subtract hidden time
+      var self = this;
+      document.addEventListener('visibilitychange', self._onVisChange = function() {
+        if (document.hidden) {
+          self._sessionHiddenAt = Date.now();
+        } else if (self._sessionHiddenAt > 0) {
+          self._sessionHiddenTime += Date.now() - self._sessionHiddenAt;
+          self._sessionHiddenAt = 0;
+        }
+      });
+    },
+
+    endSession: function() {
+      if (!this._sessionGameId || !this._sessionStart) return 0;
+      var total = Date.now() - this._sessionStart;
+      if (this._sessionHiddenAt > 0) {
+        this._sessionHiddenTime += Date.now() - this._sessionHiddenAt;
+      }
+      var activeTime = Math.max(0, total - this._sessionHiddenTime);
+      // Clean up
+      if (this._onVisChange) {
+        document.removeEventListener('visibilitychange', this._onVisChange);
+      }
+      this._sessionGameId = null;
+      this._sessionStart = 0;
+      return activeTime;
+    },
+
+    getSessionTime: function() {
+      if (!this._sessionStart) return 0;
+      var total = Date.now() - this._sessionStart;
+      var hidden = this._sessionHiddenTime;
+      if (this._sessionHiddenAt > 0) {
+        hidden += Date.now() - this._sessionHiddenAt;
+      }
+      return Math.max(0, total - hidden);
+    },
+
+    // ── Daily Challenges ──
+
+    getDailyChallenges: function() {
+      var today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      var seed = hashDate(today);
+
+      // Define possible challenges per game
+      var allChallenges = [
+        { gameId: 'breakout', desc: 'Complete World 1-3', type: 'play' },
+        { gameId: 'snake', desc: 'Score 50+', type: 'score', target: 50 },
+        { gameId: 'flappy', desc: 'Score 15+', type: 'score', target: 15 },
+        { gameId: 'minesweeper', desc: 'Win on Easy', type: 'win' },
+        { gameId: '2048', desc: 'Reach 512 tile', type: 'play' },
+        { gameId: 'tetris', desc: 'Clear 10 lines', type: 'play' },
+        { gameId: 'snake', desc: 'Score 100+', type: 'score', target: 100 },
+        { gameId: 'flappy', desc: 'Score 25+', type: 'score', target: 25 },
+        { gameId: 'breakout', desc: 'Score 300+', type: 'score', target: 300 },
+        { gameId: 'tetris', desc: 'Score 1000+', type: 'score', target: 1000 },
+        { gameId: '2048', desc: 'Score 5000+', type: 'score', target: 5000 },
+        { gameId: 'minesweeper', desc: 'Win on Medium', type: 'win' },
+        { gameId: 'snake', desc: 'Score 200+', type: 'score', target: 200 },
+        { gameId: 'flappy', desc: 'Score 50+', type: 'score', target: 50 },
+        { gameId: 'tetris', desc: 'Score 3000+', type: 'score', target: 3000 },
+      ];
+
+      // Pick 5 challenges for today using seeded selection
+      var selected = [];
+      var usedGames = {};
+      var idx = seed;
+      while (selected.length < 5) {
+        idx = (idx * 1103515245 + 12345) & 0x7fffffff;
+        var pick = allChallenges[idx % allChallenges.length];
+        if (!usedGames[pick.gameId]) {
+          usedGames[pick.gameId] = true;
+          selected.push(pick);
+        }
+      }
+
+      return { date: today, challenges: selected };
+    },
+
+    checkDailyChallenge: function(gameId, score) {
+      var daily = this.getDailyChallenges();
+      var data = loadData();
+      if (!data.dailyChallenges) data.dailyChallenges = {};
+      if (!data.dailyChallenges[daily.date]) data.dailyChallenges[daily.date] = {};
+
+      for (var i = 0; i < daily.challenges.length; i++) {
+        var ch = daily.challenges[i];
+        if (ch.gameId !== gameId) continue;
+        var key = ch.gameId + '_' + i;
+        if (data.dailyChallenges[daily.date][key]) continue; // already completed
+
+        var completed = false;
+        if (ch.type === 'score' && score >= ch.target) completed = true;
+        if (ch.type === 'win') completed = true; // just playing counts
+        if (ch.type === 'play') completed = true; // just playing counts
+
+        if (completed) {
+          data.dailyChallenges[daily.date][key] = { completedAt: Date.now() };
+          saveData(data);
+          return ch;
+        }
+      }
+      return null;
+    },
+
+    getDailyProgress: function() {
+      var daily = this.getDailyChallenges();
+      var data = loadData();
+      var completed = (data.dailyChallenges && data.dailyChallenges[daily.date]) || {};
+      var count = 0;
+      for (var i = 0; i < daily.challenges.length; i++) {
+        var key = daily.challenges[i].gameId + '_' + i;
+        if (completed[key]) count++;
+      }
+      return { total: daily.challenges.length, completed: count, challenges: daily.challenges, completedMap: completed };
     }
   };
 

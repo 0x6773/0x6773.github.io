@@ -556,6 +556,132 @@
     .game-card.search-hidden {
       display: none !important;
     }
+
+    .game-card.filter-hidden { display: none !important; }
+
+    /* ── Daily Challenges ── */
+    .daily-section { margin-bottom: 32px; }
+
+    .daily-date { font-size: 13px; color: #666; }
+
+    .daily-challenges {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .daily-challenge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .daily-challenge:hover { border-color: rgba(0,212,255,0.3); }
+
+    .daily-challenge.completed {
+      border-color: rgba(0,230,118,0.3);
+      background: rgba(0,230,118,0.04);
+    }
+
+    .daily-emoji { font-size: 24px; flex-shrink: 0; }
+
+    .daily-info { flex: 1; min-width: 0; }
+
+    .daily-game { font-size: 13px; font-weight: 600; color: #ccc; }
+
+    .daily-desc { font-size: 12px; color: #888; margin-top: 2px; }
+
+    .daily-check {
+      font-size: 18px;
+      color: #00e676;
+      display: none;
+    }
+
+    .daily-challenge.completed .daily-check { display: block; }
+
+    .daily-progress {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .daily-progress strong { color: #00d4ff; }
+
+    /* ── Continue Playing ── */
+    .continue-section { margin-bottom: 32px; }
+
+    .continue-section.hidden { display: none; }
+
+    .continue-list {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 4px 0;
+    }
+
+    .continue-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      background: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      text-decoration: none;
+      color: inherit;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: border-color 0.2s;
+    }
+
+    .continue-card:hover { border-color: rgba(0,212,255,0.3); }
+
+    .continue-emoji { font-size: 22px; }
+
+    .continue-info { }
+
+    .continue-game { font-size: 14px; font-weight: 600; color: #fff; }
+
+    .continue-detail { font-size: 11px; color: #888; margin-top: 2px; }
+
+    /* ── Filter Bar ── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid #333;
+      border-radius: 20px;
+      background: transparent;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .filter-btn:hover { border-color: #00d4ff; color: #00d4ff; }
+
+    .filter-btn.active {
+      border-color: #00d4ff;
+      background: rgba(0,212,255,0.1);
+      color: #00d4ff;
+    }
   </style>
 </head>
 <body>
@@ -576,6 +702,24 @@
     <section class="welcome-section">
       <h1 class="welcome-heading" id="welcome-heading">Welcome back, Player! <span aria-hidden="true">&#x1F44B;</span></h1>
       <p class="welcome-sub" id="welcome-sub">Play a game to start tracking your stats!</p>
+    </section>
+
+    <!-- Daily Challenges -->
+    <section class="daily-section" id="daily-section">
+      <div class="section-header">
+        <h2 class="section-title">&#x1F3AF; Daily Arcade</h2>
+        <span class="daily-date" id="daily-date"></span>
+      </div>
+      <div class="daily-challenges" id="daily-challenges"></div>
+      <div class="daily-progress" id="daily-progress"></div>
+    </section>
+
+    <!-- Continue Playing -->
+    <section class="continue-section hidden" id="continue-section">
+      <div class="section-header">
+        <h2 class="section-title">&#x25B6; Continue Playing</h2>
+      </div>
+      <div class="continue-list" id="continue-list"></div>
     </section>
 
     <!-- Stats Overview -->
@@ -628,10 +772,16 @@
       <div class="search-box">
         <input type="text" id="game-search" placeholder="Search games..." autocomplete="off" spellcheck="false">
       </div>
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="arcade">Arcade</button>
+        <button class="filter-btn" data-filter="puzzle">Puzzle</button>
+        <button class="filter-btn" data-filter="multiplayer">Multiplayer</button>
+      </div>
       <div class="games-grid">
 
         <!-- Breakout -->
-        <a href="breakout/" class="game-card">
+        <a href="breakout/" class="game-card" data-category="arcade">
           <div class="game-banner">
             <canvas id="preview-breakout" width="280" height="160"></canvas>
           </div>
@@ -652,7 +802,7 @@
         </a>
 
         <!-- Snake -->
-        <a href="snake/" class="game-card">
+        <a href="snake/" class="game-card" data-category="arcade">
           <div class="game-banner">
             <canvas id="preview-snake" width="280" height="160"></canvas>
           </div>
@@ -673,7 +823,7 @@
         </a>
 
         <!-- Flappy Bird -->
-        <a href="flappy/" class="game-card">
+        <a href="flappy/" class="game-card" data-category="arcade">
           <div class="game-banner">
             <canvas id="preview-flappy" width="280" height="160"></canvas>
           </div>
@@ -694,7 +844,7 @@
         </a>
 
         <!-- Minesweeper -->
-        <a href="minesweeper/" class="game-card">
+        <a href="minesweeper/" class="game-card" data-category="puzzle">
           <div class="game-banner">
             <canvas id="preview-minesweeper" width="280" height="160"></canvas>
           </div>
@@ -715,7 +865,7 @@
         </a>
 
         <!-- 2048 -->
-        <a href="2048/" class="game-card">
+        <a href="2048/" class="game-card" data-category="puzzle">
           <div class="game-banner">
             <canvas id="preview-2048" width="280" height="160"></canvas>
           </div>
@@ -736,7 +886,7 @@
         </a>
 
         <!-- Tron -->
-        <a href="tron/" class="game-card">
+        <a href="tron/" class="game-card" data-category="arcade multiplayer">
           <div class="game-banner">
             <canvas id="preview-tron" width="280" height="160"></canvas>
           </div>
@@ -757,7 +907,7 @@
         </a>
 
         <!-- Tron Online -->
-        <a href="tron-online/" class="game-card">
+        <a href="tron-online/" class="game-card" data-category="arcade multiplayer">
           <div class="game-banner">
             <canvas id="preview-tron-online" width="280" height="160"></canvas>
             <span class="online-badge">ONLINE</span>
@@ -779,7 +929,7 @@
         </a>
 
         <!-- Tetris -->
-        <a href="tetris/" class="game-card">
+        <a href="tetris/" class="game-card" data-category="puzzle">
           <div class="game-banner">
             <canvas id="preview-tetris" width="280" height="160"></canvas>
           </div>
@@ -800,7 +950,7 @@
         </a>
 
         <!-- Ludo -->
-        <a href="ludo/" class="game-card">
+        <a href="ludo/" class="game-card" data-category="multiplayer">
           <div class="game-banner">
             <canvas id="preview-ludo" width="280" height="160"></canvas>
             <span class="online-badge">ONLINE</span>
@@ -1375,6 +1525,12 @@
         // ── Recent Activity ──
         renderRecentActivity(recent);
 
+        // ── Daily Challenges ──
+        renderDailyChallenges();
+
+        // ── Continue Playing ──
+        renderContinuePlaying();
+
         // ── Player name editing ──
         setupNameEditing();
       }
@@ -1554,6 +1710,113 @@
             }
           });
           input.addEventListener('blur', save);
+        });
+      }
+
+      // ── Daily Challenges rendering ──
+
+      function renderDailyChallenges() {
+        var GP = window.GamePlatform;
+        if (!GP || !GP.getDailyProgress) return;
+
+        var progress = GP.getDailyProgress();
+        var dateEl = document.getElementById('daily-date');
+        var listEl = document.getElementById('daily-challenges');
+        var progEl = document.getElementById('daily-progress');
+
+        if (!dateEl || !listEl) return;
+
+        dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+        listEl.innerHTML = '';
+        for (var i = 0; i < progress.challenges.length; i++) {
+          var ch = progress.challenges[i];
+          var key = ch.gameId + '_' + i;
+          var done = !!progress.completedMap[key];
+          var emoji = (GP.GAME_EMOJIS && GP.GAME_EMOJIS[ch.gameId]) || '\uD83C\uDFAE';
+          var gameName = (GP.GAME_NAMES && GP.GAME_NAMES[ch.gameId]) || ch.gameId;
+
+          var a = document.createElement('a');
+          a.href = ch.gameId + '/';
+          a.className = 'daily-challenge' + (done ? ' completed' : '');
+          a.innerHTML =
+            '<span class="daily-emoji">' + emoji + '</span>' +
+            '<div class="daily-info">' +
+              '<div class="daily-game">' + escHtml(gameName) + '</div>' +
+              '<div class="daily-desc">' + escHtml(ch.desc) + '</div>' +
+            '</div>' +
+            '<span class="daily-check">\u2713</span>';
+          listEl.appendChild(a);
+        }
+
+        progEl.innerHTML = '<strong>' + progress.completed + '/' + progress.total + '</strong> challenges completed today';
+      }
+
+      // ── Continue Playing rendering ──
+
+      function renderContinuePlaying() {
+        var GP = window.GamePlatform;
+        if (!GP) return;
+
+        var allStats = GP.getAllStats();
+        var section = document.getElementById('continue-section');
+        var list = document.getElementById('continue-list');
+        if (!section || !list) return;
+
+        // Get recently played games (last 3 unique games)
+        var recent = GP.getRecentGames(20);
+        var seen = {};
+        var recentGames = [];
+        for (var i = 0; i < recent.length; i++) {
+          if (!seen[recent[i].gameId]) {
+            seen[recent[i].gameId] = true;
+            recentGames.push(recent[i]);
+            if (recentGames.length >= 3) break;
+          }
+        }
+
+        if (recentGames.length === 0) return;
+
+        section.classList.remove('hidden');
+        list.innerHTML = '';
+
+        for (var i = 0; i < recentGames.length; i++) {
+          var r = recentGames[i];
+          var emoji = (GP.GAME_EMOJIS && GP.GAME_EMOJIS[r.gameId]) || '\uD83C\uDFAE';
+          var gameName = (GP.GAME_NAMES && GP.GAME_NAMES[r.gameId]) || r.gameId;
+          var gs = allStats[r.gameId];
+          var detail = gs ? 'Best: ' + formatNumber(gs.bestScore) : '';
+
+          var a = document.createElement('a');
+          a.href = r.gameId + '/';
+          a.className = 'continue-card';
+          a.innerHTML =
+            '<span class="continue-emoji">' + emoji + '</span>' +
+            '<div class="continue-info">' +
+              '<div class="continue-game">' + escHtml(gameName) + '</div>' +
+              '<div class="continue-detail">' + detail + '</div>' +
+            '</div>';
+          list.appendChild(a);
+        }
+      }
+
+      // ── Filters ──
+      var filterBtns = document.querySelectorAll('.filter-btn');
+      for (var i = 0; i < filterBtns.length; i++) {
+        filterBtns[i].addEventListener('click', function() {
+          for (var j = 0; j < filterBtns.length; j++) filterBtns[j].classList.remove('active');
+          this.classList.add('active');
+
+          var filter = this.getAttribute('data-filter');
+          var cards = document.querySelectorAll('.game-card');
+          for (var k = 0; k < cards.length; k++) {
+            var cat = cards[k].getAttribute('data-category') || '';
+            if (filter === 'all' || cat.indexOf(filter) !== -1) {
+              cards[k].classList.remove('filter-hidden');
+            } else {
+              cards[k].classList.add('filter-hidden');
+            }
+          }
         });
       }
 
