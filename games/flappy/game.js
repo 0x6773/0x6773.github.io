@@ -9,11 +9,14 @@
   const canvas = document.getElementById("game-canvas");
   const ctx = canvas.getContext("2d");
   const hudScore = document.getElementById("hud-score");
+  const hudMilestone = document.getElementById("hud-milestone");
   const startOverlay = document.getElementById("start-overlay");
   const gameoverOverlay = document.getElementById("gameover-overlay");
   const finalScoreEl = document.getElementById("final-score");
   const highscoreList = document.getElementById("highscore-list");
   const playAgainBtn = document.getElementById("play-again-btn");
+  const ghostCheckbox = document.getElementById("ghost-checkbox");
+  const modeBtns = document.querySelectorAll(".mode-btn");
 
   const W = canvas.width;   // 400
   const H = canvas.height;  // 600
@@ -31,6 +34,34 @@
   const PIPE_SPAWN_DIST = 220;
   const GROUND_HEIGHT = 60;
   const STAR_COUNT = 60;
+
+  /* ── Mode state (per-session, not persisted) ── */
+  let modeReverse = false;
+  let modeNight = false;
+  let showGhost = true;
+
+  /* ── Milestones ── */
+  const MILESTONES = [
+    { score: 10,  title: "Rookie",     color: "#33cc66" },
+    { score: 25,  title: "Skilled",    color: "#00cccc" },
+    { score: 50,  title: "Expert",     color: "#bb44ff" },
+    { score: 100, title: "Insane",     color: "#ffd700" },
+    { score: 150, title: "Legendary",  color: "#ff3344" },
+  ];
+  let currentMilestoneIdx = -1;
+  let milestoneFloats = [];  // {text, color, y, alpha, scale}
+
+  /* ── Ghost (previous best run) ── */
+  const GHOST_LS_KEY = "flappy_ghost";
+  let ghostRecording = [];   // Y positions this run
+  let ghostPlayback = null;  // Y positions from best run (array or null)
+  let ghostFrame = 0;
+  let ghostVisible = true;
+  let newRecordShown = false;
+  let newRecordAlpha = 0;
+
+  /* ── Night-mode stars (separate from default stars) ── */
+  let nightStars = [];
 
   /* ── Game state ── */
   let state = "start"; // start | playing | dead
@@ -78,6 +109,27 @@
     playTone(120, 0.4, "square", 0.08, 30);
   }
 
+  function sfxMilestone() {
+    playTone(660, 0.1, "sine", 0.1);
+    setTimeout(() => playTone(880, 0.1, "sine", 0.1), 100);
+    setTimeout(() => playTone(1100, 0.15, "sine", 0.12), 200);
+    setTimeout(() => playTone(1320, 0.25, "sine", 0.1), 300);
+  }
+
+  /* ── Ghost load/save ── */
+  function loadGhost() {
+    try {
+      const data = localStorage.getItem(GHOST_LS_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch { return null; }
+  }
+
+  function saveGhost(recording) {
+    try {
+      localStorage.setItem(GHOST_LS_KEY, JSON.stringify(recording));
+    } catch { /* quota exceeded, ignore */ }
+  }
+
   /* ── High scores (localStorage) ── */
   const LS_KEY = "flappybird_highscores";
 
@@ -122,6 +174,20 @@
     }
   }
 
+  function initNightStars() {
+    nightStars = [];
+    for (let i = 0; i < 100; i++) {
+      nightStars.push({
+        x: Math.random() * W,
+        y: Math.random() * (H - GROUND_HEIGHT - 40),
+        r: Math.random() * 1.8 + 0.3,
+        a: Math.random() * 0.8 + 0.2,
+        twinkleSpeed: Math.random() * 0.04 + 0.01,
+        twinkleOffset: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
   /* ── Particles ── */
   function spawnParticle(x, y) {
     particles.push({
@@ -153,8 +219,9 @@
 
   /* ── Init / Reset ── */
   function reset() {
+    const startY = modeReverse ? H - GROUND_HEIGHT - 100 : H / 2 - 40;
     bird = {
-      y: H / 2 - 40,
+      y: startY,
       vy: 0,
       rotation: 0,
     };
@@ -164,7 +231,22 @@
     groundX = 0;
     deathFlashAlpha = 0;
     hudScore.textContent = "0";
+    hudMilestone.textContent = "";
+    hudMilestone.style.color = "";
+    currentMilestoneIdx = -1;
+    milestoneFloats = [];
+    ghostRecording = [];
+    ghostFrame = 0;
+    ghostVisible = true;
+    newRecordShown = false;
+    newRecordAlpha = 0;
+    if (showGhost) {
+      ghostPlayback = loadGhost();
+    } else {
+      ghostPlayback = null;
+    }
     initStars();
+    initNightStars();
   }
 
   /* ── Pipe creation ── */
@@ -186,20 +268,23 @@
   }
 
   /* ── Input ── */
+  function getGravity() { return modeReverse ? -GRAVITY : GRAVITY; }
+  function getFlapStrength() { return modeReverse ? -FLAP_STRENGTH : FLAP_STRENGTH; }
+
   function flap() {
     if (state === "start") {
       state = "playing";
       startOverlay.classList.add("hidden");
       ensureAudio();
       reset();
-      bird.vy = FLAP_STRENGTH;
+      bird.vy = getFlapStrength();
       sfxFlap();
       lastTime = performance.now();
       frameId = requestAnimationFrame(loop);
       return;
     }
     if (state === "playing") {
-      bird.vy = FLAP_STRENGTH;
+      bird.vy = getFlapStrength();
       sfxFlap();
       // Trail burst on flap
       for (let i = 0; i < 3; i++) spawnParticle(BIRD_X - BIRD_RADIUS, bird.y);
@@ -258,6 +343,11 @@
     sfxCrash();
     deathFlashAlpha = 0.7;
     spawnDeathBurst(BIRD_X, bird.y);
+    // Save ghost if this is the best run
+    const prevGhost = loadGhost();
+    if (!prevGhost || ghostRecording.length > prevGhost.length) {
+      saveGhost(ghostRecording);
+    }
     const top5 = saveHighScore(score);
     if (window.GamePlatform) {
       GamePlatform.recordGame('flappy', score, 0);
@@ -278,26 +368,72 @@
     }, 600);
   }
 
+  /* ── Milestone check ── */
+  function checkMilestones() {
+    for (let i = MILESTONES.length - 1; i >= 0; i--) {
+      if (score >= MILESTONES[i].score && i > currentMilestoneIdx) {
+        currentMilestoneIdx = i;
+        const m = MILESTONES[i];
+        hudMilestone.textContent = m.title;
+        hudMilestone.style.color = m.color;
+        // Spawn floating milestone text
+        milestoneFloats.push({
+          text: m.title,
+          color: m.color,
+          y: H / 2 - 40,
+          alpha: 1.4,
+          scale: 1.5,
+        });
+        sfxMilestone();
+        break;
+      }
+    }
+  }
+
   /* ── Update ── */
   function update(dt) {
     if (state !== "playing" && state !== "dead") return;
 
+    const grav = getGravity();
+
     // Bird physics (keep updating briefly when dead for fall anim)
     if (state === "playing") {
-      bird.vy += GRAVITY;
+      bird.vy += grav;
       bird.y += bird.vy;
+      // Record ghost position
+      ghostRecording.push(bird.y);
+      // Ghost playback: check if we've surpassed the ghost
+      if (ghostPlayback && ghostVisible && ghostFrame >= ghostPlayback.length) {
+        ghostVisible = false;
+        if (!newRecordShown) {
+          newRecordShown = true;
+          newRecordAlpha = 2.0;
+        }
+      }
+      ghostFrame++;
     } else {
       // Dead: bird falls
-      bird.vy += GRAVITY;
+      bird.vy += grav;
       bird.y += bird.vy;
-      if (bird.y > H + 50) bird.y = H + 50; // clamp off screen
+      if (modeReverse) {
+        if (bird.y < -50) bird.y = -50;
+      } else {
+        if (bird.y > H + 50) bird.y = H + 50;
+      }
     }
 
     // Bird rotation
-    const targetRot = state === "playing"
-      ? Math.min(bird.vy * 0.06, Math.PI / 3)
-      : Math.PI / 2;
-    bird.rotation += (targetRot - bird.rotation) * 0.15;
+    if (modeReverse) {
+      const targetRot = state === "playing"
+        ? Math.max(bird.vy * 0.06, -Math.PI / 3)
+        : -Math.PI / 2;
+      bird.rotation += (targetRot - bird.rotation) * 0.15;
+    } else {
+      const targetRot = state === "playing"
+        ? Math.min(bird.vy * 0.06, Math.PI / 3)
+        : Math.PI / 2;
+      bird.rotation += (targetRot - bird.rotation) * 0.15;
+    }
 
     // Ground scroll
     groundX -= PIPE_SPEED;
@@ -319,6 +455,7 @@
           hudScore.textContent = score;
           if (window.GamePlatform) GamePlatform.updateScore(score);
           sfxScore();
+          checkMilestones();
         }
       }
 
@@ -341,6 +478,21 @@
       if (p.life <= 0) particles.splice(i, 1);
     }
 
+    // Update milestone floats
+    for (let i = milestoneFloats.length - 1; i >= 0; i--) {
+      const mf = milestoneFloats[i];
+      mf.y -= 0.8;
+      mf.alpha -= 0.012;
+      mf.scale += 0.005;
+      if (mf.alpha <= 0) milestoneFloats.splice(i, 1);
+    }
+
+    // Update new record text
+    if (newRecordAlpha > 0) {
+      newRecordAlpha -= 0.008;
+      if (newRecordAlpha < 0) newRecordAlpha = 0;
+    }
+
     // Death flash fade
     if (deathFlashAlpha > 0) {
       deathFlashAlpha -= 0.025;
@@ -350,24 +502,49 @@
 
   /* ── Draw ── */
   function draw(time) {
+    const night = modeNight;
+    const reverse = modeReverse;
+
     // Sky gradient
     const skyGrad = ctx.createLinearGradient(0, 0, 0, H - GROUND_HEIGHT);
-    skyGrad.addColorStop(0, "#0a0a2e");
-    skyGrad.addColorStop(0.5, "#141450");
-    skyGrad.addColorStop(1, "#1e3a6e");
+    if (night) {
+      if (reverse) {
+        skyGrad.addColorStop(0, "#1a2a4a");
+        skyGrad.addColorStop(1, "#0a1628");
+      } else {
+        skyGrad.addColorStop(0, "#0a1628");
+        skyGrad.addColorStop(1, "#1a2a4a");
+      }
+    } else {
+      if (reverse) {
+        skyGrad.addColorStop(0, "#1e3a6e");
+        skyGrad.addColorStop(0.5, "#141450");
+        skyGrad.addColorStop(1, "#0a0a2e");
+      } else {
+        skyGrad.addColorStop(0, "#0a0a2e");
+        skyGrad.addColorStop(0.5, "#141450");
+        skyGrad.addColorStop(1, "#1e3a6e");
+      }
+    }
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, W, H - GROUND_HEIGHT);
 
-    // Stars
-    for (const s of stars) {
+    // Stars (night mode uses brighter/more stars)
+    const starList = night ? nightStars : stars;
+    for (const s of starList) {
       const twinkle = Math.sin(time * s.twinkleSpeed + s.twinkleOffset) * 0.3 + 0.7;
-      ctx.globalAlpha = s.a * twinkle;
+      ctx.globalAlpha = s.a * twinkle * (night ? 1.2 : 1);
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
       ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+
+    // Moon (night mode only)
+    if (night) {
+      drawMoon(time);
+    }
 
     // Distant clouds / hills (parallax, subtle)
     drawHills(time);
@@ -390,8 +567,44 @@
     }
     ctx.globalAlpha = 1;
 
+    // Ghost bird (rendered before real bird so it appears behind)
+    if (ghostPlayback && ghostVisible && state === "playing") {
+      const gi = ghostFrame - 1;
+      if (gi >= 0 && gi < ghostPlayback.length) {
+        drawGhostBird(ghostPlayback[gi]);
+      }
+    }
+
     // Bird
     drawBird();
+
+    // Milestone floating texts
+    for (const mf of milestoneFloats) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(mf.alpha, 1);
+      ctx.font = `800 ${Math.round(28 * mf.scale)}px 'Segoe UI', Arial, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = mf.color;
+      ctx.shadowColor = mf.color;
+      ctx.shadowBlur = 20;
+      ctx.fillText(mf.text, W / 2, mf.y);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    // "New Record!" text
+    if (newRecordAlpha > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(newRecordAlpha, 1);
+      ctx.font = "900 32px 'Segoe UI', Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffd700";
+      ctx.shadowColor = "#ffd700";
+      ctx.shadowBlur = 25;
+      ctx.fillText("New Record!", W / 2, H / 2 - 80);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
 
     // Death flash
     if (deathFlashAlpha > 0) {
@@ -400,9 +613,40 @@
     }
   }
 
+  function drawMoon(time) {
+    ctx.save();
+    const mx = W - 60, my = 55, mr = 28;
+    // Moon glow
+    const glowGrad = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 2.5);
+    glowGrad.addColorStop(0, "rgba(200, 210, 240, 0.08)");
+    glowGrad.addColorStop(1, "rgba(200, 210, 240, 0)");
+    ctx.fillStyle = glowGrad;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Moon body
+    const moonGrad = ctx.createRadialGradient(mx - 6, my - 6, 2, mx, my, mr);
+    moonGrad.addColorStop(0, "#e8e8f0");
+    moonGrad.addColorStop(0.7, "#c8c8d8");
+    moonGrad.addColorStop(1, "#a0a0b8");
+    ctx.fillStyle = moonGrad;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr, 0, Math.PI * 2);
+    ctx.fill();
+    // Craters
+    ctx.fillStyle = "rgba(140, 140, 160, 0.3)";
+    ctx.beginPath(); ctx.arc(mx - 8, my - 5, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(mx + 6, my + 8, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(mx + 2, my - 10, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
   function drawHills(time) {
     const scrollX = (state === "playing" || state === "dead") ? time * 0.01 : 0;
-    ctx.fillStyle = "rgba(15, 20, 50, 0.5)";
+    const c1 = modeNight ? "rgba(8, 12, 30, 0.6)" : "rgba(15, 20, 50, 0.5)";
+    const c2 = modeNight ? "rgba(12, 18, 40, 0.5)" : "rgba(20, 30, 60, 0.4)";
+
+    ctx.fillStyle = c1;
     ctx.beginPath();
     ctx.moveTo(0, H - GROUND_HEIGHT);
     for (let x = 0; x <= W; x += 5) {
@@ -415,7 +659,7 @@
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = "rgba(20, 30, 60, 0.4)";
+    ctx.fillStyle = c2;
     ctx.beginPath();
     ctx.moveTo(0, H - GROUND_HEIGHT);
     for (let x = 0; x <= W; x += 5) {
@@ -430,6 +674,14 @@
   }
 
   function drawPipe(p) {
+    if (modeNight) {
+      drawPipeNight(p);
+    } else {
+      drawPipeClassic(p);
+    }
+  }
+
+  function drawPipeClassic(p) {
     const pipeGrad = ctx.createLinearGradient(p.x, 0, p.x + PIPE_WIDTH, 0);
     pipeGrad.addColorStop(0, "#2ecc71");
     pipeGrad.addColorStop(0.3, "#3ddc84");
@@ -475,6 +727,51 @@
     ctx.strokeRect(p.x, bottomY, PIPE_WIDTH, H - GROUND_HEIGHT - bottomY);
   }
 
+  function drawPipeNight(p) {
+    const pipeGrad = ctx.createLinearGradient(p.x, 0, p.x + PIPE_WIDTH, 0);
+    pipeGrad.addColorStop(0, "#1a6b3a");
+    pipeGrad.addColorStop(0.3, "#228844");
+    pipeGrad.addColorStop(0.7, "#1a6b3a");
+    pipeGrad.addColorStop(1, "#0e4d28");
+
+    // Glow behind pipe
+    ctx.save();
+    ctx.shadowColor = "rgba(30, 180, 80, 0.15)";
+    ctx.shadowBlur = 12;
+
+    // Top pipe body
+    ctx.fillStyle = pipeGrad;
+    ctx.fillRect(p.x, 0, PIPE_WIDTH, p.topH);
+
+    // Top pipe cap
+    const capOverhang = 6;
+    const capH = 22;
+    const capGrad = ctx.createLinearGradient(p.x - capOverhang, 0, p.x + PIPE_WIDTH + capOverhang, 0);
+    capGrad.addColorStop(0, "#1e7a40");
+    capGrad.addColorStop(0.3, "#268e4c");
+    capGrad.addColorStop(0.7, "#1e7a40");
+    capGrad.addColorStop(1, "#126030");
+    ctx.fillStyle = capGrad;
+    roundRect(p.x - capOverhang, p.topH - capH, PIPE_WIDTH + capOverhang * 2, capH, 4);
+
+    // Bottom pipe body
+    const bottomY = p.topH + p.gap;
+    ctx.fillStyle = pipeGrad;
+    ctx.fillRect(p.x, bottomY, PIPE_WIDTH, H - GROUND_HEIGHT - bottomY);
+
+    // Bottom pipe cap
+    ctx.fillStyle = capGrad;
+    roundRect(p.x - capOverhang, bottomY, PIPE_WIDTH + capOverhang * 2, capH, 4);
+
+    ctx.restore();
+
+    // Dark edge lines
+    ctx.strokeStyle = "rgba(0,0,0,0.3)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(p.x, 0, PIPE_WIDTH, p.topH);
+    ctx.strokeRect(p.x, bottomY, PIPE_WIDTH, H - GROUND_HEIGHT - bottomY);
+  }
+
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -491,20 +788,36 @@
   }
 
   function drawGround() {
-    // Ground base
     const gY = H - GROUND_HEIGHT;
-    const groundGrad = ctx.createLinearGradient(0, gY, 0, H);
-    groundGrad.addColorStop(0, "#3a2a1a");
-    groundGrad.addColorStop(0.15, "#5c4a32");
-    groundGrad.addColorStop(1, "#2a1e10");
-    ctx.fillStyle = groundGrad;
-    ctx.fillRect(0, gY, W, GROUND_HEIGHT);
 
-    // Grass strip
-    ctx.fillStyle = "#4caf50";
-    ctx.fillRect(0, gY, W, 6);
-    ctx.fillStyle = "#66cc66";
-    ctx.fillRect(0, gY, W, 3);
+    if (modeNight) {
+      // Night ground
+      const groundGrad = ctx.createLinearGradient(0, gY, 0, H);
+      groundGrad.addColorStop(0, "#1e1a10");
+      groundGrad.addColorStop(0.15, "#2e2818");
+      groundGrad.addColorStop(1, "#141008");
+      ctx.fillStyle = groundGrad;
+      ctx.fillRect(0, gY, W, GROUND_HEIGHT);
+
+      // Darker grass strip
+      ctx.fillStyle = "#2a5a2a";
+      ctx.fillRect(0, gY, W, 6);
+      ctx.fillStyle = "#336633";
+      ctx.fillRect(0, gY, W, 3);
+    } else {
+      // Classic ground
+      const groundGrad = ctx.createLinearGradient(0, gY, 0, H);
+      groundGrad.addColorStop(0, "#3a2a1a");
+      groundGrad.addColorStop(0.15, "#5c4a32");
+      groundGrad.addColorStop(1, "#2a1e10");
+      ctx.fillStyle = groundGrad;
+      ctx.fillRect(0, gY, W, GROUND_HEIGHT);
+
+      ctx.fillStyle = "#4caf50";
+      ctx.fillRect(0, gY, W, 6);
+      ctx.fillStyle = "#66cc66";
+      ctx.fillRect(0, gY, W, 3);
+    }
 
     // Ground texture lines
     ctx.strokeStyle = "rgba(0,0,0,0.15)";
@@ -517,7 +830,7 @@
     }
 
     // Top edge highlight
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.strokeStyle = modeNight ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.08)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, gY + 6);
@@ -525,10 +838,53 @@
     ctx.stroke();
   }
 
+  function drawGhostBird(ghostY) {
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    ctx.translate(BIRD_X, ghostY);
+    if (modeReverse) ctx.scale(1, -1);
+
+    // Desaturated body
+    ctx.fillStyle = "#999977";
+    ctx.beginPath();
+    ctx.arc(0, 0, BIRD_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.beginPath();
+    ctx.arc(6, -5, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(50,50,50,0.5)";
+    ctx.beginPath();
+    ctx.arc(8, -5, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Beak
+    ctx.fillStyle = "rgba(200,120,80,0.4)";
+    ctx.beginPath();
+    ctx.moveTo(12, -1);
+    ctx.lineTo(20, 2);
+    ctx.lineTo(12, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
   function drawBird() {
     ctx.save();
     ctx.translate(BIRD_X, bird.y);
     ctx.rotate(bird.rotation);
+    if (modeReverse) ctx.scale(1, -1);
+
+    // Bird glow in night mode
+    if (modeNight) {
+      ctx.save();
+      ctx.shadowColor = "rgba(255, 200, 50, 0.3)";
+      ctx.shadowBlur = 18;
+    }
 
     // Wing
     const wingFlap = Math.sin(performance.now() * 0.015) * 6;
@@ -547,9 +903,13 @@
     ctx.arc(0, 0, BIRD_RADIUS, 0, Math.PI * 2);
     ctx.fill();
 
+    if (modeNight) ctx.restore();
+
     // Body outline
     ctx.strokeStyle = "rgba(180, 120, 0, 0.5)";
     ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, BIRD_RADIUS, 0, Math.PI * 2);
     ctx.stroke();
 
     // Eye white
@@ -607,11 +967,52 @@
   function idleLoop(time) {
     if (state !== "start") return;
     // Idle bird bobbing
-    bird.y = H / 2 - 40 + Math.sin(time * 0.003) * 15;
+    const baseY = modeReverse ? H - GROUND_HEIGHT - 100 : H / 2 - 40;
+    bird.y = baseY + Math.sin(time * 0.003) * 15;
     bird.rotation = Math.sin(time * 0.004) * 0.1;
     draw(time);
     requestAnimationFrame(idleLoop);
   }
+
+  /* ── Mode button handlers ── */
+  modeBtns.forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const mode = btn.dataset.mode;
+      if (mode === "classic") {
+        // Classic deselects others, selects itself
+        modeReverse = false;
+        modeNight = false;
+        modeBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      } else if (mode === "reverse") {
+        btn.classList.toggle("active");
+        modeReverse = btn.classList.contains("active");
+        // Deselect classic if a special mode is on
+        const classicBtn = document.querySelector('.mode-btn[data-mode="classic"]');
+        if (modeReverse || modeNight) {
+          classicBtn.classList.remove("active");
+        } else {
+          classicBtn.classList.add("active");
+        }
+      } else if (mode === "night") {
+        btn.classList.toggle("active");
+        modeNight = btn.classList.contains("active");
+        const classicBtn = document.querySelector('.mode-btn[data-mode="classic"]');
+        if (modeReverse || modeNight) {
+          classicBtn.classList.remove("active");
+        } else {
+          classicBtn.classList.add("active");
+        }
+      }
+      // Re-reset for idle display
+      reset();
+    });
+  });
+
+  ghostCheckbox.addEventListener("change", () => {
+    showGhost = ghostCheckbox.checked;
+  });
 
   /* ── Bootstrap ── */
   reset();

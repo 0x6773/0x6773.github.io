@@ -23,68 +23,124 @@
   <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
   <div class="container">
     <header class="hud">
-      <h1 class="title">2048</h1>
-      <div class="scores">
-        <div class="score-box">
-          <span class="score-label">Score</span>
-          <span class="score-value" id="score">0</span>
-        </div>
-        <div class="score-box">
-          <span class="score-label">Best</span>
-          <span class="score-value" id="best-score">0</span>
+      <div class="hud-top">
+        <h1 class="title">2048</h1>
+        <div class="hud-actions">
+          <button class="undo-btn" id="undo-btn" title="Undo (Ctrl+Z or U)" disabled>&#x21B6; 0</button>
+          <button class="new-game-btn" id="new-game-btn">New Game</button>
         </div>
       </div>
-      <button class="new-game-btn" id="new-game-btn">New Game</button>
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">Score</span>
+          <span class="stat-value" id="score">0</span>
+        </div>
+        <span class="stat-sep">|</span>
+        <div class="stat-item">
+          <span class="stat-label">Best</span>
+          <span class="stat-value" id="best-score">0</span>
+        </div>
+        <span class="stat-sep">|</span>
+        <div class="stat-item">
+          <span class="stat-label">Moves</span>
+          <span class="stat-value" id="moves-count">0</span>
+        </div>
+        <span class="stat-sep">|</span>
+        <div class="stat-item">
+          <span class="stat-label" id="timer-label">&#9201;</span>
+          <span class="stat-value" id="timer-display">00:00</span>
+        </div>
+      </div>
+      <div class="stats-bar stats-bar-secondary">
+        <div class="stat-item">
+          <span class="stat-label">Highest Tile</span>
+          <span class="stat-value" id="highest-tile">0</span>
+        </div>
+        <span class="stat-sep">|</span>
+        <div class="stat-item">
+          <span class="stat-label">Mode</span>
+          <span class="stat-value" id="mode-label">Classic</span>
+        </div>
+      </div>
     </header>
 
     <div id="start-overlay">
       <div style="text-align:center;padding:30px">
         <h1 style="font-size:48px;margin-bottom:8px;color:#edc22e">2048</h1>
         <p style="color:#888;margin-bottom:16px">Slide and merge tiles</p>
+
+        <div class="mode-selector">
+          <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#666;margin-bottom:10px;text-transform:uppercase">Select Mode</div>
+          <div class="mode-buttons">
+            <button class="mode-btn selected" data-mode="classic">Classic<span class="mode-sub">4&times;4</span></button>
+            <button class="mode-btn" data-mode="mini">Mini<span class="mode-sub">3&times;3</span></button>
+            <button class="mode-btn" data-mode="big">Big<span class="mode-sub">5&times;5</span></button>
+            <button class="mode-btn" data-mode="timeattack">Time Attack<span class="mode-sub">&#9201; 60s</span></button>
+          </div>
+        </div>
+
         <div style="max-width:340px;text-align:left;margin:0 auto 16px;padding:14px 18px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;line-height:1.7;color:#aaa">
           <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#666;margin-bottom:8px;text-transform:uppercase">How to Play</div>
           Arrow keys, WASD, or swipe to slide tiles<br>
           Matching tiles merge when they collide<br>
           2 + 2 = 4, 4 + 4 = 8, and so on<br>
-          Reach the 2048 tile to win<br>
+          Reach the 2048 tile to win (Classic &amp; Big)<br>
           Game over when no moves remain<br>
-          You can keep playing after reaching 2048
+          Press <strong>U</strong> or <strong>Ctrl+Z</strong> to undo (up to 5)<br>
+          <strong>Mini:</strong> 3&times;3 grid &mdash; reach 256 to win<br>
+          <strong>Time Attack:</strong> 60s to get the highest score
         </div>
         <button id="start-game-btn" style="padding:12px 36px;font-size:16px;font-weight:700;border:2px solid #edc22e;border-radius:6px;background:transparent;color:#edc22e;cursor:pointer;letter-spacing:1px">Start Game</button>
       </div>
     </div>
 
-    <div class="board-container">
-      <div class="grid-background" id="grid-background"></div>
-      <div class="tile-container" id="tile-container"></div>
-
-      <div class="overlay hidden" id="game-over-overlay">
-        <div class="overlay-content">
-          <h2>Game Over!</h2>
-          <p>No more moves available.</p>
-          <button class="overlay-btn" id="game-over-btn">Try Again</button>
-        </div>
+    <div class="board-wrapper">
+      <div class="timer-bar-track" id="timer-bar-track">
+        <div class="timer-bar-fill" id="timer-bar-fill"></div>
       </div>
+      <div class="board-container" id="board-container">
+        <div class="grid-background" id="grid-background"></div>
+        <div class="tile-container" id="tile-container"></div>
 
-      <div class="overlay hidden" id="win-overlay">
-        <div class="overlay-content win">
-          <h2>You Win!</h2>
-          <p>You reached 2048!</p>
-          <div class="win-buttons">
-            <button class="overlay-btn" id="keep-playing-btn">Keep Playing</button>
-            <button class="overlay-btn secondary" id="win-new-game-btn">New Game</button>
+        <div class="overlay hidden" id="game-over-overlay">
+          <div class="overlay-content">
+            <h2>Game Over!</h2>
+            <p id="game-over-msg">No more moves available.</p>
+            <button class="overlay-btn" id="game-over-btn">Try Again</button>
+          </div>
+        </div>
+
+        <div class="overlay hidden" id="win-overlay">
+          <div class="overlay-content win">
+            <h2>You Win!</h2>
+            <p>You reached 2048!</p>
+            <div class="win-buttons">
+              <button class="overlay-btn" id="keep-playing-btn">Keep Playing</button>
+              <button class="overlay-btn secondary" id="win-new-game-btn">New Game</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <p class="instructions">Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to move tiles. Swipe on mobile.</p>
+    <p class="instructions">Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to move tiles. <strong>U</strong> / <strong>Ctrl+Z</strong> to undo. Swipe on mobile.</p>
   </div>
 
   <script src="game.js"></script>
   <script>
   document.getElementById('start-game-btn').addEventListener('click', function() {
     document.getElementById('start-overlay').classList.add('hidden');
+    var sel = document.querySelector('.mode-btn.selected');
+    var mode = sel ? sel.getAttribute('data-mode') : 'classic';
+    if (window.Game2048 && window.Game2048.startMode) {
+      window.Game2048.startMode(mode);
+    }
+  });
+  document.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('selected'); });
+      btn.classList.add('selected');
+    });
   });
   </script>
 </body>

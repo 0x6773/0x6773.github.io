@@ -742,6 +742,7 @@ function hideSecondaryBtn() {
 
 // ── Initialisation ──
 function startLevel(world, level) {
+  _gameRecorded = false;
   currentWorld = world;
   currentLevel = level;
   score = 0;
@@ -1374,6 +1375,7 @@ function levelComplete() {
   saveHighScore(score);
 
   if (window.GamePlatform) {
+    _gameRecorded = true;
     var t = GamePlatform.stopTimer();
     GamePlatform.recordGame('breakout', score, t * 1000, {
       win: true,
@@ -1436,6 +1438,7 @@ function gameOver(won) {
 
   saveHighScore(score);
   if (window.GamePlatform) {
+    _gameRecorded = true;
     var t = GamePlatform.stopTimer();
     GamePlatform.recordGame('breakout', score, t * 1000, {
       win: false,
@@ -1470,10 +1473,11 @@ function loop() {
 }
 
 // Platform integration
+let _gameRecorded = false;
 if (window.GamePlatform) {
   GamePlatform.initHeader('Breakout');
   window.addEventListener('beforeunload', function() {
-    if (score > 0) {
+    if (score > 0 && !_gameRecorded) {
       var t = GamePlatform.stopTimer();
       GamePlatform.recordGame('breakout', score, t * 1000, { win: false });
     }

@@ -18,6 +18,7 @@
     <div id="hud">
       <div id="hud-score-label">SCORE</div>
       <div id="hud-score">0</div>
+      <div id="hud-milestone"></div>
     </div>
     <div id="canvas-container">
       <canvas id="game-canvas" width="400" height="600"></canvas>
@@ -33,6 +34,18 @@
             Each pipe passed = +1 point<br>
             Gaps get smaller as you score higher<br>
             Don't hit pipes, ground, or ceiling
+          </div>
+          <div id="mode-selector">
+            <div class="mode-label">GAME MODES</div>
+            <div class="mode-buttons">
+              <button class="mode-btn active" data-mode="classic">Classic</button>
+              <button class="mode-btn" data-mode="reverse">&#8597; Reverse</button>
+              <button class="mode-btn" data-mode="night">&#127769; Night</button>
+            </div>
+            <label class="ghost-toggle">
+              <input type="checkbox" id="ghost-checkbox" checked>
+              <span class="ghost-toggle-label">Show Ghost (Best Run)</span>
+            </label>
           </div>
           <p class="start-hint">Click or tap to start</p>
           <p class="start-controls">SPACE / Click / Tap to flap</p>
