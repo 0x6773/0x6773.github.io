@@ -6,7 +6,9 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-FNZT8PLH08');</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Games</title>
+  <title>Game Hub</title>
+  <link rel="stylesheet" href="platform.css">
+  <script src="platform.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -15,30 +17,305 @@
       color: #fff;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       min-height: 100vh;
+      padding-top: 56px;
+    }
+
+    /* ── Top Bar ── */
+    .top-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      height: 56px;
+      background: rgba(15, 15, 26, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
       display: flex;
-      flex-direction: column;
       align-items: center;
-      padding: 60px 20px;
+      justify-content: space-between;
+      padding: 0 24px;
     }
 
-    h1 {
-      font-size: 42px;
-      margin-bottom: 10px;
-      letter-spacing: 2px;
+    .top-bar-logo {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
     }
 
-    .subtitle {
+    .top-bar-player {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ccc;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .player-name:hover {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+    }
+
+    .player-name-input {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid #00d4ff;
+      border-radius: 6px;
+      padding: 4px 8px;
+      outline: none;
+      width: 140px;
+      font-family: inherit;
+    }
+
+    .player-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    /* ── Main content container ── */
+    .dashboard {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+
+    /* ── Welcome Section ── */
+    .welcome-section {
+      margin-bottom: 32px;
+    }
+
+    .welcome-heading {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .welcome-sub {
+      font-size: 15px;
       color: #888;
-      font-size: 16px;
-      margin-bottom: 50px;
     }
+
+    /* ── Stats Overview ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+
+    .stat-card {
+      background: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(0, 212, 255, 0.25);
+      box-shadow: 0 0 24px rgba(0, 212, 255, 0.08);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #00d4ff, #a855f7);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .stat-card:hover::before { opacity: 1; }
+
+    .stat-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+    }
+
+    .stat-content { flex: 1; min-width: 0; }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #777;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    .stats-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 32px 20px;
+      color: #666;
+      font-size: 15px;
+      background: #1a1a2e;
+      border-radius: 12px;
+      border: 1px dashed rgba(255,255,255,0.1);
+    }
+
+    /* ── Section headings ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .section-toggle {
+      background: none;
+      border: none;
+      color: #00d4ff;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .section-toggle:hover {
+      background: rgba(0, 212, 255, 0.1);
+    }
+
+    /* ── Achievements ── */
+    .achievements-section {
+      margin-bottom: 36px;
+    }
+
+    .achievements-scroll {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .achievements-scroll::-webkit-scrollbar { height: 4px; }
+    .achievements-scroll::-webkit-scrollbar-track { background: transparent; }
+    .achievements-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .achievements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .achievement-card {
+      min-width: 180px;
+      max-width: 220px;
+      background: #1a1a2e;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      scroll-snap-align: start;
+      flex-shrink: 0;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .achievement-card:hover { transform: translateY(-2px); }
+
+    .achievement-card.unlocked {
+      border-color: #ffd700;
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.08);
+    }
+
+    .achievement-card.locked {
+      opacity: 0.45;
+      border-color: #222;
+    }
+
+    .achievement-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .achievement-name {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #eee;
+    }
+
+    .achievement-desc {
+      font-size: 11px;
+      color: #888;
+      line-height: 1.4;
+    }
+
+    .achievement-date {
+      font-size: 10px;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    .achievements-grid .achievement-card {
+      max-width: none;
+    }
+
+    .achievements-hidden { display: none; }
+
+    /* ── Games Grid ── */
+    .games-section { margin-bottom: 36px; }
 
     .games-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 24px;
-      max-width: 960px;
-      width: 100%;
+      gap: 20px;
     }
 
     .game-card {
@@ -50,11 +327,13 @@
       color: inherit;
       display: flex;
       flex-direction: column;
+      border: 1px solid rgba(255,255,255,0.04);
     }
 
     .game-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 30px rgba(0, 212, 255, 0.15);
+      border-color: rgba(0, 212, 255, 0.15);
     }
 
     .game-banner {
@@ -68,33 +347,44 @@
       background: linear-gradient(135deg, #16213e, #1a1a2e);
     }
 
-    .game-banner canvas {
-      display: block;
-    }
+    .game-banner canvas { display: block; }
 
     .game-banner::after {
       content: '';
       position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       height: 40px;
       background: linear-gradient(transparent, #1a1a2e);
       pointer-events: none;
     }
 
+    .online-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: linear-gradient(135deg, #00e676, #00b0ff);
+      color: #000;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+      z-index: 2;
+      text-shadow: none;
+    }
+
     .game-info {
-      padding: 20px;
+      padding: 16px 20px 8px;
     }
 
     .game-info h2 {
-      font-size: 22px;
-      margin-bottom: 8px;
+      font-size: 20px;
+      margin-bottom: 6px;
     }
 
     .game-info p {
       color: #999;
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.5;
     }
 
@@ -102,8 +392,7 @@
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
-      padding: 0 20px 18px;
-      margin-top: auto;
+      padding: 8px 20px 0;
     }
 
     .tag {
@@ -115,174 +404,447 @@
       color: #aaa;
     }
 
-    footer {
-      margin-top: 60px;
-      color: #555;
-      font-size: 13px;
+    .game-stats-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 20px 16px;
+      margin-top: auto;
+      font-size: 12px;
+      color: #666;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      margin-left: 20px;
+      margin-right: 20px;
+      padding-left: 0;
+      padding-right: 0;
     }
 
-    footer a {
+    .game-stats-bar strong {
+      color: #00d4ff;
+      font-weight: 700;
+    }
+
+    /* ── Recent Activity ── */
+    .recent-section { margin-bottom: 36px; }
+
+    .recent-list {
+      list-style: none;
+      background: #1a1a2e;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .recent-item:last-child { border-bottom: none; }
+    .recent-item:hover { background: rgba(255,255,255,0.02); }
+
+    .recent-emoji {
+      font-size: 20px;
+      width: 32px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .recent-game-name {
+      font-weight: 600;
+      color: #ddd;
+      min-width: 100px;
+    }
+
+    .recent-score {
+      color: #00d4ff;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .recent-time {
+      margin-left: auto;
+      color: #555;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .recent-empty {
+      padding: 32px 20px;
+      text-align: center;
+      color: #555;
+      font-size: 14px;
+    }
+
+    /* ── Footer ── */
+    .hub-footer {
+      text-align: center;
+      padding: 24px;
+      color: #444;
+      font-size: 13px;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .hub-footer a {
       color: #00d4ff;
       text-decoration: none;
     }
 
-    footer a:hover { text-decoration: underline; }
+    .hub-footer a:hover { text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
 
     @media (max-width: 640px) {
-      h1 { font-size: 32px; }
-      body { padding: 40px 12px; }
-      .games-grid { gap: 16px; }
+      .dashboard { padding: 20px 14px 40px; }
+      .top-bar { padding: 0 14px; }
+      .top-bar-logo { font-size: 18px; letter-spacing: 2px; }
+      .welcome-heading { font-size: 22px; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .stat-card { padding: 14px; gap: 12px; }
+      .stat-icon { width: 36px; height: 36px; font-size: 22px; }
+      .stat-value { font-size: 20px; }
+      .games-grid { gap: 14px; }
+      .achievement-card { min-width: 150px; padding: 12px; }
+    }
+
+    @media (max-width: 420px) {
+      .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .stat-card { flex-direction: column; text-align: center; gap: 8px; padding: 12px 8px; }
+      .stat-icon { width: 32px; height: 32px; font-size: 20px; }
+      .stat-value { font-size: 18px; }
+      .stat-label { font-size: 10px; }
+      .recent-game-name { min-width: auto; }
+    }
+
+    /* ── Search Box ── */
+    .search-box {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto 24px;
+    }
+
+    #game-search {
+      width: 100%;
+      padding: 12px 18px;
+      font-size: 15px;
+      background: #1a1a2e;
+      border: 2px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      color: #fff;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    #game-search:focus {
+      border-color: #00d4ff;
+    }
+
+    #game-search::placeholder {
+      color: #555;
+    }
+
+    .game-card.search-hidden {
+      display: none !important;
     }
   </style>
 </head>
 <body>
-  <h1>Games</h1>
-  <p class="subtitle">A collection of browser games. Click to play.</p>
 
-  <div class="games-grid">
-
-    <!-- Breakout -->
-    <a href="breakout/" class="game-card">
-      <div class="game-banner">
-        <canvas id="preview-breakout" width="280" height="160"></canvas>
-      </div>
-      <div class="game-info">
-        <h2>Breakout</h2>
-        <p>Classic brick breaker with power-ups, sound effects, particles, and 5 levels of increasing difficulty.</p>
-      </div>
-      <div class="game-tags">
-        <span class="tag">Arcade</span>
-        <span class="tag">Power-ups</span>
-        <span class="tag">Canvas</span>
-        <span class="tag">Mobile</span>
-      </div>
-    </a>
-
-    <!-- Snake -->
-    <a href="snake/" class="game-card">
-      <div class="game-banner">
-        <canvas id="preview-snake" width="280" height="160"></canvas>
-      </div>
-      <div class="game-info">
-        <h2>Snake</h2>
-        <p>Guide a growing snake to eat food without crashing into walls or yourself. Speed increases as you grow.</p>
-      </div>
-      <div class="game-tags">
-        <span class="tag">Arcade</span>
-        <span class="tag">Classic</span>
-        <span class="tag">Canvas</span>
-        <span class="tag">Mobile</span>
-      </div>
-    </a>
-
-    <!-- Flappy Bird -->
-    <a href="flappy/" class="game-card">
-      <div class="game-banner">
-        <canvas id="preview-flappy" width="280" height="160"></canvas>
-      </div>
-      <div class="game-info">
-        <h2>Flappy Bird</h2>
-        <p>Tap to flap and dodge pipes in this addictive one-button game. How far can you fly?</p>
-      </div>
-      <div class="game-tags">
-        <span class="tag">Arcade</span>
-        <span class="tag">One-button</span>
-        <span class="tag">Canvas</span>
-        <span class="tag">Mobile</span>
-      </div>
-    </a>
-
-    <!-- Minesweeper -->
-    <a href="minesweeper/" class="game-card">
-      <div class="game-banner">
-        <canvas id="preview-minesweeper" width="280" height="160"></canvas>
-      </div>
-      <div class="game-info">
-        <h2>Minesweeper</h2>
-        <p>Reveal cells, flag mines, and clear the board. Three difficulty levels with fastest-time leaderboards.</p>
-      </div>
-      <div class="game-tags">
-        <span class="tag">Puzzle</span>
-        <span class="tag">Strategy</span>
-        <span class="tag">3 Difficulties</span>
-        <span class="tag">Mobile</span>
-      </div>
-    </a>
-
-    <!-- 2048 -->
-    <a href="2048/" class="game-card">
-      <div class="game-banner">
-        <canvas id="preview-2048" width="280" height="160"></canvas>
-      </div>
-      <div class="game-info">
-        <h2>2048</h2>
-        <p>Slide and merge numbered tiles to reach 2048. Simple to learn, hard to master.</p>
-      </div>
-      <div class="game-tags">
-        <span class="tag">Puzzle</span>
-        <span class="tag">Strategy</span>
-        <span class="tag">Swipe</span>
-        <span class="tag">Mobile</span>
-      </div>
-    </a>
-
-    <!-- Tron -->
-    <a href="tron/" class="game-card">
-      <div class="game-banner">
-        <canvas id="preview-tron" width="280" height="160"></canvas>
-      </div>
-      <div class="game-info">
-        <h2>Tron</h2>
-        <p>2-player light cycle battle on the same keyboard. Leave a trail, don't crash! First to 5 wins.</p>
-      </div>
-      <div class="game-tags">
-        <span class="tag">2 Players</span>
-        <span class="tag">Local</span>
-        <span class="tag">Arcade</span>
-        <span class="tag">Canvas</span>
-      </div>
-    </a>
-
-    <!-- Tron Online -->
-    <a href="tron-online/" class="game-card">
-      <div class="game-banner">
-        <canvas id="preview-tron-online" width="280" height="160"></canvas>
-      </div>
-      <div class="game-info">
-        <h2>Tron Online</h2>
-        <p>Play Tron against a friend on a different device. Create a room, share the code, battle!</p>
-      </div>
-      <div class="game-tags">
-        <span class="tag">Multiplayer</span>
-        <span class="tag">Online</span>
-        <span class="tag">WebRTC</span>
-        <span class="tag">Mobile</span>
-      </div>
-    </a>
-
-    <!-- Tetris -->
-    <a href="tetris/" class="game-card">
-      <div class="game-banner">
-        <canvas id="preview-tetris" width="280" height="160"></canvas>
-      </div>
-      <div class="game-info">
-        <h2>Tetris</h2>
-        <p>Classic falling blocks. Clear lines, level up, chase your high score. Hold, ghost piece, and 7-bag randomizer.</p>
-      </div>
-      <div class="game-tags">
-        <span class="tag">Puzzle</span>
-        <span class="tag">Classic</span>
-        <span class="tag">Canvas</span>
-        <span class="tag">Mobile</span>
-      </div>
-    </a>
-
+  <!-- ── Top Bar ── -->
+  <div class="top-bar">
+    <span class="top-bar-logo">GAME HUB</span>
+    <div class="top-bar-player">
+      <span class="player-name" id="player-name">Player</span>
+      <div class="player-avatar" id="player-avatar">P</div>
+    </div>
   </div>
 
-  <footer>
-    <a href="/">&larr; Home</a>
+  <!-- ── Dashboard ── -->
+  <main class="dashboard">
+
+    <!-- Welcome -->
+    <section class="welcome-section">
+      <h1 class="welcome-heading" id="welcome-heading">Welcome back, Player! <span aria-hidden="true">&#x1F44B;</span></h1>
+      <p class="welcome-sub" id="welcome-sub">Play a game to start tracking your stats!</p>
+    </section>
+
+    <!-- Stats Overview -->
+    <section class="stats-row" id="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">&#x1F3AE;</div>
+        <div class="stat-content">
+          <div class="stat-value" id="stat-total-games">0</div>
+          <div class="stat-label">Games Played</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">&#x23F0;</div>
+        <div class="stat-content">
+          <div class="stat-value" id="stat-play-time">0m</div>
+          <div class="stat-label">Play Time</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">&#x1F3C6;</div>
+        <div class="stat-content">
+          <div class="stat-value" id="stat-achievements">0/20</div>
+          <div class="stat-label">Achievements</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">&#x2B50;</div>
+        <div class="stat-content">
+          <div class="stat-value" id="stat-favorite">--</div>
+          <div class="stat-label">Favorite Game</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Achievements -->
+    <section class="achievements-section" id="achievements-section">
+      <div class="section-header">
+        <h2 class="section-title">Achievements</h2>
+        <button class="section-toggle" id="achievements-toggle">View All</button>
+      </div>
+      <div id="achievements-scroll" class="achievements-scroll"></div>
+      <div id="achievements-grid" class="achievements-grid achievements-hidden"></div>
+    </section>
+
+    <!-- Games -->
+    <section class="games-section">
+      <div class="section-header">
+        <h2 class="section-title">Games</h2>
+      </div>
+      <div class="search-box">
+        <input type="text" id="game-search" placeholder="Search games..." autocomplete="off" spellcheck="false">
+      </div>
+      <div class="games-grid">
+
+        <!-- Breakout -->
+        <a href="breakout/" class="game-card">
+          <div class="game-banner">
+            <canvas id="preview-breakout" width="280" height="160"></canvas>
+          </div>
+          <div class="game-info">
+            <h2>Breakout</h2>
+            <p>Classic brick breaker with power-ups, sound effects, particles, and 5 levels of increasing difficulty.</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Arcade</span>
+            <span class="tag">Power-ups</span>
+            <span class="tag">Canvas</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <div class="game-stats-bar" data-game="breakout">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+        <!-- Snake -->
+        <a href="snake/" class="game-card">
+          <div class="game-banner">
+            <canvas id="preview-snake" width="280" height="160"></canvas>
+          </div>
+          <div class="game-info">
+            <h2>Snake</h2>
+            <p>Guide a growing snake to eat food without crashing into walls or yourself. Speed increases as you grow.</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Arcade</span>
+            <span class="tag">Classic</span>
+            <span class="tag">Canvas</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <div class="game-stats-bar" data-game="snake">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+        <!-- Flappy Bird -->
+        <a href="flappy/" class="game-card">
+          <div class="game-banner">
+            <canvas id="preview-flappy" width="280" height="160"></canvas>
+          </div>
+          <div class="game-info">
+            <h2>Flappy Bird</h2>
+            <p>Tap to flap and dodge pipes in this addictive one-button game. How far can you fly?</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Arcade</span>
+            <span class="tag">One-button</span>
+            <span class="tag">Canvas</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <div class="game-stats-bar" data-game="flappy">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+        <!-- Minesweeper -->
+        <a href="minesweeper/" class="game-card">
+          <div class="game-banner">
+            <canvas id="preview-minesweeper" width="280" height="160"></canvas>
+          </div>
+          <div class="game-info">
+            <h2>Minesweeper</h2>
+            <p>Reveal cells, flag mines, and clear the board. Three difficulty levels with fastest-time leaderboards.</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Puzzle</span>
+            <span class="tag">Strategy</span>
+            <span class="tag">3 Difficulties</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <div class="game-stats-bar" data-game="minesweeper">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+        <!-- 2048 -->
+        <a href="2048/" class="game-card">
+          <div class="game-banner">
+            <canvas id="preview-2048" width="280" height="160"></canvas>
+          </div>
+          <div class="game-info">
+            <h2>2048</h2>
+            <p>Slide and merge numbered tiles to reach 2048. Simple to learn, hard to master.</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Puzzle</span>
+            <span class="tag">Strategy</span>
+            <span class="tag">Swipe</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <div class="game-stats-bar" data-game="2048">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+        <!-- Tron -->
+        <a href="tron/" class="game-card">
+          <div class="game-banner">
+            <canvas id="preview-tron" width="280" height="160"></canvas>
+          </div>
+          <div class="game-info">
+            <h2>Tron</h2>
+            <p>2-player light cycle battle on the same keyboard. Leave a trail, don't crash! First to 5 wins.</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">2 Players</span>
+            <span class="tag">Local</span>
+            <span class="tag">Arcade</span>
+            <span class="tag">Canvas</span>
+          </div>
+          <div class="game-stats-bar" data-game="tron">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+        <!-- Tron Online -->
+        <a href="tron-online/" class="game-card">
+          <div class="game-banner">
+            <canvas id="preview-tron-online" width="280" height="160"></canvas>
+            <span class="online-badge">ONLINE</span>
+          </div>
+          <div class="game-info">
+            <h2>Tron Online</h2>
+            <p>Play Tron against a friend on a different device. Create a room, share the code, battle!</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Multiplayer</span>
+            <span class="tag">Online</span>
+            <span class="tag">WebRTC</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <div class="game-stats-bar" data-game="tron-online">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+        <!-- Tetris -->
+        <a href="tetris/" class="game-card">
+          <div class="game-banner">
+            <canvas id="preview-tetris" width="280" height="160"></canvas>
+          </div>
+          <div class="game-info">
+            <h2>Tetris</h2>
+            <p>Classic falling blocks. Clear lines, level up, chase your high score. Hold, ghost piece, and 7-bag randomizer.</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Puzzle</span>
+            <span class="tag">Classic</span>
+            <span class="tag">Canvas</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <div class="game-stats-bar" data-game="tetris">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+        <!-- Ludo -->
+        <a href="ludo/" class="game-card">
+          <div class="game-banner">
+            <canvas id="preview-ludo" width="280" height="160"></canvas>
+            <span class="online-badge">ONLINE</span>
+          </div>
+          <div class="game-info">
+            <h2>Ludo</h2>
+            <p>Classic board game for 2-4 players online. Roll dice, race tokens home, capture opponents. Full lobby with chat and settings.</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Multiplayer</span>
+            <span class="tag">Board Game</span>
+            <span class="tag">2-4 Players</span>
+            <span class="tag">Online</span>
+          </div>
+          <div class="game-stats-bar" data-game="ludo">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- Recent Activity -->
+    <section class="recent-section">
+      <div class="section-header">
+        <h2 class="section-title">Recent Activity</h2>
+      </div>
+      <ul class="recent-list" id="recent-list">
+        <li class="recent-empty">No games played yet. Pick a game above and start playing!</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer class="hub-footer">
+    Built with &#x2764;&#xFE0F; | Powered by vanilla JS |
+    <a href="https://github.com/0x6773/0x6773.github.io" target="_blank" rel="noopener noreferrer">GitHub</a>
   </footer>
 
+  <!-- ═══════════════════════════════════════════
+       Canvas Preview Animations (preserved exactly)
+       ═══════════════════════════════════════════ -->
   <script>
     // ── Mini animated previews for each game card ──
 
@@ -660,6 +1222,363 @@
         requestAnimationFrame(frame);
       }
       frame();
+    })();
+
+    // Ludo preview
+    (function() {
+      const c = document.getElementById('preview-ludo');
+      const ctx = c.getContext('2d');
+      const W = c.width, H = c.height;
+      const cs = 10; // cell size
+      const bw = 15, bh = 15; // board grid
+      const ox = (W - bw*cs)/2, oy = (H - bh*cs)/2;
+      const colors = {r:'#e74c3c',g:'#2ecc71',y:'#f1c40f',b:'#3498db'};
+
+      // Token positions (animated)
+      const tokens = [
+        {c:'r',x:2,y:7,dx:1,dy:0},{c:'g',x:7,y:2,dx:0,dy:1},
+        {c:'b',x:12,y:7,dx:-1,dy:0},{c:'y',x:7,y:12,dx:0,dy:-1}
+      ];
+      let tick=0;
+
+      function frame() {
+        tick++;
+        ctx.fillStyle='#0f0f1a'; ctx.fillRect(0,0,W,H);
+
+        // Draw simplified board cross
+        ctx.fillStyle='#f5e6d3';
+        ctx.fillRect(ox+6*cs,oy,3*cs,bh*cs); // vertical
+        ctx.fillRect(ox,oy+6*cs,bw*cs,3*cs); // horizontal
+
+        // Home bases
+        const bases = [{x:0,y:0,c:colors.r},{x:9,y:0,c:colors.g},{x:0,y:9,c:colors.y},{x:9,y:9,c:colors.b}];
+        for (const b of bases) {
+          ctx.globalAlpha=0.3; ctx.fillStyle=b.c;
+          ctx.fillRect(ox+b.x*cs,oy+b.y*cs,6*cs,6*cs);
+          ctx.globalAlpha=1;
+        }
+
+        // Center
+        ctx.fillStyle='#ddd'; ctx.fillRect(ox+6*cs,oy+6*cs,3*cs,3*cs);
+
+        // Home columns
+        ctx.globalAlpha=0.4;
+        ctx.fillStyle=colors.r; ctx.fillRect(ox+1*cs,oy+7*cs,5*cs,cs);
+        ctx.fillStyle=colors.g; ctx.fillRect(ox+7*cs,oy+1*cs,cs,5*cs);
+        ctx.fillStyle=colors.b; ctx.fillRect(ox+9*cs,oy+7*cs,5*cs,cs);
+        ctx.fillStyle=colors.y; ctx.fillRect(ox+7*cs,oy+9*cs,cs,5*cs);
+        ctx.globalAlpha=1;
+
+        // Move tokens
+        if (tick%10===0) {
+          for (const t of tokens) {
+            t.x+=t.dx; t.y+=t.dy;
+            if (t.x<1||t.x>13||t.y<1||t.y>13) {
+              t.dx=-t.dx; t.dy=-t.dy;
+              t.x+=t.dx*2; t.y+=t.dy*2;
+            }
+          }
+        }
+
+        // Draw tokens
+        for (const t of tokens) {
+          ctx.fillStyle=colors[t.c];
+          ctx.beginPath();
+          ctx.arc(ox+t.x*cs+cs/2, oy+t.y*cs+cs/2, cs*0.4, 0, Math.PI*2);
+          ctx.fill();
+          ctx.strokeStyle='#fff'; ctx.lineWidth=1;
+          ctx.stroke();
+        }
+
+        // Dice icon
+        ctx.fillStyle='#fff'; ctx.globalAlpha=0.8;
+        ctx.fillRect(W-22,H-22,16,16);
+        ctx.globalAlpha=1;
+        ctx.fillStyle='#333';
+        const dots = [[3,3],[3,9],[9,3],[9,9],[6,6]];
+        const dv = [1,3,5,2,4][Math.floor(tick/20)%5];
+        const dd = [[4],[0,4],[0,4,4],[0,2,3,4],[0,2,3,4,4],[0,1,2,3,4,4]];
+        for (const di of (dd[dv]||dd[0])) {
+          ctx.beginPath();
+          ctx.arc(W-22+dots[di][0]+2,H-22+dots[di][1]+2,1.5,0,Math.PI*2);
+          ctx.fill();
+        }
+
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+  </script>
+
+  <!-- ═══════════════════════════════════════
+       Dashboard Initialization
+       ═══════════════════════════════════════ -->
+  <script>
+    (function() {
+      'use strict';
+
+      function initDashboard() {
+        var GP = window.GamePlatform;
+        if (!GP) {
+          // GamePlatform not loaded; show defaults gracefully
+          return;
+        }
+
+        var playerName = GP.getPlayerName();
+        var overall = GP.getOverallStats();
+        var allStats = GP.getAllStats();
+        var achievements = GP.getAchievements();
+        var recent = GP.getRecentGames(10);
+
+        // ── Player name ──
+        updatePlayerDisplay(playerName);
+
+        // ── Welcome ──
+        var welcomeH = document.getElementById('welcome-heading');
+        var welcomeS = document.getElementById('welcome-sub');
+        welcomeH.innerHTML = 'Welcome back, ' + escHtml(playerName) + '! <span aria-hidden="true">\uD83D\uDC4B</span>';
+        if (overall.totalGames > 0) {
+          welcomeS.textContent = "You've played " + overall.totalGames + ' game' + (overall.totalGames !== 1 ? 's' : '') +
+            ' across ' + overall.titlesPlayed + ' different title' + (overall.titlesPlayed !== 1 ? 's' : '');
+        }
+
+        // ── Stats ──
+        document.getElementById('stat-total-games').textContent = formatNumber(overall.totalGames);
+        document.getElementById('stat-play-time').textContent = formatTime(overall.totalTime);
+        document.getElementById('stat-achievements').textContent = overall.achievementsUnlocked + '/' + overall.achievementsTotal;
+        document.getElementById('stat-favorite').textContent = overall.favoriteGame
+          ? (GP.GAME_NAMES[overall.favoriteGame] || overall.favoriteGame)
+          : '--';
+
+        if (overall.totalGames === 0) {
+          var statsRow = document.getElementById('stats-row');
+          statsRow.innerHTML = '<div class="stats-empty">Play a game to start tracking your stats!</div>';
+        }
+
+        // ── Achievements ──
+        renderAchievements(achievements);
+
+        // ── Game card stats ──
+        var bars = document.querySelectorAll('.game-stats-bar[data-game]');
+        for (var i = 0; i < bars.length; i++) {
+          var bar = bars[i];
+          var gameId = bar.getAttribute('data-game');
+          var gs = allStats[gameId];
+          if (gs) {
+            bar.querySelector('.gs-best').textContent = gs.bestScore > 0 ? formatNumber(gs.bestScore) : '--';
+            bar.querySelector('.gs-played').textContent = formatNumber(gs.timesPlayed || 0);
+          }
+        }
+
+        // ── Recent Activity ──
+        renderRecentActivity(recent);
+
+        // ── Player name editing ──
+        setupNameEditing();
+      }
+
+      // ── Helpers ──
+
+      function escHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function formatNumber(n) {
+        if (n == null) return '0';
+        return n.toLocaleString();
+      }
+
+      function formatTime(ms) {
+        if (!ms || ms <= 0) return '0m';
+        var totalMin = Math.floor(ms / 60000);
+        var h = Math.floor(totalMin / 60);
+        var m = totalMin % 60;
+        if (h > 0) return h + 'h ' + m + 'm';
+        return m + 'm';
+      }
+
+      function timeAgo(timestamp) {
+        var diff = Date.now() - timestamp;
+        var sec = Math.floor(diff / 1000);
+        if (sec < 60) return 'just now';
+        var min = Math.floor(sec / 60);
+        if (min < 60) return min + ' min ago';
+        var hrs = Math.floor(min / 60);
+        if (hrs < 24) return hrs + ' hour' + (hrs > 1 ? 's' : '') + ' ago';
+        var days = Math.floor(hrs / 24);
+        if (days < 30) return days + ' day' + (days > 1 ? 's' : '') + ' ago';
+        return new Date(timestamp).toLocaleDateString();
+      }
+
+      function updatePlayerDisplay(name) {
+        var nameEl = document.getElementById('player-name');
+        var avatarEl = document.getElementById('player-avatar');
+        nameEl.textContent = name;
+        avatarEl.textContent = (name || 'P').charAt(0).toUpperCase();
+      }
+
+      // ── Achievements rendering ──
+
+      function renderAchievements(achievements) {
+        var scrollContainer = document.getElementById('achievements-scroll');
+        var gridContainer = document.getElementById('achievements-grid');
+        var toggleBtn = document.getElementById('achievements-toggle');
+
+        var unlocked = achievements.filter(function(a) { return a.unlocked; });
+        var locked = achievements.filter(function(a) { return !a.unlocked; });
+
+        // Scroll view: unlocked first, then a few locked
+        scrollContainer.innerHTML = '';
+        if (unlocked.length === 0) {
+          // Show first few locked as teaser
+          var teasers = locked.slice(0, 6);
+          for (var i = 0; i < teasers.length; i++) {
+            scrollContainer.appendChild(makeAchievementCard(teasers[i]));
+          }
+        } else {
+          for (var j = 0; j < unlocked.length; j++) {
+            scrollContainer.appendChild(makeAchievementCard(unlocked[j]));
+          }
+          // Show a couple locked as teasers
+          for (var k = 0; k < Math.min(3, locked.length); k++) {
+            scrollContainer.appendChild(makeAchievementCard(locked[k]));
+          }
+        }
+
+        // Grid view: all
+        gridContainer.innerHTML = '';
+        for (var m = 0; m < unlocked.length; m++) {
+          gridContainer.appendChild(makeAchievementCard(unlocked[m]));
+        }
+        for (var n = 0; n < locked.length; n++) {
+          gridContainer.appendChild(makeAchievementCard(locked[n]));
+        }
+
+        // Toggle behavior
+        var expanded = false;
+        toggleBtn.addEventListener('click', function() {
+          expanded = !expanded;
+          if (expanded) {
+            scrollContainer.style.display = 'none';
+            gridContainer.classList.remove('achievements-hidden');
+            toggleBtn.textContent = 'Collapse';
+          } else {
+            scrollContainer.style.display = '';
+            gridContainer.classList.add('achievements-hidden');
+            toggleBtn.textContent = 'View All';
+          }
+        });
+      }
+
+      function makeAchievementCard(a) {
+        var card = document.createElement('div');
+        card.className = 'achievement-card ' + (a.unlocked ? 'unlocked' : 'locked');
+        var iconText = a.unlocked ? a.icon : '?';
+        var dateText = '';
+        if (a.unlocked && a.date) {
+          dateText = '<div class="achievement-date">' + new Date(a.date).toLocaleDateString() + '</div>';
+        }
+        card.innerHTML =
+          '<span class="achievement-icon">' + iconText + '</span>' +
+          '<div class="achievement-name">' + escHtml(a.name) + '</div>' +
+          '<div class="achievement-desc">' + escHtml(a.desc) + '</div>' +
+          dateText;
+        return card;
+      }
+
+      // ── Recent Activity ──
+
+      function renderRecentActivity(recent) {
+        var list = document.getElementById('recent-list');
+        if (!recent || recent.length === 0) return; // keep the default empty message
+
+        var GP = window.GamePlatform;
+        list.innerHTML = '';
+        for (var i = 0; i < recent.length; i++) {
+          var r = recent[i];
+          var li = document.createElement('li');
+          li.className = 'recent-item';
+          var emoji = (GP.GAME_EMOJIS && GP.GAME_EMOJIS[r.gameId]) || '\uD83C\uDFAE';
+          var gameName = (GP.GAME_NAMES && GP.GAME_NAMES[r.gameId]) || r.gameId;
+          li.innerHTML =
+            '<span class="recent-emoji">' + emoji + '</span>' +
+            '<span class="recent-game-name">' + escHtml(gameName) + '</span>' +
+            '<span class="recent-score">' + formatNumber(r.score) + ' pts</span>' +
+            '<span class="recent-time">' + timeAgo(r.timestamp) + '</span>';
+          list.appendChild(li);
+        }
+      }
+
+      // ── Player name editing ──
+
+      function setupNameEditing() {
+        var nameEl = document.getElementById('player-name');
+        var GP = window.GamePlatform;
+        if (!GP) return;
+
+        nameEl.addEventListener('click', function() {
+          if (document.querySelector('.player-name-input')) return; // already editing
+
+          var currentName = GP.getPlayerName();
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'player-name-input';
+          input.value = currentName;
+          input.maxLength = 20;
+
+          nameEl.style.display = 'none';
+          nameEl.parentNode.insertBefore(input, nameEl);
+          input.focus();
+          input.select();
+
+          function save() {
+            var newName = (input.value || '').trim() || 'Player';
+            GP.setPlayerName(newName);
+            updatePlayerDisplay(newName);
+            // Update welcome heading too
+            var welcomeH = document.getElementById('welcome-heading');
+            welcomeH.innerHTML = 'Welcome back, ' + escHtml(newName) + '! <span aria-hidden="true">\uD83D\uDC4B</span>';
+            nameEl.style.display = '';
+            if (input.parentNode) input.parentNode.removeChild(input);
+          }
+
+          input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); save(); }
+            if (e.key === 'Escape') {
+              nameEl.style.display = '';
+              if (input.parentNode) input.parentNode.removeChild(input);
+            }
+          });
+          input.addEventListener('blur', save);
+        });
+      }
+
+      // ── Search ──
+      var searchInput = document.getElementById('game-search');
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          var query = this.value.toLowerCase().trim();
+          var cards = document.querySelectorAll('.game-card');
+          for (var i = 0; i < cards.length; i++) {
+            var card = cards[i];
+            var text = card.textContent.toLowerCase();
+            if (!query || text.indexOf(query) !== -1) {
+              card.classList.remove('search-hidden');
+            } else {
+              card.classList.add('search-hidden');
+            }
+          }
+        });
+      }
+
+      // ── Init on DOM ready ──
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDashboard);
+      } else {
+        initDashboard();
+      }
     })();
   </script>
 </body>

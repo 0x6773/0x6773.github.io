@@ -331,6 +331,11 @@
     gameRunning = false;
     sfxGameOver();
     saveHS(score);
+    if (window.GamePlatform) {
+      var t = GamePlatform.stopTimer();
+      GamePlatform.recordGame('tetris', score, t * 1000, { linesCleared: lines });
+      GamePlatform.updateScore(score);
+    }
     overlay.querySelector('h1').textContent = 'GAME OVER';
     overlaySub.textContent = 'Score: ' + score + '  |  Lines: ' + lines;
     renderHS();
@@ -724,6 +729,7 @@
     scoreEl.textContent = 'Score: ' + score;
     levelEl.textContent = 'Level: ' + level;
     linesEl.textContent = 'Lines: ' + lines;
+    if (window.GamePlatform) GamePlatform.updateScore(score);
   }
 
   // ── Color utils ──
@@ -738,6 +744,12 @@
     const g = Math.max(0, parseInt(hex.slice(3, 5), 16) - n);
     const b = Math.max(0, parseInt(hex.slice(5, 7), 16) - n);
     return `rgb(${r},${g},${b})`;
+  }
+
+  // Platform integration
+  if (window.GamePlatform) {
+    GamePlatform.initHeader('Tetris');
+    GamePlatform.startTimer();
   }
 
   // ── Show start screen ──

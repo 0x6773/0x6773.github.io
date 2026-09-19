@@ -430,6 +430,10 @@
       }
     }
 
+    if (window.GamePlatform) {
+      GamePlatform.recordGame('minesweeper', 0, 0, { win: false });
+    }
+
     // Show overlay after brief delay
     setTimeout(() => {
       showOverlay(false);
@@ -453,6 +457,10 @@
       }
     }
     updateMineCounter();
+
+    if (window.GamePlatform) {
+      GamePlatform.recordGame('minesweeper', 0, 0, { win: true });
+    }
 
     setTimeout(() => {
       showOverlay(true);
@@ -526,4 +534,8 @@
 
   // ── Init ──
   initGame();
+
+  if (window.GamePlatform) {
+    GamePlatform.initHeader('Minesweeper');
+  }
 })();

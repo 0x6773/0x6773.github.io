@@ -275,6 +275,9 @@
 
   function handleMatchEnd(winner) {
     sfxMatchWin();
+    if (window.GamePlatform) {
+      GamePlatform.recordGame('tron', scores[0] + scores[1], 0, { win: winner === 0 });
+    }
     const title = 'Player ' + (winner + 1) + ' Wins!';
     const sub = 'Final: ' + scores[0] + ' - ' + scores[1] + '  (First to ' + ROUNDS_TO_WIN + ')';
     const color = winner === 0 ? P1_COLOR : P2_COLOR;
@@ -378,4 +381,8 @@
 
   // Initial render
   render();
+
+  if (window.GamePlatform) {
+    GamePlatform.initHeader('Tron');
+  }
 })();

@@ -264,6 +264,10 @@
       // Check game over
       if (isGameOver()) {
         sfxGameOver();
+        if (window.GamePlatform) {
+          GamePlatform.recordGame('2048', score, 0);
+          GamePlatform.updateScore(score);
+        }
         gameOverOvl.classList.remove('hidden');
       }
 
@@ -314,6 +318,7 @@
       localStorage.setItem(STORAGE_BEST, bestScore);
     }
     bestScoreEl.textContent = bestScore;
+    if (window.GamePlatform) GamePlatform.updateScore(score);
   }
 
   function showScorePop(val) {
@@ -415,4 +420,8 @@
   buildGrid();
   bestScoreEl.textContent = bestScore;
   newGame();
+
+  if (window.GamePlatform) {
+    GamePlatform.initHeader('2048');
+  }
 })();

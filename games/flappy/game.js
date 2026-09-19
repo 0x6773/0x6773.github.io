@@ -259,6 +259,10 @@
     deathFlashAlpha = 0.7;
     spawnDeathBurst(BIRD_X, bird.y);
     const top5 = saveHighScore(score);
+    if (window.GamePlatform) {
+      GamePlatform.recordGame('flappy', score, 0);
+      GamePlatform.updateScore(score);
+    }
     finalScoreEl.textContent = score;
     renderHighScores(top5);
     // Small delay before showing overlay, then stop the loop
@@ -313,6 +317,7 @@
           p.scored = true;
           score++;
           hudScore.textContent = score;
+          if (window.GamePlatform) GamePlatform.updateScore(score);
           sfxScore();
         }
       }
@@ -611,4 +616,8 @@
   /* ── Bootstrap ── */
   reset();
   requestAnimationFrame(idleLoop);
+
+  if (window.GamePlatform) {
+    GamePlatform.initHeader('Flappy Bird');
+  }
 })();

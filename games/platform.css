@@ -1,0 +1,138 @@
+/* ============================================
+   Game Platform - Shared Styles
+   Prefix: gp- to avoid conflicts with game CSS
+   ============================================ */
+
+/* Header */
+#gp-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: #1a1a2e;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.gp-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.gp-back {
+  color: #888;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.gp-back:hover { color: #00d4ff; }
+
+.gp-game-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+.gp-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.gp-header-actions button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.gp-header-actions button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.gp-header-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: #888;
+  background: rgba(0,0,0,0.2);
+}
+
+.gp-stat strong {
+  color: #00d4ff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Body padding when header is active */
+body.gp-has-header {
+  padding-top: 80px !important;
+}
+
+/* Toast notifications */
+.gp-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: 12px 24px;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-family: 'Segoe UI', sans-serif;
+  z-index: 10000;
+  transition: transform 0.3s ease;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.gp-toast.show {
+  transform: translateX(-50%) translateY(0);
+}
+
+.gp-toast.gp-toast-success {
+  border-color: #00d4ff;
+}
+
+.gp-toast.gp-toast-achievement {
+  border-color: #ffd700;
+  background: linear-gradient(135deg, #1a1a2e, #2a2a1e);
+}
+
+.gp-toast .gp-toast-icon {
+  font-size: 24px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.gp-toast .gp-toast-title {
+  font-weight: 700;
+  color: #ffd700;
+  font-size: 15px;
+}
+
+.gp-toast .gp-toast-desc {
+  color: #aaa;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Welcome banner on dashboard */
+.gp-welcome {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .gp-header-stats { gap: 12px; font-size: 12px; }
+  .gp-game-name { font-size: 14px; }
+}

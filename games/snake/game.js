@@ -212,6 +212,7 @@
       );
       placeFood();
       updateHUD();
+      if (window.GamePlatform) GamePlatform.updateScore(score);
     } else {
       snake.pop();
     }
@@ -372,6 +373,11 @@
     addScore(score);
     updateHUD();
 
+    if (window.GamePlatform) {
+      GamePlatform.recordGame('snake', score, 0);
+      GamePlatform.updateScore(score);
+    }
+
     finalText.textContent = `Score: ${score}`;
     renderLeaderboard();
 
@@ -455,4 +461,8 @@
   init();
   draw();
   updateHUD();
+
+  if (window.GamePlatform) {
+    GamePlatform.initHeader('Snake');
+  }
 })();

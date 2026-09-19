@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNZT8PLH08"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-FNZT8PLH08');</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Ludo Online</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link rel="stylesheet" href="../platform.css">
+  <script src="../platform.js"></script>
+</head>
+<body>
+  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
+
+  <!-- ===================== LOBBY ===================== -->
+  <div id="lobby">
+
+    <!-- Create / Join Section -->
+    <div id="lobby-main">
+      <h1 class="ludo-title">LUDO</h1>
+      <p class="subtitle">Online Multiplayer &mdash; 2 to 4 Players</p>
+
+      <div style="max-width:370px;text-align:left;margin:0 auto 32px;padding:14px 18px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;line-height:1.7;color:#aaa">
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#666;margin-bottom:8px;text-transform:uppercase">How to Play</div>
+        Roll dice to move your tokens around the board<br>
+        Get all 4 tokens from home to the center to win<br>
+        Landing on an opponent sends them back home<br>
+        Roll a 6 to bring out a new token and get an extra turn<br>
+        Safe zones protect tokens from capture
+      </div>
+
+      <div class="lobby-actions">
+        <button id="btn-create" class="btn btn-cyan">Create Game</button>
+        <div class="divider">or</div>
+        <div class="join-row">
+          <input id="join-code" type="text" placeholder="Room code" maxlength="6" autocomplete="off" spellcheck="false">
+          <button id="btn-join" class="btn btn-green">Join</button>
+        </div>
+      </div>
+
+      <p id="lobby-error" class="error hidden"></p>
+    </div>
+
+    <!-- Room Lobby (after create/join) -->
+    <div id="room-lobby" class="hidden">
+
+      <div class="room-code-section">
+        <p class="room-code-label">Room Code</p>
+        <div class="room-code-row">
+          <span id="room-code"></span>
+          <button id="btn-copy" class="btn-small" title="Copy code">Copy</button>
+        </div>
+      </div>
+
+      <div class="name-section">
+        <label for="player-name">Your Name</label>
+        <input id="player-name" type="text" placeholder="Enter name..." maxlength="16" autocomplete="off" spellcheck="false">
+      </div>
+
+      <!-- Player List -->
+      <div id="player-list">
+        <div class="player-slot" data-slot="0">
+          <span class="player-color-swatch" data-color="red"></span>
+          <span class="player-slot-name">Waiting...</span>
+          <span class="player-host-badge hidden" title="Host">&#9819;</span>
+          <button class="btn-kick hidden" title="Kick player">&times;</button>
+        </div>
+        <div class="player-slot" data-slot="1">
+          <span class="player-color-swatch" data-color="green"></span>
+          <span class="player-slot-name">Waiting...</span>
+          <span class="player-host-badge hidden" title="Host">&#9819;</span>
+          <button class="btn-kick hidden" title="Kick player">&times;</button>
+        </div>
+        <div class="player-slot" data-slot="2">
+          <span class="player-color-swatch" data-color="yellow"></span>
+          <span class="player-slot-name">Waiting...</span>
+          <span class="player-host-badge hidden" title="Host">&#9819;</span>
+          <button class="btn-kick hidden" title="Kick player">&times;</button>
+        </div>
+        <div class="player-slot" data-slot="3">
+          <span class="player-color-swatch" data-color="blue"></span>
+          <span class="player-slot-name">Waiting...</span>
+          <span class="player-host-badge hidden" title="Host">&#9819;</span>
+          <button class="btn-kick hidden" title="Kick player">&times;</button>
+        </div>
+      </div>
+
+      <!-- Color Picker -->
+      <div class="color-picker-section">
+        <p class="section-label">Pick Your Color</p>
+        <div id="color-picker">
+          <button class="color-btn" data-color="red" title="Red"><span class="color-check hidden">&#10003;</span></button>
+          <button class="color-btn" data-color="green" title="Green"><span class="color-check hidden">&#10003;</span></button>
+          <button class="color-btn" data-color="yellow" title="Yellow"><span class="color-check hidden">&#10003;</span></button>
+          <button class="color-btn" data-color="blue" title="Blue"><span class="color-check hidden">&#10003;</span></button>
+        </div>
+      </div>
+
+      <!-- Host Settings -->
+      <div id="host-settings" class="hidden">
+        <p class="section-label">Game Settings</p>
+
+        <div class="setting-row">
+          <span class="setting-name">Players</span>
+          <div class="btn-group" data-setting="numPlayers">
+            <button class="btn-opt" data-value="2">2</button>
+            <button class="btn-opt active" data-value="3">3</button>
+            <button class="btn-opt" data-value="4">4</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">Entry Rule</span>
+          <div class="btn-group" data-setting="entryRule">
+            <button class="btn-opt active" data-value="6only">6 Only</button>
+            <button class="btn-opt" data-value="1or6">1 or 6</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">Capture Bonus</span>
+          <div class="btn-group" data-setting="captureBonus">
+            <button class="btn-opt active" data-value="on">On</button>
+            <button class="btn-opt" data-value="off">Off</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">Triple-6 Penalty</span>
+          <div class="btn-group" data-setting="tripleSix">
+            <button class="btn-opt" data-value="on">On</button>
+            <button class="btn-opt active" data-value="off">Off</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">Tokens per Player</span>
+          <div class="btn-group" data-setting="tokensPerPlayer">
+            <button class="btn-opt" data-value="2">2</button>
+            <button class="btn-opt" data-value="3">3</button>
+            <button class="btn-opt active" data-value="4">4</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">Safe Zones</span>
+          <div class="btn-group" data-setting="safeZones">
+            <button class="btn-opt active" data-value="on">On</button>
+            <button class="btn-opt" data-value="off">Off</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">Turn Timer</span>
+          <div class="btn-group" data-setting="turnTimer">
+            <button class="btn-opt active" data-value="0">Off</button>
+            <button class="btn-opt" data-value="15">15s</button>
+            <button class="btn-opt" data-value="30">30s</button>
+            <button class="btn-opt" data-value="60">60s</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">Spectator Mode</span>
+          <div class="btn-group" data-setting="spectatorMode">
+            <button class="btn-opt" data-value="on">On</button>
+            <button class="btn-opt active" data-value="off">Off</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-start" class="btn btn-cyan btn-start hidden" disabled>Start Game</button>
+      <p id="room-status" class="status-msg"></p>
+    </div>
+  </div>
+
+  <!-- ===================== GAME SCREEN ===================== -->
+  <div id="game-screen" class="hidden">
+
+    <!-- Top HUD -->
+    <div id="game-hud">
+      <div id="hud-players">
+        <div class="hud-player" data-color="red">
+          <span class="hud-swatch" data-color="red"></span>
+          <span class="hud-name">Player 1</span>
+          <span class="hud-tokens">Home: 4</span>
+        </div>
+        <div class="hud-player" data-color="green">
+          <span class="hud-swatch" data-color="green"></span>
+          <span class="hud-name">Player 2</span>
+          <span class="hud-tokens">Home: 4</span>
+        </div>
+        <div class="hud-player" data-color="yellow">
+          <span class="hud-swatch" data-color="yellow"></span>
+          <span class="hud-name">Player 3</span>
+          <span class="hud-tokens">Home: 4</span>
+        </div>
+        <div class="hud-player" data-color="blue">
+          <span class="hud-swatch" data-color="blue"></span>
+          <span class="hud-name">Player 4</span>
+          <span class="hud-tokens">Home: 4</span>
+        </div>
+      </div>
+      <div id="hud-right">
+        <div id="turn-timer" class="hidden">
+          <svg class="timer-ring" viewBox="0 0 36 36">
+            <circle class="timer-bg" cx="18" cy="18" r="15.9"></circle>
+            <circle class="timer-fg" cx="18" cy="18" r="15.9"></circle>
+          </svg>
+          <span id="timer-text">30</span>
+        </div>
+        <button id="btn-pause" class="btn-icon hidden" title="Pause">&#10074;&#10074;</button>
+      </div>
+    </div>
+
+    <!-- Game Area -->
+    <div id="game-area">
+
+      <!-- Board -->
+      <div id="board-wrap">
+        <canvas id="boardCanvas" width="600" height="600"></canvas>
+      </div>
+
+      <!-- Side Panel -->
+      <div id="side-panel">
+
+        <!-- Mobile Tabs -->
+        <div id="panel-tabs" class="mobile-only">
+          <button class="panel-tab active" data-tab="dice">Dice</button>
+          <button class="panel-tab" data-tab="log">Log</button>
+          <button class="panel-tab" data-tab="chat">Chat</button>
+        </div>
+
+        <!-- Dice Section -->
+        <div class="panel-section" id="dice-section" data-tab-content="dice">
+          <div id="dice-area">
+            <div id="dice-display">
+              <div id="dice-face">?</div>
+            </div>
+          </div>
+          <button id="btn-roll" class="btn btn-cyan btn-roll">Roll Dice</button>
+          <label class="toggle-hint">
+            <input type="checkbox" id="toggle-hints" checked>
+            <span>Show move hints</span>
+          </label>
+        </div>
+
+        <!-- Game Log -->
+        <div class="panel-section" id="log-section" data-tab-content="log">
+          <p class="section-label">Game Log</p>
+          <div id="game-log"></div>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="panel-section" id="chat-section" data-tab-content="chat">
+          <p class="section-label">Chat</p>
+          <div id="chat-messages"></div>
+          <div class="chat-input-row">
+            <input id="chat-input" type="text" placeholder="Type a message..." maxlength="200" autocomplete="off" spellcheck="false">
+            <button id="btn-chat-send" class="btn-icon" title="Send">&#9654;</button>
+          </div>
+          <div id="emoji-bar">
+            <button class="emoji-btn" data-emoji="thumbsup" title="Thumbs Up">&#128077;</button>
+            <button class="emoji-btn" data-emoji="clap" title="Clap">&#128079;</button>
+            <button class="emoji-btn" data-emoji="laugh" title="Laugh">&#128514;</button>
+            <button class="emoji-btn" data-emoji="cry" title="Cry">&#128557;</button>
+            <button class="emoji-btn" data-emoji="angry" title="Angry">&#128545;</button>
+            <button class="emoji-btn" data-emoji="fire" title="Fire">&#128293;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Overlay (pause, game over, winner) -->
+    <div id="game-overlay" class="hidden">
+      <h2 id="overlay-title"></h2>
+      <p id="overlay-msg"></p>
+      <div id="overlay-actions"></div>
+    </div>
+  </div>
+
+  <!-- Reconnect Banner -->
+  <div id="reconnect-banner" class="hidden">
+    <span class="reconnect-spinner"></span> Reconnecting...
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

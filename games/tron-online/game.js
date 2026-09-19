@@ -345,6 +345,9 @@
   function handleMatchEnd(w) {
     const isMe = w === myPlayer;
     if (isMe) sfxMatchWin(); else sfxCrash();
+    if (window.GamePlatform) {
+      GamePlatform.recordGame('tron-online', scores[0] + scores[1], 0, { win: isMe });
+    }
     showOverlay(isMe ? 'You Win!' : 'You Lose', scores[0] + ' - ' + scores[1] + '  (First to ' + ROUNDS_TO_WIN + ')', isMe ? '#ffd700' : '#ff4d6d');
     setTimeout(() => { scores = [0, 0]; round = 1; updateHUD(); if (isHost) startRound(); }, 5000);
   }
@@ -421,5 +424,9 @@
 
     ctx.save(); ctx.strokeStyle = 'rgba(0,240,255,0.12)'; ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, W - 2, H - 2); ctx.restore();
+  }
+
+  if (window.GamePlatform) {
+    GamePlatform.initHeader('Tron Online');
   }
 })();

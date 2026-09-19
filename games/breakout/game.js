@@ -19,7 +19,7 @@ const PADDLE_WIDTH = 120;
 const PADDLE_HEIGHT = 14;
 const PADDLE_SPEED = 8;
 const BALL_RADIUS = 8;
-const BRICK_ROWS = 5;
+let BRICK_ROWS = 5;
 const BRICK_COLS = 10;
 const BRICK_WIDTH = 70;
 const BRICK_HEIGHT = 24;
@@ -357,18 +357,87 @@ function resetPaddle() {
 
 function buildBricks() {
   bricks = [];
-  for (let r = 0; r < BRICK_ROWS; r++) {
+
+  // Define symmetric brick patterns per level (1 = brick, 0 = empty)
+  var pattern;
+  switch (level) {
+    case 1: // Classic Full Grid
+      pattern = [
+        [1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1]
+      ];
+      break;
+    case 2: // Diamond
+      pattern = [
+        [0,0,0,0,1,1,0,0,0,0],
+        [0,0,0,1,1,1,1,0,0,0],
+        [0,0,1,1,1,1,1,1,0,0],
+        [0,1,1,1,1,1,1,1,1,0],
+        [0,0,1,1,1,1,1,1,0,0],
+        [0,0,0,1,1,1,1,0,0,0],
+        [0,0,0,0,1,1,0,0,0,0]
+      ];
+      break;
+    case 3: // Checkerboard (symmetric left-right)
+      pattern = [
+        [1,0,1,0,1,1,0,1,0,1],
+        [0,1,0,1,0,0,1,0,1,0],
+        [1,0,1,0,1,1,0,1,0,1],
+        [0,1,0,1,0,0,1,0,1,0],
+        [1,0,1,0,1,1,0,1,0,1],
+        [0,1,0,1,0,0,1,0,1,0]
+      ];
+      break;
+    case 4: // V / Chevron
+      pattern = [
+        [1,0,0,0,0,0,0,0,0,1],
+        [0,1,0,0,0,0,0,0,1,0],
+        [0,0,1,0,0,0,0,1,0,0],
+        [0,0,0,1,0,0,1,0,0,0],
+        [0,0,0,0,1,1,0,0,0,0],
+        [0,0,0,1,1,1,1,0,0,0],
+        [0,0,1,1,1,1,1,1,0,0]
+      ];
+      break;
+    case 5: // Fortress
+      pattern = [
+        [1,0,1,0,1,1,0,1,0,1],
+        [1,1,1,1,1,1,1,1,1,1],
+        [1,1,0,0,0,0,0,0,1,1],
+        [1,1,0,0,0,0,0,0,1,1],
+        [1,1,1,1,1,1,1,1,1,1],
+        [0,1,1,1,0,0,1,1,1,0],
+        [0,0,1,1,0,0,1,1,0,0]
+      ];
+      break;
+    default:
+      pattern = [
+        [1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1]
+      ];
+  }
+
+  BRICK_ROWS = pattern.length;
+
+  for (var r = 0; r < BRICK_ROWS; r++) {
     bricks[r] = [];
-    for (let c = 0; c < BRICK_COLS; c++) {
+    for (var c = 0; c < BRICK_COLS; c++) {
+      var colorIdx = r % ROW_COLORS.length;
       bricks[r][c] = {
         x: BRICK_OFFSET_LEFT + c * (BRICK_WIDTH + BRICK_PADDING),
         y: BRICK_OFFSET_TOP + r * (BRICK_HEIGHT + BRICK_PADDING),
         w: BRICK_WIDTH,
         h: BRICK_HEIGHT,
-        alive: true,
-        color: ROW_COLORS[r],
-        points: ROW_POINTS[r],
-        row: r
+        alive: !!pattern[r][c],
+        color: ROW_COLORS[colorIdx],
+        points: ROW_POINTS[colorIdx],
+        row: colorIdx
       };
     }
   }
@@ -752,6 +821,7 @@ function updateHUD() {
   scoreEl.textContent = 'Score: ' + score;
   levelEl.textContent = 'Level: ' + level;
   livesEl.textContent = 'Lives: ' + lives;
+  if (window.GamePlatform) GamePlatform.updateScore(score);
 }
 
 // ── Game Over / Win ──
@@ -765,6 +835,11 @@ function gameOver(won) {
   if (won) sfxWin(); else sfxGameOver();
 
   saveHighScore(score);
+  if (window.GamePlatform) {
+    var t = GamePlatform.stopTimer();
+    GamePlatform.recordGame('breakout', score, t * 1000, { win: won });
+    GamePlatform.updateScore(score);
+  }
   overlayTitle.textContent = won ? 'You Win!' : 'Game Over';
   overlayTitle.style.color = won ? '#ffd700' : '#ff4d6d';
   overlayMsg.textContent = 'Final Score: ' + score;
@@ -781,6 +856,18 @@ function loop() {
   if (!running) return;
   draw();
   animId = requestAnimationFrame(loop);
+}
+
+// Platform integration
+if (window.GamePlatform) {
+  GamePlatform.initHeader('Breakout');
+  // Save stats if user leaves mid-game
+  window.addEventListener('beforeunload', function() {
+    if (score > 0) {
+      var t = GamePlatform.stopTimer();
+      GamePlatform.recordGame('breakout', score, t * 1000, { win: false });
+    }
+  });
 }
 
 // ── Show start screen ──
