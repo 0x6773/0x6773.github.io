@@ -53,12 +53,14 @@
 
   /* ── Ghost (previous best run) ── */
   const GHOST_LS_KEY = "flappy_ghost";
-  let ghostRecording = [];   // Y positions this run
-  let ghostPlayback = null;  // Y positions from best run (array or null)
-  let ghostFrame = 0;
+  let ghostRecording = [];   // {t, y, s} entries this run
+  let ghostPlayback = null;  // {version, score, data:[{t,y,s}]} from best run or null
   let ghostVisible = true;
   let newRecordShown = false;
   let newRecordAlpha = 0;
+  let newRecordPulse = 0;    // pulse timer for "New Record!" animation
+  let gameStartTime = 0;     // performance.now() when game started
+  let gameElapsed = 0;       // ms since game started (updated each frame)
 
   /* ── Night-mode stars (separate from default stars) ── */
   let nightStars = [];
@@ -119,15 +121,52 @@
   /* ── Ghost load/save ── */
   function loadGhost() {
     try {
-      const data = localStorage.getItem(GHOST_LS_KEY);
-      return data ? JSON.parse(data) : null;
+      const raw = localStorage.getItem(GHOST_LS_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Version 2 format: { version: 2, score: N, data: [{t,y,s},...] }
+      if (parsed && parsed.version === 2 && Array.isArray(parsed.data)) {
+        return parsed;
+      }
+      // Old format (plain array of Y values) – discard and start fresh
+      localStorage.removeItem(GHOST_LS_KEY);
+      return null;
     } catch { return null; }
   }
 
-  function saveGhost(recording) {
+  function saveGhost(recording, finalScore) {
     try {
-      localStorage.setItem(GHOST_LS_KEY, JSON.stringify(recording));
+      const ghost = {
+        version: 2,
+        score: finalScore,
+        data: recording,
+      };
+      localStorage.setItem(GHOST_LS_KEY, JSON.stringify(ghost));
     } catch { /* quota exceeded, ignore */ }
+  }
+
+  /* ── Ghost time-based lookup ── */
+  function ghostLookup(elapsed) {
+    // Returns { y, s } interpolated from ghost data at the given elapsed time,
+    // or null if elapsed is past the ghost's recording.
+    if (!ghostPlayback || !ghostPlayback.data || ghostPlayback.data.length === 0) return null;
+    const data = ghostPlayback.data;
+    if (elapsed <= data[0].t) return { y: data[0].y, s: data[0].s };
+    if (elapsed >= data[data.length - 1].t) return null; // past the ghost
+
+    // Binary search for the bracket
+    let lo = 0, hi = data.length - 1;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (data[mid].t <= elapsed) lo = mid;
+      else hi = mid;
+    }
+    const a = data[lo], b = data[hi];
+    const frac = (b.t === a.t) ? 0 : (elapsed - a.t) / (b.t - a.t);
+    return {
+      y: a.y + (b.y - a.y) * frac,
+      s: a.s, // score is a step function – use the earlier entry's score
+    };
   }
 
   /* ── High scores (localStorage) ── */
@@ -236,10 +275,12 @@
     currentMilestoneIdx = -1;
     milestoneFloats = [];
     ghostRecording = [];
-    ghostFrame = 0;
+    gameStartTime = 0;
+    gameElapsed = 0;
     ghostVisible = true;
     newRecordShown = false;
     newRecordAlpha = 0;
+    newRecordPulse = 0;
     if (showGhost) {
       ghostPlayback = loadGhost();
     } else {
@@ -280,6 +321,7 @@
       bird.vy = getFlapStrength();
       sfxFlap();
       lastTime = performance.now();
+      gameStartTime = lastTime;
       frameId = requestAnimationFrame(loop);
       return;
     }
@@ -343,10 +385,10 @@
     sfxCrash();
     deathFlashAlpha = 0.7;
     spawnDeathBurst(BIRD_X, bird.y);
-    // Save ghost if this is the best run
+    // Save ghost if this is the best run (compare scores)
     const prevGhost = loadGhost();
-    if (!prevGhost || ghostRecording.length > prevGhost.length) {
-      saveGhost(ghostRecording);
+    if (!prevGhost || score > (prevGhost.score || 0)) {
+      saveGhost(ghostRecording, score);
     }
     const top5 = saveHighScore(score);
     if (window.GamePlatform) {
@@ -400,17 +442,19 @@
     if (state === "playing") {
       bird.vy += grav;
       bird.y += bird.vy;
-      // Record ghost position
-      ghostRecording.push(bird.y);
-      // Ghost playback: check if we've surpassed the ghost
-      if (ghostPlayback && ghostVisible && ghostFrame >= ghostPlayback.length) {
+      // Update elapsed time
+      gameElapsed = performance.now() - gameStartTime;
+      // Record ghost position with time and score
+      ghostRecording.push({ t: gameElapsed, y: bird.y, s: score });
+      // Ghost playback: check if we've surpassed the ghost's duration
+      if (ghostPlayback && ghostVisible && ghostLookup(gameElapsed) === null) {
         ghostVisible = false;
         if (!newRecordShown) {
           newRecordShown = true;
-          newRecordAlpha = 2.0;
+          newRecordAlpha = 3.0;
+          newRecordPulse = 0;
         }
       }
-      ghostFrame++;
     } else {
       // Dead: bird falls
       bird.vy += grav;
@@ -489,7 +533,8 @@
 
     // Update new record text
     if (newRecordAlpha > 0) {
-      newRecordAlpha -= 0.008;
+      newRecordAlpha -= 0.006;
+      newRecordPulse += 0.08;
       if (newRecordAlpha < 0) newRecordAlpha = 0;
     }
 
@@ -569,14 +614,59 @@
 
     // Ghost bird (rendered before real bird so it appears behind)
     if (ghostPlayback && ghostVisible && state === "playing") {
-      const gi = ghostFrame - 1;
-      if (gi >= 0 && gi < ghostPlayback.length) {
-        drawGhostBird(ghostPlayback[gi]);
+      const ghostInfo = ghostLookup(gameElapsed);
+      if (ghostInfo) {
+        drawGhostBird(ghostInfo.y);
       }
     }
 
     // Bird
     drawBird();
+
+    // Ghost delta display (how far ahead/behind the ghost)
+    if (ghostPlayback && state === "playing") {
+      const ghostInfo = ghostLookup(gameElapsed);
+      if (ghostInfo) {
+        const delta = score - ghostInfo.s;
+        let deltaText, deltaColor;
+        if (delta > 0) {
+          deltaText = "+" + delta;
+          deltaColor = "#33ff66";
+        } else if (delta < 0) {
+          deltaText = "" + delta;
+          deltaColor = "#ff4455";
+        } else {
+          deltaText = "\u00B10";
+          deltaColor = "#aaaaaa";
+        }
+        ctx.save();
+        ctx.font = "bold 16px 'Segoe UI', Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = deltaColor;
+        ctx.globalAlpha = 0.85;
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(deltaText, W / 2, 52);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      } else if (newRecordShown) {
+        // Ghost has ended – show we're ahead
+        const ghostFinalScore = ghostPlayback.score || 0;
+        const delta = score - ghostFinalScore;
+        if (delta > 0) {
+          ctx.save();
+          ctx.font = "bold 16px 'Segoe UI', Arial, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#33ff66";
+          ctx.globalAlpha = 0.85;
+          ctx.shadowColor = "rgba(0,0,0,0.5)";
+          ctx.shadowBlur = 4;
+          ctx.fillText("+" + delta, W / 2, 52);
+          ctx.shadowBlur = 0;
+          ctx.restore();
+        }
+      }
+    }
 
     // Milestone floating texts
     for (const mf of milestoneFloats) {
@@ -592,16 +682,33 @@
       ctx.restore();
     }
 
-    // "New Record!" text
+    // "New Record!" text – floating, pulsing gold
     if (newRecordAlpha > 0) {
       ctx.save();
-      ctx.globalAlpha = Math.min(newRecordAlpha, 1);
-      ctx.font = "900 32px 'Segoe UI', Arial, sans-serif";
+      const pulseScale = 1 + Math.sin(newRecordPulse) * 0.08;
+      const floatY = H / 2 - 80 - newRecordPulse * 0.6;
+      const alpha = Math.min(newRecordAlpha, 1);
+      ctx.globalAlpha = alpha;
+      ctx.translate(W / 2, floatY);
+      ctx.scale(pulseScale, pulseScale);
+      // Gold gradient text
+      const goldGrad = ctx.createLinearGradient(-80, -15, 80, 15);
+      goldGrad.addColorStop(0, "#ffd700");
+      goldGrad.addColorStop(0.3, "#fff4a3");
+      goldGrad.addColorStop(0.5, "#ffd700");
+      goldGrad.addColorStop(0.7, "#ffaa00");
+      goldGrad.addColorStop(1, "#ffd700");
+      ctx.font = "900 36px 'Segoe UI', Arial, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillStyle = "#ffd700";
-      ctx.shadowColor = "#ffd700";
-      ctx.shadowBlur = 25;
-      ctx.fillText("New Record!", W / 2, H / 2 - 80);
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = goldGrad;
+      ctx.shadowColor = "#ffa500";
+      ctx.shadowBlur = 30 + Math.sin(newRecordPulse * 2) * 10;
+      ctx.fillText("New Record!", 0, 0);
+      // Outline for extra pop
+      ctx.strokeStyle = "rgba(255, 170, 0, " + (alpha * 0.5) + ")";
+      ctx.lineWidth = 1.5;
+      ctx.strokeText("New Record!", 0, 0);
       ctx.shadowBlur = 0;
       ctx.restore();
     }

@@ -105,6 +105,10 @@
       playTone(80, 0.5, 'sawtooth', 0.2);
       setTimeout(() => playTone(40, 0.4, 'sawtooth', 0.15), 100);
     },
+    chord() {
+      playTone(700, 0.06, 'sine', 0.07);
+      setTimeout(() => playTone(900, 0.08, 'sine', 0.06), 40);
+    },
     win() {
       const notes = [523, 659, 784, 1047];
       notes.forEach((f, i) => {
@@ -338,6 +342,54 @@
     updateMineCounter();
   }
 
+  // ── Chord Flash Style ──
+  (function injectChordStyle() {
+    const style = document.createElement('style');
+    style.textContent =
+      '.cell-chord-flash{background:rgba(255,255,150,0.6)!important;' +
+      'transform:scale(1.08);transition:background .1s ease,transform .1s ease;}';
+    document.head.appendChild(style);
+  })();
+
+  // ── Chording (auto-reveal) ──
+  function chordCell(r, c) {
+    const cell = grid[r][c];
+    if (!cell.revealed || cell.adjacentMines === 0 || gameOver) return;
+
+    // Count flagged neighbors
+    let adjFlags = 0;
+    forEachNeighbor(r, c, (nr, nc) => {
+      if (grid[nr][nc].flagged) adjFlags++;
+    });
+
+    if (adjFlags !== cell.adjacentMines) return;
+
+    // Collect non-flagged, non-revealed neighbors to chord-reveal
+    const toReveal = [];
+    forEachNeighbor(r, c, (nr, nc) => {
+      if (!grid[nr][nc].revealed && !grid[nr][nc].flagged) {
+        toReveal.push([nr, nc]);
+      }
+    });
+
+    if (toReveal.length === 0) return;
+
+    // Visual feedback: brief highlight flash
+    toReveal.forEach(([nr, nc]) => {
+      cellElements[nr][nc].classList.add('cell-chord-flash');
+    });
+
+    Sound.chord();
+
+    // Reveal after brief flash
+    setTimeout(() => {
+      toReveal.forEach(([nr, nc]) => {
+        cellElements[nr][nc].classList.remove('cell-chord-flash');
+        revealCell(nr, nc);
+      });
+    }, 100);
+  }
+
   // ── Event Handlers ──
   function getCellCoords(e) {
     const el = e.target.closest('.cell');
@@ -352,6 +404,12 @@
     const { r, c } = coords;
 
     if (gameOver || grid[r][c].flagged) return;
+
+    // Chording: click on an already-revealed number cell
+    if (grid[r][c].revealed) {
+      chordCell(r, c);
+      return;
+    }
 
     if (!minesGenerated) {
       generateMines(r, c);

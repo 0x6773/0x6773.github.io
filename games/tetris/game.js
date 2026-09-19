@@ -79,13 +79,19 @@
   const colorPicker = document.getElementById('color-picker');
   const colorOptions = document.getElementById('color-options');
 
+  // ── Mode (Classic / Arcade) ──
+  let tetrisMode = 'classic';
+  const modeSelector = document.getElementById('mode-selector');
+  const powerupBar = document.getElementById('powerup-bar');
+  const modeBtns = document.querySelectorAll('.mode-btn');
+
   // ── High Scores ──
-  const HS_KEY = 'tetris_highscores';
-  function loadHS() { try { return JSON.parse(localStorage.getItem(HS_KEY)) || []; } catch { return []; } }
+  function hsKey() { return 'tetris_hs_' + tetrisMode; }
+  function loadHS() { try { return JSON.parse(localStorage.getItem(hsKey())) || []; } catch { return []; } }
   function saveHS(s) {
     const sc = loadHS(); sc.push({ score: s, date: new Date().toLocaleDateString() });
     sc.sort((a, b) => b.score - a.score);
-    localStorage.setItem(HS_KEY, JSON.stringify(sc.slice(0, 5)));
+    localStorage.setItem(hsKey(), JSON.stringify(sc.slice(0, 5)));
   }
   function renderHS() {
     const sc = loadHS();
@@ -205,6 +211,10 @@
 
   // ── Init ──
   function init() {
+    // Read selected mode from UI
+    const selectedBtn = document.querySelector('.mode-btn.selected');
+    if (selectedBtn) tetrisMode = selectedBtn.dataset.mode;
+
     board = []; for (let y = 0; y < ROWS; y++) { board[y] = []; for (let x = 0; x < COLS; x++) board[y][x] = null; }
     score = 0; level = 1; lines = 0;
     bag = fillBag();
@@ -216,6 +226,17 @@
     slowActive = false; if (slowTimer) clearTimeout(slowTimer);
     renderPowerupBar();
     colorPicker.classList.add('hidden');
+
+    // Show/hide power-up bar based on mode
+    if (tetrisMode === 'classic') {
+      powerupBar.style.display = 'none';
+    } else {
+      powerupBar.style.display = '';
+    }
+
+    // Hide mode selector during gameplay
+    modeSelector.style.display = 'none';
+
     spawnNext();
     updateHUD();
     gameRunning = true;
@@ -317,13 +338,15 @@
     level = Math.floor(lines / 10) + 1;
     updateHUD();
 
-    // Chance to earn a power-up: 1 line=20%, 2=40%, 3=70%, 4=100%
-    const puChance = [0, 0.2, 0.4, 0.7, 1.0][n];
-    if (puInventory.length < MAX_POWERUPS && Math.random() < puChance) {
-      const pu = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
-      puInventory.push({ ...pu });
-      sfxPowerup();
-      renderPowerupBar();
+    // Chance to earn a power-up (Arcade mode only): 1 line=20%, 2=40%, 3=70%, 4=100%
+    if (tetrisMode === 'arcade') {
+      const puChance = [0, 0.2, 0.4, 0.7, 1.0][n];
+      if (puInventory.length < MAX_POWERUPS && Math.random() < puChance) {
+        const pu = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
+        puInventory.push({ ...pu });
+        sfxPowerup();
+        renderPowerupBar();
+      }
     }
   }
 
@@ -339,6 +362,7 @@
     overlay.querySelector('h1').textContent = 'GAME OVER';
     overlaySub.textContent = 'Score: ' + score + '  |  Lines: ' + lines;
     renderHS();
+    modeSelector.style.display = 'flex';
     overlay.classList.remove('hidden');
   }
 
@@ -356,15 +380,44 @@
       case 'z': case 'Z': e.preventDefault(); rotate(-1); break;
       case ' ': e.preventDefault(); hardDrop(); break;
       case 'c': case 'C': case 'Shift': e.preventDefault(); hold(); break;
-      case '1': e.preventDefault(); usePowerup(0); break;
-      case '2': e.preventDefault(); usePowerup(1); break;
-      case '3': e.preventDefault(); usePowerup(2); break;
+      case '1': e.preventDefault(); if (tetrisMode === 'arcade') usePowerup(0); break;
+      case '2': e.preventDefault(); if (tetrisMode === 'arcade') usePowerup(1); break;
+      case '3': e.preventDefault(); if (tetrisMode === 'arcade') usePowerup(2); break;
     }
     updateHUD();
   });
 
+  // ── Mode button click handlers ──
+  const MODE_STYLES = {
+    classic: { selectedBorder: '#00d4ff', selectedColor: '#00d4ff' },
+    arcade:  { selectedBorder: '#e040fb', selectedColor: '#e040fb' },
+  };
+
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation(); // Don't start the game when clicking mode buttons
+      modeBtns.forEach(b => {
+        b.classList.remove('selected');
+        b.style.borderColor = '#333';
+        b.style.color = '#666';
+      });
+      btn.classList.add('selected');
+      const mode = btn.dataset.mode;
+      const s = MODE_STYLES[mode];
+      btn.style.borderColor = s.selectedBorder;
+      btn.style.color = s.selectedColor;
+      tetrisMode = mode;
+      overlaySub.textContent = mode.charAt(0).toUpperCase() + mode.slice(1) + ' — Click or press any key to start';
+      renderHS();
+    });
+  });
+
   // Start on overlay click
-  overlay.addEventListener('click', () => { ensureAudio(); init(); });
+  overlay.addEventListener('click', e => {
+    // Don't start if user clicked inside the mode selector
+    if (modeSelector.contains(e.target)) return;
+    ensureAudio(); init();
+  });
 
   // ── Touch button controls with auto-repeat ──
   let repeatTimer = null, repeatInterval = null;
@@ -753,5 +806,8 @@
   }
 
   // ── Show start screen ──
+  // Hide power-up bar on initial load (Classic is default)
+  powerupBar.style.display = 'none';
+  overlaySub.textContent = 'Classic — Click or press any key to start';
   renderHS();
 })();

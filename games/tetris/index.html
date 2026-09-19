@@ -46,11 +46,15 @@
         Arrow keys / WASD to move and rotate<br>
         Space for hard drop, Z for counter-rotate<br>
         C or Shift to hold piece<br>
-        Clear lines to score and earn power-ups<br>
-        Power-ups (press 1/2/3 to use):<br>
-        B = Bomb (3x3 clear), R = Row Blast<br>
+        Clear lines to score<br>
+        Power-ups available in Arcade mode:<br>
+        Press 1/2/3 to use — B = Bomb (3x3 clear), R = Row Blast<br>
         N = Nuke (3 rows), S = Slow (15s)<br>
         I = Flat Piece (I-piece next), C = Color Bomb
+      </div>
+      <div id="mode-selector" style="display:flex;gap:10px;margin:16px 0">
+        <button class="mode-btn selected" data-mode="classic" style="padding:10px 20px;font-size:14px;font-weight:700;border:2px solid #00d4ff;border-radius:6px;background:transparent;color:#00d4ff;cursor:pointer;letter-spacing:1px;transition:all 0.2s">Classic</button>
+        <button class="mode-btn" data-mode="arcade" style="padding:10px 20px;font-size:14px;font-weight:700;border:2px solid #333;border-radius:6px;background:transparent;color:#666;cursor:pointer;letter-spacing:1px;transition:all 0.2s">Arcade</button>
       </div>
       <div id="highscores" class="hidden">
         <h2>High Scores</h2>
