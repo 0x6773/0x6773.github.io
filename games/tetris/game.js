@@ -774,14 +774,13 @@
             board[y][x] = null;
           }
         }
-        // Gravity: collapse empty rows
-        for (let y = ROWS - 1; y >= 0; y--) {
-          if (board[y].every(c => c === null)) {
-            board.splice(y, 1);
-            board.unshift(new Array(COLS).fill(null));
-            y++; // re-check same index since rows shifted down
-          }
+        // Gravity: collapse empty rows — collect non-empty rows and rebuild
+        const nonEmpty = [];
+        for (let y = 0; y < ROWS; y++) {
+          if (board[y].some(c => c !== null)) nonEmpty.push(board[y]);
         }
+        while (nonEmpty.length < ROWS) nonEmpty.unshift(new Array(COLS).fill(null));
+        for (let y = 0; y < ROWS; y++) board[y] = nonEmpty[y];
         puInventory.splice(puIndex, 1);
         renderPowerupBar();
         colorPicker.classList.add('hidden');
