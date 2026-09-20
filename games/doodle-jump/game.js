@@ -127,11 +127,13 @@
   }
 
   function saveHighScore(s) {
+    if (s <= 0) return loadHighScores(); // don't save zero scores
     const scores = loadHighScores();
     scores.push(s);
     scores.sort((a, b) => b - a);
     const top5 = scores.slice(0, 5);
-    localStorage.setItem(LS_KEY, JSON.stringify(top5));
+    try { localStorage.setItem(LS_KEY, JSON.stringify(top5)); }
+    catch (e) { /* quota exceeded */ }
     return top5;
   }
 
@@ -347,8 +349,15 @@
     keysDown[e.code] = false;
   });
 
-  // Touch controls
-  canvas.addEventListener("touchstart", (e) => {
+  // Clear stuck keys when window loses focus
+  window.addEventListener("blur", () => {
+    keysDown = {};
+  });
+
+  // Touch controls — listen on canvas-container so overlays don't block input
+  const canvasContainer = document.getElementById("canvas-container");
+
+  canvasContainer.addEventListener("touchstart", (e) => {
     e.preventDefault();
     if (state === "start") {
       startGame();
@@ -359,21 +368,21 @@
     touchCurrentX = touch.clientX;
   }, { passive: false });
 
-  canvas.addEventListener("touchmove", (e) => {
+  canvasContainer.addEventListener("touchmove", (e) => {
     e.preventDefault();
     if (e.touches.length > 0) {
       touchCurrentX = e.touches[0].clientX;
     }
   }, { passive: false });
 
-  canvas.addEventListener("touchend", (e) => {
+  canvasContainer.addEventListener("touchend", (e) => {
     e.preventDefault();
     touchStartX = null;
     touchCurrentX = null;
   }, { passive: false });
 
-  // Mouse/pointer click to start
-  canvas.addEventListener("pointerdown", (e) => {
+  // Mouse/pointer click to start — on container so overlays don't block
+  canvasContainer.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "touch") return; // handled by touch events
     e.preventDefault();
     if (state === "start") {
@@ -444,7 +453,7 @@
     state = "dead";
     sfxGameOver();
     deathFlashAlpha = 0.7;
-    spawnDeathBurst(player.x + PLAYER_W / 2, player.y - cameraY + PLAYER_H / 2);
+    spawnDeathBurst(player.x + PLAYER_W / 2, player.y + PLAYER_H / 2);
 
     const top5 = saveHighScore(score);
     if (window.GamePlatform) {
@@ -490,19 +499,24 @@
   function update(dt) {
     if (state !== "playing" && state !== "dead") return;
 
+    // dt factor: normalize to 60fps baseline (16.67ms)
+    const dtFactor = dt / 16.667;
+
     if (state === "playing") {
       // Horizontal movement from keyboard
       let inputDir = 0;
       if (keysDown["ArrowLeft"] || keysDown["KeyA"]) inputDir -= 1;
       if (keysDown["ArrowRight"] || keysDown["KeyD"]) inputDir += 1;
 
-      // Touch drag
+      // Touch drag — normalize sensitivity by canvas display width
       if (touchStartX !== null && touchCurrentX !== null) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const canvasDisplayW = canvasRect.width || W;
         const dx = touchCurrentX - touchStartX;
-        if (Math.abs(dx) > 5) {
-          inputDir = dx > 0 ? 1 : -1;
-          // Proportional to drag distance
-          const strength = Math.min(Math.abs(dx) / 60, 1);
+        const normalizedDx = (dx / canvasDisplayW) * W; // map to internal coords
+        if (Math.abs(normalizedDx) > 5) {
+          inputDir = normalizedDx > 0 ? 1 : -1;
+          const strength = Math.min(Math.abs(normalizedDx) / 60, 1);
           inputDir *= strength;
         }
       }
@@ -515,12 +529,12 @@
         }
       }
 
-      // Apply horizontal velocity
+      // Apply horizontal velocity (dt-scaled)
       if (inputDir !== 0) {
-        playerVX += inputDir * MOVE_ACCEL;
+        playerVX += inputDir * MOVE_ACCEL * dtFactor;
         playerVX = Math.max(-MOVE_SPEED, Math.min(MOVE_SPEED, playerVX));
       } else {
-        playerVX *= MOVE_FRICTION;
+        playerVX *= Math.pow(MOVE_FRICTION, dtFactor);
         if (Math.abs(playerVX) < 0.1) playerVX = 0;
       }
 
@@ -528,12 +542,12 @@
       if (playerVX > 0.5) player.facingRight = true;
       if (playerVX < -0.5) player.facingRight = false;
 
-      // Apply gravity
-      player.vy += GRAVITY;
-      player.y += player.vy;
+      // Apply gravity (dt-scaled)
+      player.vy += GRAVITY * dtFactor;
+      player.y += player.vy * dtFactor;
 
-      // Horizontal movement
-      player.x += playerVX;
+      // Horizontal movement (dt-scaled)
+      player.x += playerVX * dtFactor;
 
       // Screen wrapping
       if (player.x + PLAYER_W < 0) player.x = W;
@@ -591,10 +605,10 @@
         }
       }
 
-      // Update moving platforms
+      // Update moving platforms (dt-scaled)
       for (const plat of platforms) {
         if (plat.type === "moving" && !plat.broken) {
-          plat.x += plat.moveSpeed;
+          plat.x += plat.moveSpeed * dtFactor;
           if (plat.x <= 0 || plat.x + plat.w >= W) {
             plat.moveSpeed *= -1;
             plat.x = Math.max(0, Math.min(W - plat.w, plat.x));
@@ -618,34 +632,34 @@
         die();
       }
     } else {
-      // Dead: player continues to fall briefly
-      player.vy += GRAVITY;
-      player.y += player.vy;
+      // Dead: player continues to fall briefly (dt-scaled)
+      player.vy += GRAVITY * dtFactor;
+      player.y += player.vy * dtFactor;
     }
 
-    // Update particles
+    // Update particles (dt-scaled)
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.1; // particle gravity
-      p.life -= p.decay;
+      p.x += p.vx * dtFactor;
+      p.y += p.vy * dtFactor;
+      p.vy += 0.1 * dtFactor; // particle gravity
+      p.life -= p.decay * dtFactor;
       if (p.life <= 0) particles.splice(i, 1);
     }
 
-    // Update milestone floats
+    // Update milestone floats (dt-scaled)
     for (let i = milestoneFloats.length - 1; i >= 0; i--) {
       const mf = milestoneFloats[i];
-      mf.y -= 0.8;
-      mf.alpha -= 0.012;
-      mf.scale += 0.005;
+      mf.y -= 0.8 * dtFactor;
+      mf.alpha -= 0.012 * dtFactor;
+      mf.scale += 0.005 * dtFactor;
       if (mf.alpha <= 0) milestoneFloats.splice(i, 1);
     }
 
-    // Update spring animations
+    // Update spring animations (dt-scaled)
     for (const plat of platforms) {
       if (plat.springAnim > 0) {
-        plat.springAnim -= 0.05;
+        plat.springAnim -= 0.05 * dtFactor;
         if (plat.springAnim < 0) {
           plat.springAnim = 0;
           plat.springBounce = false;
@@ -653,9 +667,9 @@
       }
     }
 
-    // Death flash fade
+    // Death flash fade (dt-scaled)
     if (deathFlashAlpha > 0) {
-      deathFlashAlpha -= 0.025;
+      deathFlashAlpha -= 0.025 * dtFactor;
       if (deathFlashAlpha < 0) deathFlashAlpha = 0;
     }
   }

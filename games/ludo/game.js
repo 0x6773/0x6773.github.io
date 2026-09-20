@@ -1459,15 +1459,27 @@
     var pi = getPlayerIdx(playerId);
     if (pi >= 0) {
       var name = gameState.players[pi].name;
+      var wasCurrentPlayer = gameStarted && pi === gameState.currentPlayer;
       gameState.players.splice(pi, 1);
       addLog(name + ' left the game.');
 
-      // Adjust current player index if needed
-      if (gameStarted && gameState.currentPlayer >= gameState.players.length) {
-        gameState.currentPlayer = 0;
-      }
-      if (gameStarted && pi <= gameState.currentPlayer && gameState.currentPlayer > 0) {
-        gameState.currentPlayer--;
+      if (gameStarted && gameState.players.length > 0) {
+        // Adjust current player index if needed
+        if (pi < gameState.currentPlayer) {
+          gameState.currentPlayer--;
+        }
+        if (gameState.currentPlayer >= gameState.players.length) {
+          gameState.currentPlayer = 0;
+        }
+
+        // If the leaving player was the current player, advance the turn
+        if (wasCurrentPlayer) {
+          stopTurnTimer();
+          gameState.diceValue = null;
+          gameState.rollsInTurn = 0;
+          gameState.phase = 'rolling';
+          startTurnTimer();
+        }
       }
     }
     connections.delete(playerId);
@@ -1492,9 +1504,18 @@
     }
   }
 
+  var reconnectAttempts = 0;
+  var MAX_RECONNECT_ATTEMPTS = 10;
+
   function attemptReconnect() {
+    reconnectAttempts++;
+    if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+      addLog('Could not reconnect after ' + MAX_RECONNECT_ATTEMPTS + ' attempts.');
+      return;
+    }
+
     if (!peer || peer.destroyed) {
-      var myPeerId = 'ludo-client-' + myId.substr(0, 8);
+      var myPeerId = 'ludo-client-' + myId.substring(0, 8);
       peer = new Peer(myPeerId, { config: ICE_CONFIG });
       peer.on('open', function () {
         connectToHost();
@@ -1504,7 +1525,8 @@
       });
     } else if (peer.disconnected) {
       peer.reconnect();
-      peer.on('open', function () {
+      // Use once() to avoid accumulating listeners on repeated reconnects
+      peer.once('open', function () {
         connectToHost();
       });
     } else {
@@ -1520,6 +1542,7 @@
       connections.set('host', { conn: conn, playerId: null });
       conn.send({ t: 'join', name: gameState.players[myPlayerIndex()]?.name || 'Player', id: myId });
       hide(DOM.reconnectBanner);
+      reconnectAttempts = 0; // reset on successful connection
     });
 
     conn.on('data', function (data) {
@@ -1646,16 +1669,18 @@
       finalValue: finalValue
     };
 
+    var diceDisplay = DOM.diceFace.parentElement || DOM.diceFace;
+    diceDisplay.classList.add('rolling');
+
     var interval = setInterval(function () {
       DOM.diceFace.textContent = Math.floor(Math.random() * 6) + 1;
-      DOM.diceFace.classList.add('dice-rolling');
     }, 60);
 
     setTimeout(function () {
       clearInterval(interval);
       diceAnim = null;
+      diceDisplay.classList.remove('rolling');
       DOM.diceFace.textContent = finalValue;
-      DOM.diceFace.classList.remove('dice-rolling');
       DOM.diceFace.classList.add('dice-landed');
       SFX.diceResult();
       setTimeout(function () { DOM.diceFace.classList.remove('dice-landed'); }, 300);
@@ -2064,7 +2089,8 @@
     gameState.turnStartedAt = 0;
     gameState.turnDeadline = 0;
     gameState.turnId = 0;
-    gameState.stateVersion = 0;
+    // Don't reset stateVersion — clients compare against it to detect stale states
+    // Resetting would cause clients to ignore all post-rematch state broadcasts
     gameState.players.forEach(function (p) {
       p.tokens = createTokens();
       p.captures = 0;

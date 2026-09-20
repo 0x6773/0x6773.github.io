@@ -452,8 +452,10 @@ function showToast(msg, duration = 1500) {
 }
 
 // ===== Input Handling =====
+let isRevealing = false; // lock to prevent input during reveal animation
+
 function handleKey(key) {
-    if (gameOver) return;
+    if (gameOver || isRevealing) return;
 
     if (key === 'ENTER') {
         submitGuess();
@@ -511,8 +513,10 @@ function submitGuess() {
 
     const result = evaluateGuess(guess, targetWord);
     guesses.push({ word: guess, result });
+    isRevealing = true;
 
     revealRow(currentRow, result, () => {
+        isRevealing = false;
         updateKeyboard(guess, result);
 
         const won = result.every(r => r === 'correct');
@@ -703,6 +707,7 @@ function initGame() {
     currentRow = 0;
     currentCol = 0;
     gameOver = false;
+    isRevealing = false;
     guesses = [];
     letterStates = {};
     createBoard();
@@ -737,20 +742,15 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// On-screen keyboard
-kbEl.addEventListener('click', (e) => {
+// On-screen keyboard — use pointerup for unified touch/mouse handling
+// This prevents duplicate events from touchend+click
+kbEl.addEventListener('pointerup', (e) => {
+    if (document.querySelector('.overlay:not(.hidden)')) return;
     const btn = e.target.closest('button[data-key]');
     if (!btn) return;
+    e.preventDefault();
     handleKey(btn.getAttribute('data-key'));
 });
-
-// Prevent double-tap zoom on keyboard
-kbEl.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    const btn = e.target.closest('button[data-key]');
-    if (!btn) return;
-    handleKey(btn.getAttribute('data-key'));
-}, { passive: false });
 
 // Mode toggle
 document.getElementById('mode-daily').addEventListener('click', () => {

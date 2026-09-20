@@ -614,13 +614,10 @@
 
   document.querySelectorAll('.t-btn').forEach(btn => {
     const action = btn.dataset.action;
-    btn.addEventListener('touchstart', e => { e.preventDefault(); btn.classList.add('pressed'); startAction(action); }, { passive: false });
-    btn.addEventListener('touchend', e => { e.preventDefault(); btn.classList.remove('pressed'); stopAction(); }, { passive: false });
-    btn.addEventListener('touchcancel', e => { btn.classList.remove('pressed'); stopAction(); });
-    // Pointer fallback
-    btn.addEventListener('mousedown', e => { e.preventDefault(); startAction(action); });
-    btn.addEventListener('mouseup', () => stopAction());
-    btn.addEventListener('mouseleave', () => stopAction());
+    btn.addEventListener('pointerdown', e => { e.preventDefault(); btn.classList.add('pressed'); startAction(action); });
+    btn.addEventListener('pointerup', e => { e.preventDefault(); btn.classList.remove('pressed'); stopAction(); });
+    btn.addEventListener('pointerleave', () => { btn.classList.remove('pressed'); stopAction(); });
+    btn.addEventListener('pointercancel', () => { btn.classList.remove('pressed'); stopAction(); });
   });
 
   // Canvas tap to rotate (touch devices)
@@ -645,8 +642,7 @@
         div.style.background = pu.color + '18';
         div.textContent = pu.icon;
         div.innerHTML += `<span class="pu-key">${i + 1}</span>`;
-        div.addEventListener('click', () => usePowerup(i));
-        div.addEventListener('touchstart', e => { e.preventDefault(); usePowerup(i); }, { passive: false });
+        div.addEventListener('pointerdown', e => { e.preventDefault(); usePowerup(i); });
       } else {
         div.style.borderColor = '#222';
         div.style.color = '#333';
@@ -783,6 +779,7 @@
           if (board[y].every(c => c === null)) {
             board.splice(y, 1);
             board.unshift(new Array(COLS).fill(null));
+            y++; // re-check same index since rows shifted down
           }
         }
         puInventory.splice(puIndex, 1);
@@ -812,8 +809,7 @@
       current.y++;
       if (!isValid(current)) {
         current.y--;
-        lockTimer += speed;
-        if (lockTimer >= LOCK_DELAY) lockPiece();
+        // Don't accumulate lockTimer here; the resting check below handles it
       } else {
         lockTimer = 0;
       }

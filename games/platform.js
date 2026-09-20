@@ -44,7 +44,7 @@
     { id: 'twenty-five',     name: 'Dedicated',          desc: 'Play 25 games',              icon: '\u{1F4AA}' },
     { id: 'hundred',         name: 'Centurion',          desc: 'Play 100 games',             icon: '\u{1F4AF}' },
     { id: 'try-3',           name: 'Explorer',           desc: 'Try 3 different games',      icon: '\u{1F9ED}' },
-    { id: 'try-all',         name: 'Completionist',      desc: 'Play all 13 games',          icon: '\u{1F31F}' },
+    { id: 'try-all',         name: 'Completionist',      desc: 'Play every game',             icon: '\u{1F31F}' },
     { id: 'score-1k',        name: 'High Scorer',        desc: 'Score over 1,000',           icon: '\u{1F3AF}' },
     { id: 'breakout-500',    name: 'Brick Breaker',      desc: 'Score 500+ in Breakout',     icon: '\u{1F9F1}' },
     { id: 'snake-50',        name: 'Snake Charmer',      desc: 'Score 50+ in Snake',         icon: '\u{1F40D}' },
@@ -115,7 +115,7 @@
 
     // Titles played
     if (stats.titlesPlayed >= 3) tryUnlock('try-3');
-    if (stats.titlesPlayed >= 13) tryUnlock('try-all');
+    if (stats.titlesPlayed >= Object.keys(GAME_NAMES).length) tryUnlock('try-all');
 
     // Score achievements
     let anyOver1k = false;
@@ -194,6 +194,7 @@
 
   // ── Toast notifications ──
 
+  var _toastTimer = null;
   function showToast(html, type) {
     let toast = document.querySelector('.gp-toast');
     if (!toast) {
@@ -201,11 +202,13 @@
       toast.className = 'gp-toast';
       document.body.appendChild(toast);
     }
+    // Clear any existing hide timer to prevent premature dismissal
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
     toast.innerHTML = html;
     toast.className = 'gp-toast' + (type ? ' gp-toast-' + type : '');
     requestAnimationFrame(() => {
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3500);
+      _toastTimer = setTimeout(() => { toast.classList.remove('show'); _toastTimer = null; }, 3500);
     });
   }
 
@@ -217,7 +220,8 @@
 
     const header = document.createElement('div');
     header.id = 'gp-header';
-    var muted = localStorage.getItem('gp_muted') === '1';
+    var muted = false;
+    try { muted = localStorage.getItem('gp_muted') === '1'; } catch (e) {}
     var bestScore = '--';
     var gameId = Object.keys(GAME_NAMES).find(function(k) { return GAME_NAMES[k] === gameName; }) || '';
     var gStats = gameId ? ((data.gameStats || {})[gameId] || null) : null;
@@ -226,7 +230,7 @@
     header.innerHTML =
       '<div class="gp-header-top">' +
         '<a href="/games/" class="gp-back">\u2190 Game Hub</a>' +
-        '<span class="gp-game-name">' + gameName + '</span>' +
+        '<span class="gp-game-name">' + (gameName || '').replace(/[<>&"']/g, function(c) { return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]; }) + '</span>' +
         '<div class="gp-header-actions">' +
           '<button class="gp-btn-sound" title="Toggle Sound">' + (muted ? '\uD83D\uDD07' : '\uD83D\uDD0A') + '</button>' +
         '</div>' +
@@ -328,7 +332,7 @@
     },
 
     recordGame: function(gameId, score, playTimeMs, extra) {
-      var pt = playTimeMs || this.getSessionTime();
+      var pt = (playTimeMs != null && playTimeMs !== 0) ? playTimeMs : this.getSessionTime();
       const data = loadData();
       if (!data.gameStats) data.gameStats = {};
       if (!data.gameStats[gameId]) {
@@ -356,8 +360,9 @@
       });
       if (data.recentGames.length > 50) data.recentGames = data.recentGames.slice(0, 50);
 
-      // Daily log for streak
-      const today = new Date().toISOString().slice(0, 10);
+      // Daily log for streak (use local date)
+      const nowD = new Date();
+      const today = nowD.getFullYear() + '-' + String(nowD.getMonth() + 1).padStart(2, '0') + '-' + String(nowD.getDate()).padStart(2, '0');
       if (!data.dailyLog) data.dailyLog = [];
       if (data.dailyLog[data.dailyLog.length - 1] !== today) {
         data.dailyLog.push(today);
@@ -455,33 +460,41 @@
     },
 
     isMuted: function() {
-      return localStorage.getItem('gp_muted') === '1';
+      try { return localStorage.getItem('gp_muted') === '1'; }
+      catch (e) { return false; }
     },
 
     resetAllData: function() {
       var data = loadData();
       var playerName = data.playerName || 'Player';
       // Clear platform data but keep the player name
-      var fresh = { playerName: playerName, gameStats: {}, achievements: {}, recentGames: [], dailyLog: [] };
+      var fresh = { playerName: playerName, gameStats: {}, achievements: {}, recentGames: [], dailyLog: [], dailyChallenges: {} };
       saveData(fresh);
-      // Clear all game-specific localStorage keys
+      // Clear all game-specific localStorage keys (all games)
       var gameKeys = [
-        'breakout_highscores', 'breakout_progress',
+        'breakout_highscores', 'breakout_progress', 'breakout_precision_highscores',
         'snake_highscores',
         'flappybird_highscores', 'flappy_ghost',
         'minesweeper_scores_easy', 'minesweeper_scores_medium', 'minesweeper_scores_hard',
+        'minesweeper_scores_custom',
         '2048_highest_tile_ever', '2048_total_moves_ever',
         '2048_best_classic', '2048_best_mini', '2048_best_big', '2048_best_timeattack',
         'tetris_highscores',
+        'doodlejump_highscores',
+        'wordle_stats', 'wordle_visited',
+        'sudoku_stats',
+        'connect4_stats',
       ];
       for (var i = 0; i < gameKeys.length; i++) {
-        localStorage.removeItem(gameKeys[i]);
+        try { localStorage.removeItem(gameKeys[i]); }
+        catch (e) { /* storage unavailable */ }
       }
     },
 
     toggleMute: function() {
       var muted = !this.isMuted();
-      localStorage.setItem('gp_muted', muted ? '1' : '0');
+      try { localStorage.setItem('gp_muted', muted ? '1' : '0'); }
+      catch (e) { /* storage unavailable */ }
       var btn = document.querySelector('.gp-btn-sound');
       if (btn) btn.textContent = muted ? '\uD83D\uDD07' : '\uD83D\uDD0A';
       return muted;
@@ -543,7 +556,9 @@
     // ── Daily Challenges ──
 
     getDailyChallenges: function() {
-      var today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      // Use local date for consistency with what the user sees
+      var now = new Date();
+      var today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
       var seed = hashDate(today);
 
       // Define possible challenges per game

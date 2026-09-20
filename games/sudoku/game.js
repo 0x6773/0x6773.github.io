@@ -349,7 +349,7 @@
     timerPausedElapsed = 0;
     timerEl.textContent = '00:00';
     gameOver = false;
-    gameStarted = true;
+    gameStarted = false;
     pencilMode = false;
     hintsRemaining = MAX_HINTS;
     undoStack = [];
@@ -384,7 +384,13 @@
     buildBoard();
     showBestTime();
     updateNumberCounts();
-    startTimer();
+
+    // Only start timer if start overlay is already dismissed (i.e. not initial load)
+    const startOverlay = document.getElementById('start-overlay');
+    if (!startOverlay || startOverlay.classList.contains('hidden')) {
+      gameStarted = true;
+      startTimer();
+    }
   }
 
   function buildBoard() {
@@ -571,7 +577,9 @@
       let count = 0;
       for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
-          if (board[r][c] === n) count++;
+          // Only count correctly-placed numbers so wrong entries don't
+          // disable the button and prevent the user from correcting errors
+          if (board[r][c] === n && board[r][c] === solution[r][c]) count++;
         }
       }
       const btn = document.querySelector(`.num-btn[data-num="${n}"]`);
@@ -608,8 +616,9 @@
       highlightSelection();
       updateNumberCounts();
     } else {
-      // Normal mode
-      pushUndo(selectedRow, selectedCol);
+      // Normal mode — collect affected pencil marks BEFORE modifying state
+      const affected = collectAffectedPencilMarks(selectedRow, selectedCol, num);
+      pushUndo(selectedRow, selectedCol, affected);
 
       board[selectedRow][selectedCol] = num;
       pencilMarks[selectedRow][selectedCol].clear();
@@ -662,6 +671,36 @@
     }
   }
 
+  function collectAffectedPencilMarks(row, col, num) {
+    const affected = [];
+    const seen = {};
+
+    function addCell(r, c) {
+      if (r === row && c === col) return; // skip the placed cell itself
+      const key = r * 9 + c;
+      if (seen[key]) return;
+      if (pencilMarks[r][c].has(num)) {
+        seen[key] = true;
+        affected.push({ row: r, col: c, marks: new Set(pencilMarks[r][c]) });
+      }
+    }
+
+    // Same row
+    for (let c = 0; c < 9; c++) addCell(row, c);
+    // Same column
+    for (let r = 0; r < 9; r++) addCell(r, col);
+    // Same box
+    const boxR = Math.floor(row / 3) * 3;
+    const boxC = Math.floor(col / 3) * 3;
+    for (let r = boxR; r < boxR + 3; r++) {
+      for (let c = boxC; c < boxC + 3; c++) {
+        addCell(r, c);
+      }
+    }
+
+    return affected;
+  }
+
   function eraseCell() {
     if (gameOver || selectedRow < 0 || selectedCol < 0) return;
     if (givenCells[selectedRow][selectedCol]) return;
@@ -677,12 +716,13 @@
   }
 
   // ── Undo ──
-  function pushUndo(r, c) {
+  function pushUndo(r, c, affectedMarks) {
     undoStack.push({
       row: r,
       col: c,
       value: board[r][c],
-      marks: new Set(pencilMarks[r][c])
+      marks: new Set(pencilMarks[r][c]),
+      affectedMarks: affectedMarks || []
     });
     if (undoStack.length > MAX_UNDO) {
       undoStack.shift();
@@ -695,6 +735,14 @@
     const action = undoStack.pop();
     board[action.row][action.col] = action.value;
     pencilMarks[action.row][action.col] = action.marks;
+
+    // Restore pencil marks that were auto-removed in related cells
+    if (action.affectedMarks) {
+      for (const am of action.affectedMarks) {
+        pencilMarks[am.row][am.col] = am.marks;
+        renderCell(am.row, am.col);
+      }
+    }
 
     selectedRow = action.row;
     selectedCol = action.col;
@@ -986,6 +1034,18 @@
       initGame();
     });
   });
+
+  // ── Start Overlay ──
+  const startGameBtn = document.getElementById('start-game-btn');
+  if (startGameBtn) {
+    startGameBtn.addEventListener('click', function () {
+      document.getElementById('start-overlay').classList.add('hidden');
+      if (!gameStarted && !gameOver) {
+        gameStarted = true;
+        startTimer();
+      }
+    });
+  }
 
   // ── Init ──
   initGame();

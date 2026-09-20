@@ -205,11 +205,15 @@ const LEVEL_PATTERNS = {
 // ── Audio (Web Audio API) ──
 let audioCtx;
 function ensureAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
 function playTone(freq, duration, type = 'square', vol = 0.12) {
   ensureAudio();
+  if (!audioCtx) return;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.type = type;
@@ -248,7 +252,7 @@ function saveHighScore(s) {
   const scores = loadHighScores();
   scores.push({ score: s, date: new Date().toLocaleDateString() });
   scores.sort((a, b) => b.score - a.score);
-  localStorage.setItem(HS_KEY, JSON.stringify(scores.slice(0, 5)));
+  try { localStorage.setItem(HS_KEY, JSON.stringify(scores.slice(0, 5))); } catch {}
 }
 function renderHighScores() {
   const scores = loadHighScores();
@@ -271,7 +275,7 @@ function loadProgress() {
 }
 
 function saveProgress(progress) {
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch {}
 }
 
 function isLevelUnlocked(world, level) {
@@ -649,8 +653,14 @@ canvas.addEventListener('touchmove', e => {
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   ensureAudio();
-  if (running && magnetStuck) {
-    releaseMagnetBall();
+  if (running) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const touchX = (e.touches[0].clientX - rect.left) * scaleX;
+    paddle.x = Math.max(0, Math.min(canvas.width - paddle.w, touchX - paddle.w / 2));
+    if (magnetStuck) {
+      releaseMagnetBall();
+    }
   }
 }, { passive: false });
 
@@ -1142,7 +1152,7 @@ function savePrecisionScore(s) {
   const scores = loadPrecisionScores();
   scores.push({ score: s, date: new Date().toLocaleDateString() });
   scores.sort((a, b) => b.score - a.score);
-  localStorage.setItem(PRECISION_HS_KEY, JSON.stringify(scores.slice(0, 5)));
+  try { localStorage.setItem(PRECISION_HS_KEY, JSON.stringify(scores.slice(0, 5))); } catch {}
 }
 
 function renderPrecisionScores() {
@@ -1372,7 +1382,9 @@ function activatePowerup(type) {
       break;
     }
     case 'slow':
-      balls.forEach(b => { b.dx *= 0.5; b.dy *= 0.5; });
+      if (!activeEffects['slow']) {
+        balls.forEach(b => { b.dx *= 0.5; b.dy *= 0.5; });
+      }
       setTimedEffect('slow', type.duration);
       break;
     case 'life':

@@ -30,6 +30,7 @@
   let timerDisplayInterval = null;
   let finalElapsed = 0;
   let longPressTimer = null;
+  let gameGeneration = 0;
 
   // ── DOM ──
   const boardEl       = document.getElementById('board');
@@ -49,6 +50,9 @@
   function getAudioCtx() {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
     }
     return audioCtx;
   }
@@ -189,6 +193,7 @@
   // ── Board Initialization ──
   function initGame() {
     stopTimer();
+    gameGeneration++;
     gameOver = false;
     minesGenerated = false;
     flagCount = 0;
@@ -403,7 +408,9 @@
     Sound.chord();
 
     // Reveal after brief flash
+    const gen = gameGeneration;
     setTimeout(() => {
+      if (gen !== gameGeneration) return; // game was reset; discard stale reveal
       toReveal.forEach(([nr, nc]) => {
         cellElements[nr][nc].classList.remove('cell-chord-flash');
         revealCell(nr, nc);
@@ -673,6 +680,32 @@
 
   // Prevent context menu on board
   boardEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // ── Resize / Orientation Handler ──
+  function resizeBoard() {
+    if (!cellElements || !cellElements.length) return;
+    const maxWidth = Math.min(window.innerWidth - 40, 600);
+    const cellSize = Math.max(20, Math.min(36, Math.floor(maxWidth / cols)));
+    boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+    boardEl.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+    const fontSize = Math.max(10, cellSize * 0.4) + 'px';
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const el = cellElements[r][c];
+        el.style.width = cellSize + 'px';
+        el.style.height = cellSize + 'px';
+        el.style.fontSize = fontSize;
+      }
+    }
+  }
+
+  let resizeTimer = null;
+  function onResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resizeBoard, 100);
+  }
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
 
   // ── Init ──
   initGame();

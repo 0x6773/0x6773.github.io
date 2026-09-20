@@ -235,11 +235,14 @@
     return mode ? `${LS_KEY_PREFIX}_${mode}` : `${LS_KEY_PREFIX}_classic`;
   }
   function loadScores(mode) {
-    try { return JSON.parse(localStorage.getItem(lsKey(mode || gameMode))) || []; }
-    catch { return []; }
+    try {
+      const data = JSON.parse(localStorage.getItem(lsKey(mode || gameMode)));
+      return Array.isArray(data) ? data : [];
+    } catch { return []; }
   }
   function saveScores(arr, mode) {
-    localStorage.setItem(lsKey(mode || gameMode), JSON.stringify(arr));
+    try { localStorage.setItem(lsKey(mode || gameMode), JSON.stringify(arr)); }
+    catch { /* Safari private mode / quota error – silently ignore */ }
   }
   function getTopScore() {
     const s = loadScores(gameMode);
@@ -406,15 +409,20 @@
       }
     }
 
+    // Eat food?
+    const eating = head.x === food.x && head.y === food.y;
+
     // Self collision (all modes)
-    if (snake.some(s => s.x === head.x && s.y === head.y)) {
+    // When not eating, exclude the tail tip (last segment) because it will
+    // vacate this tick — moving into that cell is safe.
+    const body = eating ? snake : snake.slice(0, -1);
+    if (body.some(s => s.x === head.x && s.y === head.y)) {
       return gameOver();
     }
 
     snake.unshift(head);
 
-    // Eat food?
-    if (head.x === food.x && head.y === food.y) {
+    if (eating) {
       score += 10;
       foodEatenCount++;
       speed = Math.max(MIN_SPEED, speed - SPEED_STEP);
@@ -672,6 +680,25 @@
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
   }
 
+  /* ── Visibility pause: stop ticking when the tab is hidden ── */
+  let pausedByVisibility = false;
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      // Only pause if the game is actively running
+      if (running) {
+        pausedByVisibility = true;
+        stopLoop();
+      }
+    } else {
+      // Resume only if we were the ones who paused it
+      if (pausedByVisibility) {
+        pausedByVisibility = false;
+        startLoop();
+      }
+    }
+  });
+
   /* ── Game over ── */
   function gameOver() {
     stopLoop();
@@ -708,6 +735,7 @@
   /* ── Start / Restart ── */
   function startGame() {
     ensureAudio();
+    pausedByVisibility = false;
     startOverlay.classList.add("hidden");
     overOverlay.classList.add("hidden");
     init();
@@ -743,26 +771,16 @@
 
   /* ── Touch / Swipe input ── */
   let touchStartX = 0, touchStartY = 0;
+  let swipeHandled = false;   // prevent re-processing the same gesture
 
-  canvas.addEventListener("touchstart", (e) => {
-    if (!startOverlay.classList.contains("hidden")) { startGame(); return; }
-    const t = e.touches[0];
-    touchStartX = t.clientX;
-    touchStartY = t.clientY;
-    e.preventDefault();
-  }, { passive: false });
-
-  canvas.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
-
-  canvas.addEventListener("touchend", (e) => {
-    if (!running) return;
-    const t  = e.changedTouches[0];
-    const dx = t.clientX - touchStartX;
-    const dy = t.clientY - touchStartY;
+  function tryProcessSwipe(cx, cy) {
+    if (swipeHandled || !running) return false;
+    const dx    = cx - touchStartX;
+    const dy    = cy - touchStartY;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
-    if (Math.max(absDx, absDy) < 20) return;   // too small
+    if (Math.max(absDx, absDy) < 20) return false;   // too small
 
     let nd;
     if (absDx > absDy) {
@@ -771,8 +789,30 @@
       nd = dy > 0 ? DIR.DOWN : DIR.UP;
     }
 
-    if (nd.x + direction.x === 0 && nd.y + direction.y === 0) return;
+    if (nd.x + direction.x === 0 && nd.y + direction.y === 0) return false;
     nextDirection = nd;
+    swipeHandled  = true;
+    return true;
+  }
+
+  canvas.addEventListener("touchstart", (e) => {
+    if (!startOverlay.classList.contains("hidden")) { startGame(); return; }
+    const t = e.touches[0];
+    touchStartX  = t.clientX;
+    touchStartY  = t.clientY;
+    swipeHandled = false;
+    e.preventDefault();
+  }, { passive: false });
+
+  canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    tryProcessSwipe(t.clientX, t.clientY);
+  }, { passive: false });
+
+  canvas.addEventListener("touchend", (e) => {
+    const t = e.changedTouches[0];
+    tryProcessSwipe(t.clientX, t.clientY);
     e.preventDefault();
   }, { passive: false });
 

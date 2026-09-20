@@ -64,9 +64,17 @@
   // Undo
   let undoStack = [];
 
+  // Safe localStorage helpers
+  function safeGetItem(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function safeSetItem(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* quota/security */ }
+  }
+
   // Persistent stats
-  let allTimeHighestTile = parseInt(localStorage.getItem(STORAGE_PREFIX + 'highest_tile_ever')) || 0;
-  let allTimeTotalMoves  = parseInt(localStorage.getItem(STORAGE_PREFIX + 'total_moves_ever')) || 0;
+  let allTimeHighestTile = parseInt(safeGetItem(STORAGE_PREFIX + 'highest_tile_ever')) || 0;
+  let allTimeTotalMoves  = parseInt(safeGetItem(STORAGE_PREFIX + 'total_moves_ever')) || 0;
 
   // ---- Storage helpers ------------------------------------
   function storageKeyBest(mode) {
@@ -74,16 +82,16 @@
   }
 
   function loadBestScore() {
-    bestScore = parseInt(localStorage.getItem(storageKeyBest(currentMode))) || 0;
+    bestScore = parseInt(safeGetItem(storageKeyBest(currentMode))) || 0;
   }
 
   function saveBestScore() {
-    localStorage.setItem(storageKeyBest(currentMode), bestScore);
+    safeSetItem(storageKeyBest(currentMode), bestScore);
   }
 
   function savePersistentStats() {
-    localStorage.setItem(STORAGE_PREFIX + 'highest_tile_ever', allTimeHighestTile);
-    localStorage.setItem(STORAGE_PREFIX + 'total_moves_ever', allTimeTotalMoves);
+    safeSetItem(STORAGE_PREFIX + 'highest_tile_ever', allTimeHighestTile);
+    safeSetItem(STORAGE_PREFIX + 'total_moves_ever', allTimeTotalMoves);
   }
 
   // ---- Audio context (lazy) --------------------------------
@@ -91,8 +99,11 @@
 
   function ensureAudio() {
     if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) { return null; }
     }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx;
   }
 
@@ -144,7 +155,8 @@
   }
 
   function getComputedGap() {
-    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid-gap'));
+    const val = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid-gap'));
+    return isNaN(val) ? 8 : val; // fallback to 8px if CSS var is missing
   }
 
   // ---- Tile DOM element creation --------------------------
@@ -612,16 +624,21 @@
     }
   });
 
-  // ---- Touch / Swipe --------------------------------------
+  // ---- Touch / Swipe — scoped to game area only -----------
   let touchStartX = 0, touchStartY = 0;
+  let touchStartedOnBoard = false;
+  const boardContainer = document.querySelector('.board-container') || document.getElementById('grid-background')?.parentElement || document.body;
 
-  document.addEventListener('touchstart', (e) => {
+  boardContainer.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1) return;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    touchStartedOnBoard = true;
   }, { passive: true });
 
   document.addEventListener('touchend', (e) => {
+    if (!touchStartedOnBoard) return;
+    touchStartedOnBoard = false;
     if (e.changedTouches.length !== 1) return;
     const dx = e.changedTouches[0].clientX - touchStartX;
     const dy = e.changedTouches[0].clientY - touchStartY;
@@ -638,8 +655,8 @@
     }
   }, { passive: true });
 
-  // Prevent scrolling on the game area
-  document.addEventListener('touchmove', (e) => {
+  // Prevent scrolling only on the game board, not the whole document
+  boardContainer.addEventListener('touchmove', (e) => {
     e.preventDefault();
   }, { passive: false });
 

@@ -35,10 +35,15 @@
   // ── Audio ──
   let audioCtx;
   function ensureAudio() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (e) { return; }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
   function playTone(freq, dur, type = 'square', vol = 0.1) {
     ensureAudio();
+    if (!audioCtx) return;
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     o.type = type; o.frequency.value = freq;
@@ -113,9 +118,12 @@
   });
 
   // ── Start ──
+  let startDebounce = false;
   startBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    console.log('[TRON] Start button clicked');
+    if (startDebounce) return;
+    startDebounce = true;
+    setTimeout(() => { startDebounce = false; }, 500);
     ensureAudio();
     scores = [0, 0];
     round = 1;
@@ -123,6 +131,65 @@
     overlay.classList.add('hidden');
     document.getElementById('controls-info').style.display = '';
     startRound();
+  });
+
+  // ── Touch Controls (swipe-based, split screen for 2 players) ──
+  let touchStarts = {}; // track per-identifier
+
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      touchStarts[t.identifier] = { x: t.clientX, y: t.clientY };
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const midX = rect.left + rect.width / 2;
+    const threshold = 20;
+
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      const start = touchStarts[t.identifier];
+      if (!start) continue;
+
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) continue;
+
+      let dir;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        dir = dx > 0 ? 'right' : 'left';
+      } else {
+        dir = dy > 0 ? 'down' : 'up';
+      }
+
+      // Determine which player based on touch position (left half = P1, right half = P2)
+      if (start.x < midX) {
+        // Player 1
+        if (players && players[0] && OPPOSITE[dir] !== players[0].dir) p1NextDir = dir;
+      } else {
+        // Player 2
+        if (players && players[1] && OPPOSITE[dir] !== players[1].dir) p2NextDir = dir;
+      }
+
+      // Reset start position for continuous swipe
+      touchStarts[t.identifier] = { x: t.clientX, y: t.clientY };
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      delete touchStarts[e.changedTouches[i].identifier];
+    }
+  });
+
+  canvas.addEventListener('touchcancel', (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      delete touchStarts[e.changedTouches[i].identifier];
+    }
   });
 
   // ── Game Init ──

@@ -48,9 +48,16 @@
 
   // ── Audio ──
   let audioCtx;
-  function ensureAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  function ensureAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (e) { return; }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
   function playTone(f, d, t = 'square', v = 0.1) {
     ensureAudio();
+    if (!audioCtx) return;
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type = t; o.frequency.value = f;
     g.gain.setValueAtTime(v, audioCtx.currentTime);
@@ -233,7 +240,11 @@
       }
       else if (d.t === 'cd') showCountdown(d.n);
       else if (d.t === 'go') hideOverlay();
-      else if (d.t === 're') handleRoundEnd(d.w, d.cp);
+      else if (d.t === 're') {
+        // Sync scores from host so joiner HUD stays current
+        if (d.sc) { scores = d.sc; updateHUD(); }
+        handleRoundEnd(d.w, d.cp);
+      }
       else if (d.t === 'me') handleMatchEnd(d.w);
       // ── Ping / Pong ──
       else if (d.t === 'ping') { send({ t: 'pong', ts: d.ts }); }
@@ -351,7 +362,7 @@
       else w = 1;
       if (w >= 0) scores[w]++;
       updateHUD(); sendTick();
-      send({ t: 're', w, cp: crashes });
+      send({ t: 're', w, cp: crashes, sc: scores.slice() });
       handleRoundEnd(w, crashes);
       return;
     }

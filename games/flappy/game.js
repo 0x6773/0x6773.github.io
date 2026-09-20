@@ -77,7 +77,9 @@
 
   function ensureAudio() {
     if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch { /* AudioContext unavailable in this browser */ return; }
     }
     if (audioCtx.state === "suspended") audioCtx.resume();
   }
@@ -174,7 +176,8 @@
 
   function loadHighScores() {
     try {
-      return JSON.parse(localStorage.getItem(LS_KEY)) || [];
+      const parsed = JSON.parse(localStorage.getItem(LS_KEY));
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -185,7 +188,9 @@
     scores.push(s);
     scores.sort((a, b) => b - a);
     const top5 = scores.slice(0, 5);
-    localStorage.setItem(LS_KEY, JSON.stringify(top5));
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(top5));
+    } catch { /* storage full or unavailable, ignore */ }
     return top5;
   }
 
@@ -444,12 +449,14 @@
   function update(dt) {
     if (state !== "playing" && state !== "dead") return;
 
+    const dtFactor = dt / 16.667; // normalize to 60fps baseline
+
     const grav = getGravity();
 
     // Bird physics (keep updating briefly when dead for fall anim)
     if (state === "playing") {
-      bird.vy += grav;
-      bird.y += bird.vy;
+      bird.vy += grav * dtFactor;
+      bird.y += bird.vy * dtFactor;
       // Update elapsed time
       gameElapsed = performance.now() - gameStartTime;
       // Record ghost position with time and score
@@ -465,8 +472,8 @@
       }
     } else {
       // Dead: bird falls
-      bird.vy += grav;
-      bird.y += bird.vy;
+      bird.vy += grav * dtFactor;
+      bird.y += bird.vy * dtFactor;
       if (modeReverse) {
         if (bird.y < -50) bird.y = -50;
       } else {
@@ -475,20 +482,21 @@
     }
 
     // Bird rotation
+    const rotLerp = 1 - Math.pow(1 - 0.15, dtFactor);
     if (modeReverse) {
       const targetRot = state === "playing"
         ? Math.max(bird.vy * 0.06, -Math.PI / 3)
         : -Math.PI / 2;
-      bird.rotation += (targetRot - bird.rotation) * 0.15;
+      bird.rotation += (targetRot - bird.rotation) * rotLerp;
     } else {
       const targetRot = state === "playing"
         ? Math.min(bird.vy * 0.06, Math.PI / 3)
         : Math.PI / 2;
-      bird.rotation += (targetRot - bird.rotation) * 0.15;
+      bird.rotation += (targetRot - bird.rotation) * rotLerp;
     }
 
     // Ground scroll
-    groundX -= PIPE_SPEED;
+    groundX -= PIPE_SPEED * dtFactor;
     if (groundX <= -40) groundX += 40;
 
     // Pipes
@@ -500,7 +508,7 @@
 
       // Move & score
       for (const p of pipes) {
-        p.x -= PIPE_SPEED;
+        p.x -= PIPE_SPEED * dtFactor;
         if (!p.scored && p.x + PIPE_WIDTH < BIRD_X) {
           p.scored = true;
           score++;
@@ -524,31 +532,31 @@
     // Update particles
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.life -= p.decay;
+      p.x += p.vx * dtFactor;
+      p.y += p.vy * dtFactor;
+      p.life -= p.decay * dtFactor;
       if (p.life <= 0) particles.splice(i, 1);
     }
 
     // Update milestone floats
     for (let i = milestoneFloats.length - 1; i >= 0; i--) {
       const mf = milestoneFloats[i];
-      mf.y -= 0.8;
-      mf.alpha -= 0.012;
-      mf.scale += 0.005;
+      mf.y -= 0.8 * dtFactor;
+      mf.alpha -= 0.012 * dtFactor;
+      mf.scale += 0.005 * dtFactor;
       if (mf.alpha <= 0) milestoneFloats.splice(i, 1);
     }
 
     // Update new record text
     if (newRecordAlpha > 0) {
-      newRecordAlpha -= 0.006;
-      newRecordPulse += 0.08;
+      newRecordAlpha -= 0.006 * dtFactor;
+      newRecordPulse += 0.08 * dtFactor;
       if (newRecordAlpha < 0) newRecordAlpha = 0;
     }
 
     // Death flash fade
     if (deathFlashAlpha > 0) {
-      deathFlashAlpha -= 0.025;
+      deathFlashAlpha -= 0.025 * dtFactor;
       if (deathFlashAlpha < 0) deathFlashAlpha = 0;
     }
   }

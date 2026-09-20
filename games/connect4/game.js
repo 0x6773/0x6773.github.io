@@ -20,6 +20,8 @@
   var moveHistory = [];
   var scores = { 1: 0, 2: 0 };
   var winningCells = [];
+  var aiTimeoutId = null;
+  var gameOverTimeoutId = null;
 
   // ── Audio Context ──
   var audioCtx = null;
@@ -28,6 +30,9 @@
     if (!audioCtx) {
       try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
       catch (e) { return null; }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
     }
     return audioCtx;
   }
@@ -188,15 +193,16 @@
   }
 
   function onGhostTouch(e) {
-    var col = parseInt(e.currentTarget.dataset.col);
+    var target = e.currentTarget;
+    var col = parseInt(target.dataset.col);
     // Add temporary hover effect for mobile
     var allGhosts = ghostRowEl.querySelectorAll('.ghost-cell');
     for (var i = 0; i < allGhosts.length; i++) {
       allGhosts[i].classList.remove('touch-hover');
     }
-    e.currentTarget.classList.add('touch-hover');
+    target.classList.add('touch-hover');
     setTimeout(function() {
-      e.currentTarget.classList.remove('touch-hover');
+      target.classList.remove('touch-hover');
     }, 400);
   }
 
@@ -305,7 +311,8 @@
         GamePlatform.recordGame('connect4', scores[player], 0, { win: playerWon });
       }
 
-      setTimeout(function() {
+      gameOverTimeoutId = setTimeout(function() {
+        gameOverTimeoutId = null;
         showGameOver(player);
       }, 800);
       return;
@@ -315,7 +322,8 @@
     if (isBoardFull()) {
       gameOver = true;
       playDrawSound();
-      setTimeout(function() {
+      gameOverTimeoutId = setTimeout(function() {
+        gameOverTimeoutId = null;
         showGameOver(0);
       }, 500);
       return;
@@ -332,7 +340,8 @@
       aiThinking = true;
       showThinking();
       var delay = 300 + Math.random() * 200;
-      setTimeout(function() {
+      aiTimeoutId = setTimeout(function() {
+        aiTimeoutId = null;
         hideThinking();
         aiThinking = false;
         if (!gameOver) {
@@ -658,7 +667,20 @@
 
   // ── Game Flow ──
 
+  function clearPendingTimeouts() {
+    if (aiTimeoutId !== null) {
+      clearTimeout(aiTimeoutId);
+      aiTimeoutId = null;
+    }
+    if (gameOverTimeoutId !== null) {
+      clearTimeout(gameOverTimeoutId);
+      gameOverTimeoutId = null;
+    }
+    hideThinking();
+  }
+
   function startGame(mode) {
+    clearPendingTimeouts();
     gameMode = mode;
     gameOver = false;
     aiThinking = false;
@@ -688,6 +710,7 @@
 
   function newGame() {
     if (!gameMode) return;
+    clearPendingTimeouts();
     gameOver = false;
     aiThinking = false;
     currentPlayer = P1;
@@ -725,6 +748,9 @@
   });
 
   btnChangeMode.addEventListener('click', function() {
+    clearPendingTimeouts();
+    gameOver = false;
+    aiThinking = false;
     gameoverOverlay.classList.add('hidden');
     scores = { 1: 0, 2: 0 };
     updateScores();

@@ -89,9 +89,10 @@ body.gp-has-header {
   font-family: 'Segoe UI', sans-serif;
   z-index: 10000;
   transition: transform 0.3s ease;
-  max-width: 400px;
+  max-width: min(400px, calc(100vw - 32px));
   text-align: center;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 .gp-toast.show {
