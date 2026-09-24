@@ -358,6 +358,7 @@
   const canvasContainer = document.getElementById("canvas-container");
 
   canvasContainer.addEventListener("touchstart", (e) => {
+    if (e.target.closest("button, a, input, select, textarea")) return;
     e.preventDefault();
     if (state === "start") {
       startGame();
@@ -369,6 +370,7 @@
   }, { passive: false });
 
   canvasContainer.addEventListener("touchmove", (e) => {
+    if (e.target.closest("button, a, input, select, textarea")) return;
     e.preventDefault();
     if (e.touches.length > 0) {
       touchCurrentX = e.touches[0].clientX;
@@ -376,6 +378,7 @@
   }, { passive: false });
 
   canvasContainer.addEventListener("touchend", (e) => {
+    if (e.target.closest("button, a, input, select, textarea")) return;
     e.preventDefault();
     touchStartX = null;
     touchCurrentX = null;
