@@ -74,6 +74,7 @@
   const MAX_POWERUPS = 3;
   let puInventory = [];
   let slowTimer = null, slowActive = false;
+  let colorBombPending = false;
 
   const puSlotsEl = document.getElementById('pu-slots');
   const colorPicker = document.getElementById('color-picker');
@@ -267,6 +268,7 @@
     holdPiece = null; holdUsed = false;
     particles = [];
     puInventory = [];
+    colorBombPending = false;
     slowActive = false; if (slowTimer) clearTimeout(slowTimer);
     comboCount = 0;
     lastClearWasDifficult = false;
@@ -483,6 +485,8 @@
 
   function gameOver() {
     gameRunning = false;
+    colorBombPending = false;
+    colorPicker.classList.add('hidden');
     sfxGameOver();
     saveHS(score);
     if (window.GamePlatform) {
@@ -753,11 +757,13 @@
 
   function activateColorBomb(puIndex) {
     // Show color picker with colors currently on the board
+    if (colorBombPending) return;
     const colorsOnBoard = new Set();
     for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
       if (board[y][x]) colorsOnBoard.add(board[y][x]);
     }
     if (colorsOnBoard.size === 0) return;
+    colorBombPending = true;
 
     colorOptions.innerHTML = '';
     for (const color of colorsOnBoard) {
@@ -766,6 +772,8 @@
       btn.style.background = color;
       btn.style.color = color;
       btn.addEventListener('click', () => {
+        if (!colorBombPending || !gameRunning) return;
+        colorBombPending = false;
         sfxColorBomb(); screenFlash('#e040fb');
         // Remove all blocks of this color
         for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
@@ -779,8 +787,8 @@
         for (let y = 0; y < ROWS; y++) {
           if (board[y].some(c => c !== null)) nonEmpty.push(board[y]);
         }
-        while (nonEmpty.length < ROWS) nonEmpty.unshift(new Array(COLS).fill(null));
-        for (let y = 0; y < ROWS; y++) board[y] = nonEmpty[y];
+        const emptyRows = Math.max(0, ROWS - nonEmpty.length);
+        board = Array.from({ length: emptyRows }, () => new Array(COLS).fill(null)).concat(nonEmpty);
         puInventory.splice(puIndex, 1);
         renderPowerupBar();
         colorPicker.classList.add('hidden');
