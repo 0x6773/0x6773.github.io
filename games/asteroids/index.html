@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Play Asteroids free online. Pilot your ship, blast apart drifting rocks, and survive increasingly dangerous waves.">
+  <meta name="keywords" content="asteroids game, arcade shooter, online space game, free browser game">
+  <link rel="canonical" href="https://mnciitbhu.me/games/asteroids/">
+  <meta property="og:title" content="Asteroids - Free Online Arcade Space Shooter">
+  <meta property="og:description" content="Pilot your ship, blast apart drifting asteroids, and survive increasingly dangerous waves.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mnciitbhu.me/games/asteroids/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Asteroids - Free Online Arcade Space Shooter">
+  <meta name="twitter:description" content="Pilot your ship, blast apart drifting asteroids, and survive increasingly dangerous waves.">
+  <title>Asteroids - Free Online Arcade Space Shooter</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../platform.css">
+  <script src="../platform.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Asteroids",
+    "description": "Pilot your ship, blast apart drifting asteroids, and survive increasingly dangerous waves.",
+    "url": "https://mnciitbhu.me/games/asteroids/",
+    "genre": "Arcade",
+    "gamePlatform": "Web Browser",
+    "applicationCategory": "Game",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Govind Sahai"
+    }
+  }
+  </script>
+</head>
+<body>
+  <main id="game-shell">
+    <div id="hud">
+      <div><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
+      <div><span class="hud-label">WAVE</span><strong id="wave">1</strong></div>
+      <div><span class="hud-label">LIVES</span><strong id="lives">3</strong></div>
+    </div>
+    <div id="powerup-status">JUMP READY</div>
+    <div id="game-area">
+      <canvas id="game-canvas" width="480" height="600"></canvas>
+      <div id="overlay" class="overlay">
+        <div class="overlay-content">
+          <h1>ASTEROIDS</h1>
+          <p id="overlay-message">Click or press any key to start</p>
+          <div class="how-to-play">
+            <div class="how-title">How to Play</div>
+            Rotate with Left/Right or A/D<br>
+            Thrust with Up Arrow or W<br>
+            Fire with Space or tap Fire<br>
+            Press H or tap Jump to hyperspace<br>
+            Collect upgrades and chain kills<br>
+            Destroy every rock to advance
+          </div>
+          <button id="overlay-button" type="button">Play</button>
+        </div>
+      </div>
+      <div id="wave-banner" class="hidden">WAVE 1</div>
+    </div>
+    <div id="mobile-controls" aria-label="Touch controls">
+      <button type="button" class="control-button" data-action="left">&#9664;</button>
+      <button type="button" class="control-button jump" data-action="jump">JUMP</button>
+      <button type="button" class="control-button thrust" data-action="thrust">THRUST</button>
+      <button type="button" class="control-button fire" data-action="fire">FIRE</button>
+      <button type="button" class="control-button" data-action="right">&#9654;</button>
+    </div>
+    <ol id="highscores" class="hidden" aria-label="High scores"></ol>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

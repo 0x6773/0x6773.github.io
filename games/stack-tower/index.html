@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Play Stack Tower free online. Drop moving bars, build the tallest tower, and chase perfect stack combos.">
+  <meta name="keywords" content="stack tower game, stacking game, arcade puzzle, free browser game">
+  <link rel="canonical" href="https://mnciitbhu.me/games/stack-tower/">
+  <meta property="og:title" content="Stack Tower - Free Online Stacking Game">
+  <meta property="og:description" content="Drop moving bars, build the tallest tower, and chase perfect stack combos.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mnciitbhu.me/games/stack-tower/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Stack Tower - Free Online Stacking Game">
+  <meta name="twitter:description" content="Drop moving bars, build the tallest tower, and chase perfect stack combos.">
+  <title>Stack Tower - Free Online Stacking Game</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../platform.css">
+  <script src="../platform.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Stack Tower",
+    "description": "Drop moving bars, build the tallest tower, and chase perfect stack combos.",
+    "url": "https://mnciitbhu.me/games/stack-tower/",
+    "genre": "Arcade",
+    "gamePlatform": "Web Browser",
+    "applicationCategory": "Game",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Govind Sahai"
+    }
+  }
+  </script>
+</head>
+<body>
+  <main id="game-shell">
+    <div id="hud">
+      <div><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
+      <div><span class="hud-label">HEIGHT</span><strong id="height">0</strong></div>
+      <div><span class="hud-label">COMBO</span><strong id="combo">--</strong></div>
+    </div>
+    <div id="mission-status">Mission: Reach height 15 (0/15)</div>
+    <div id="game-area">
+      <canvas id="game-canvas" width="400" height="600"></canvas>
+      <div id="overlay" class="overlay">
+        <div class="overlay-content">
+          <h1>STACK TOWER</h1>
+          <p id="overlay-message">Click or press any key to start</p>
+          <div class="how-to-play">
+            <div class="how-title">How to Play</div>
+            Tap, click, or press Space to drop the bar<br>
+            Overlap the previous bar to keep stacking<br>
+            Perfect placement builds your combo<br>
+            The tower speeds up as it grows
+          </div>
+          <button id="overlay-button" type="button">Play</button>
+        </div>
+      </div>
+      <div id="perfect-banner" class="hidden">PERFECT</div>
+    </div>
+    <div id="touch-controls" aria-label="Touch controls">
+      <button id="drop-button" type="button">DROP BAR</button>
+    </div>
+    <ol id="highscores" class="hidden" aria-label="High scores"></ol>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1098,6 +1098,46 @@
       </div>
     </a>
 
+    <a href="asteroids/" class="game-card" data-category="arcade">
+      <div class="game-banner">
+        <canvas id="preview-asteroids" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Asteroids</h2>
+        <p>Pilot your ship through drifting rocks, split giant asteroids, and survive increasingly dangerous waves.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Arcade</span>
+        <span class="tag">Physics</span>
+        <span class="tag">Canvas</span>
+        <span class="tag">Mobile</span>
+      </div>
+      <div class="game-stats-bar" data-game="asteroids">
+        <span>Best: <strong class="gs-best">--</strong></span>
+        <span>Played: <strong class="gs-played">0</strong> times</span>
+      </div>
+    </a>
+
+    <a href="stack-tower/" class="game-card" data-category="arcade">
+      <div class="game-banner">
+        <canvas id="preview-stack-tower" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Stack Tower</h2>
+        <p>Drop moving bars, build the tallest tower, and chase perfect placement combos.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Arcade</span>
+        <span class="tag">Timing</span>
+        <span class="tag">Canvas</span>
+        <span class="tag">Touch</span>
+      </div>
+      <div class="game-stats-bar" data-game="stack-tower">
+        <span>Best: <strong class="gs-best">--</strong></span>
+        <span>Played: <strong class="gs-played">0</strong> times</span>
+      </div>
+    </a>
+
       </div>
     </section>
 
@@ -1781,6 +1821,79 @@
         ctx.fillRect(W / 2 - 7, H - 24, 14, 7);
         ctx.strokeStyle = 'rgba(0,229,255,0.18)';
         ctx.beginPath(); ctx.moveTo(0, H - 8); ctx.lineTo(W, H - 8); ctx.stroke();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    (function() {
+      var c = document.getElementById('preview-asteroids');
+      if (!c) return;
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height;
+      var rocks = [];
+      var angle = 0;
+      var bullet = { x: W / 2, y: H - 28, vx: 0, vy: -2.2 };
+      for (var i = 0; i < 7; i++) {
+        rocks.push({ x: 20 + (i * 47) % (W - 40), y: 22 + (i * 31) % 90, r: 10 + (i % 3) * 4, a: i * 0.7, vx: (i % 2 ? 0.35 : -0.28), vy: 0.12 + (i % 3) * 0.04 });
+      }
+      function frame() {
+        ctx.fillStyle = '#05030b'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = 'rgba(214,198,255,0.55)';
+        for (var s = 0; s < 26; s++) ctx.fillRect((s * 67) % W, (s * 41) % H, 1.5, 1.5);
+        for (var r = 0; r < rocks.length; r++) {
+          var rock = rocks[r];
+          rock.x += rock.vx; rock.y += rock.vy;
+          if (rock.x < -rock.r) rock.x = W + rock.r;
+          if (rock.x > W + rock.r) rock.x = -rock.r;
+          if (rock.y > H + rock.r) rock.y = -rock.r;
+          rock.a += 0.01;
+          ctx.save(); ctx.translate(rock.x, rock.y); ctx.rotate(rock.a);
+          ctx.strokeStyle = '#d5a7ff'; ctx.lineWidth = 1.5; ctx.beginPath();
+          for (var p = 0; p < 8; p++) {
+            var pa = p / 8 * Math.PI * 2;
+            var pr = rock.r * (0.78 + ((p + r) % 3) * 0.1);
+            var px = Math.cos(pa) * pr, py = Math.sin(pa) * pr;
+            if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath(); ctx.stroke(); ctx.restore();
+        }
+        angle += 0.02;
+        bullet.x += bullet.vx; bullet.y += bullet.vy;
+        if (bullet.y < 20) { bullet.y = H - 28; bullet.x = W / 2; }
+        ctx.fillStyle = '#fff'; ctx.fillRect(bullet.x - 2, bullet.y - 2, 4, 4);
+        ctx.save(); ctx.translate(W / 2, H - 24); ctx.rotate(Math.sin(angle) * 0.12);
+        ctx.strokeStyle = '#fff'; ctx.fillStyle = 'rgba(213,167,255,0.2)'; ctx.beginPath();
+        ctx.moveTo(16, 0); ctx.lineTo(-12, -9); ctx.lineTo(-7, 0); ctx.lineTo(-12, 9); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    (function() {
+      var c = document.getElementById('preview-stack-tower');
+      if (!c) return;
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height;
+      var bars = [];
+      var moving = { x: 10, y: H - 38, w: 110, dir: 1 };
+      var tick = 0;
+      for (var i = 0; i < 6; i++) bars.push({ x: 85 + Math.sin(i * 1.3) * 18, y: H - 22 - i * 15, w: 110 - i * 5, color: ['#5ee7f2', '#7dff9b', '#ffcf5c', '#ff8fa3'][i % 4] });
+      function frame() {
+        tick++;
+        ctx.fillStyle = '#071017'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = 'rgba(183,247,255,0.45)';
+        for (var s = 0; s < 24; s++) ctx.fillRect((s * 61) % W, (s * 37) % H, 1.5, 1.5);
+        moving.x += moving.dir * 1.5;
+        if (moving.x < 10 || moving.x + moving.w > W - 10) moving.dir *= -1;
+        for (var i2 = 0; i2 < bars.length; i2++) {
+          var b = bars[i2];
+          ctx.fillStyle = b.color; ctx.shadowColor = b.color; ctx.shadowBlur = 5;
+          ctx.fillRect(b.x, b.y, b.w, 12); ctx.shadowBlur = 0;
+        }
+        ctx.fillStyle = '#b4ff7a'; ctx.shadowColor = '#b4ff7a'; ctx.shadowBlur = 10;
+        ctx.fillRect(moving.x, moving.y - Math.sin(tick * 0.08) * 2, moving.w, 12); ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(94,231,242,0.18)'; ctx.beginPath(); ctx.moveTo(0, H - 10); ctx.lineTo(W, H - 10); ctx.stroke();
         requestAnimationFrame(frame);
       }
       frame();

@@ -1,0 +1,173 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  min-height: 100%;
+  background: #09131c;
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow-x: hidden;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  padding: 24px 12px 40px;
+}
+
+#game-shell { width: min(400px, 100%); }
+
+#hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  background: #102331;
+  border: 1px solid #28536a;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+#hud > div { display: flex; align-items: baseline; gap: 7px; }
+.hud-label { color: #6e9bae; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; }
+#hud strong { color: #5ee7f2; font-size: 19px; }
+#hud > div:nth-child(2) strong { color: #ffcf5c; }
+#hud > div:nth-child(3) strong { color: #b4ff7a; }
+
+#mission-status {
+  min-height: 26px;
+  padding: 6px 12px;
+  background: #0c1c27;
+  border: 1px solid #28536a;
+  border-top: 0;
+  color: #a7c0ca;
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+#game-area {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  touch-action: none;
+  border: 1px solid #28536a;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 14px 50px rgba(0, 0, 0, 0.5), 0 0 50px rgba(72, 214, 230, 0.08);
+}
+
+#game-canvas { display: block; width: 100%; height: auto; background: #071017; touch-action: none; }
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(7, 16, 23, 0.91);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 10;
+}
+
+.overlay.hidden, .hidden { display: none !important; }
+.overlay-content { width: min(360px, calc(100% - 32px)); text-align: center; padding: 24px 16px; }
+.overlay h1 { color: #5ee7f2; font-size: clamp(28px, 8vw, 42px); letter-spacing: 4px; text-shadow: 0 0 24px rgba(94, 231, 242, 0.55); margin-bottom: 12px; }
+#overlay-message { color: #b9d5df; font-size: 16px; margin-bottom: 18px; }
+
+.how-to-play {
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #a7c0ca;
+  font-size: 13px;
+  line-height: 1.8;
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.how-title { color: #6e9bae; font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; }
+
+#overlay-button {
+  min-width: 150px;
+  padding: 13px 30px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #5ee7f2, #7dff9b);
+  color: #071017;
+  cursor: pointer;
+  font: 800 15px 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  box-shadow: 0 5px 24px rgba(94, 231, 242, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#overlay-button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(125, 255, 155, 0.45); }
+
+#perfect-banner {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffcf5c;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  pointer-events: none;
+  text-shadow: 0 0 20px rgba(255, 207, 92, 0.8);
+  z-index: 5;
+}
+
+#touch-controls { display: none; justify-content: center; padding: 12px 0 0; }
+#drop-button {
+  width: min(260px, 90%);
+  height: 54px;
+  border: 2px solid #3c8c9a;
+  border-radius: 12px;
+  background: #102331;
+  color: #5ee7f2;
+  cursor: pointer;
+  font: 800 14px 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#drop-button:active, #drop-button.pressed { background: #1c4050; border-color: #7dff9b; color: #fff; transform: scale(0.97); }
+
+#highscores {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 12px 16px;
+  background: #102331;
+  border: 1px solid #28536a;
+  border-radius: 10px;
+  color: #a7c0ca;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+#highscores::before { content: 'TOP SCORES'; display: block; color: #ffcf5c; font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-bottom: 4px; }
+#highscores li:first-child { color: #fff; font-weight: 800; }
+
+@media (pointer: coarse), (max-width: 600px) { #touch-controls { display: flex; } }
+
+@media (max-width: 500px) {
+  body { padding: 12px 8px 28px; }
+  #hud { gap: 5px; padding: 9px 8px; }
+  #hud > div { gap: 4px; }
+  #hud strong { font-size: 15px; }
+  .hud-label { font-size: 8px; letter-spacing: 0.5px; }
+}
