@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Play Space Invaders free online. Defend Earth, clear alien waves, protect your shields, and chase a new high score.">
+  <meta name="keywords" content="space invaders, arcade game, online space shooter, free browser game">
+  <link rel="canonical" href="https://mnciitbhu.me/games/space-invaders/">
+  <meta property="og:title" content="Space Invaders - Free Online Arcade Shooter">
+  <meta property="og:description" content="Defend Earth against wave after wave of alien invaders in this free browser arcade game.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mnciitbhu.me/games/space-invaders/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Space Invaders - Free Online Arcade Shooter">
+  <meta name="twitter:description" content="Defend Earth against wave after wave of alien invaders in this free browser arcade game.">
+  <title>Space Invaders - Free Online Arcade Shooter</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../platform.css">
+  <script src="../platform.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Space Invaders",
+    "description": "Defend Earth against wave after wave of alien invaders in this free browser arcade game.",
+    "url": "https://mnciitbhu.me/games/space-invaders/",
+    "genre": "Arcade",
+    "gamePlatform": "Web Browser",
+    "applicationCategory": "Game",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Govind Sahai"
+    }
+  }
+  </script>
+</head>
+<body>
+  <main id="game-shell">
+    <div id="hud">
+      <div><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
+      <div><span class="hud-label">WAVE</span><strong id="wave">1</strong></div>
+      <div><span class="hud-label">LIVES</span><strong id="lives">3</strong></div>
+      <div><span class="hud-label">COMBO</span><strong id="combo">--</strong></div>
+    </div>
+    <div id="powerup-status">Destroy invaders to earn power-ups</div>
+    <div id="game-area">
+      <canvas id="game-canvas" width="420" height="600"></canvas>
+      <div id="overlay" class="overlay">
+        <div class="overlay-content">
+          <h1>SPACE INVADERS</h1>
+          <p id="overlay-message">Click or press any key to start</p>
+          <div class="how-to-play">
+            <div class="how-title">How to Play</div>
+            Move with Arrow Keys or A/D<br>
+            Press Space to fire<br>
+            Touch: drag on the playfield or use the controls below<br>
+            Collect power-ups and chain kills for combo bonuses<br>
+            Destroy every invader to advance<br>
+            Hide behind shields and survive the waves
+          </div>
+          <button id="overlay-button" type="button">Play</button>
+        </div>
+      </div>
+      <div id="wave-banner" class="hidden">WAVE 1</div>
+    </div>
+    <div id="mobile-controls" aria-label="Touch controls">
+      <button type="button" class="control-button" data-action="left">&#9664;</button>
+      <button type="button" class="control-button fire" data-action="fire">FIRE</button>
+      <button type="button" class="control-button" data-action="right">&#9654;</button>
+    </div>
+    <ol id="highscores" class="hidden" aria-label="High scores"></ol>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

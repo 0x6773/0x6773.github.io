@@ -1078,6 +1078,26 @@
       </div>
     </a>
 
+    <a href="space-invaders/" class="game-card" data-category="arcade">
+      <div class="game-banner">
+        <canvas id="preview-space-invaders" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Space Invaders</h2>
+        <p>Defend Earth against alien waves, protect your shields, and chase a higher score with every round.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Arcade</span>
+        <span class="tag">Shooter</span>
+        <span class="tag">Canvas</span>
+        <span class="tag">Mobile</span>
+      </div>
+      <div class="game-stats-bar" data-game="space-invaders">
+        <span>Best: <strong class="gs-best">--</strong></span>
+        <span>Played: <strong class="gs-played">0</strong> times</span>
+      </div>
+    </a>
+
       </div>
     </section>
 
@@ -1721,6 +1741,46 @@
         ctx.fillStyle = '#333';
         ctx.beginPath(); ctx.arc(px-2.5, py-2, 1, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(px+3.5, py-2, 1, 0, Math.PI*2); ctx.fill();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    (function() {
+      var c = document.getElementById('preview-space-invaders');
+      if (!c) return;
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height;
+      var tick = 0, bulletY = H - 28, direction = 1, offset = 0;
+      function frame() {
+        tick++;
+        ctx.fillStyle = '#050816'; ctx.fillRect(0, 0, W, H);
+        for (var i = 0; i < 28; i++) {
+          ctx.fillStyle = 'rgba(185,215,255,' + (0.2 + (i % 4) * 0.12) + ')';
+          ctx.fillRect((i * 71) % W, (i * 43) % H, 1.5, 1.5);
+        }
+        offset += direction * 0.45;
+        if (offset > 24 || offset < -24) direction *= -1;
+        for (var row = 0; row < 4; row++) {
+          for (var col = 0; col < 8; col++) {
+            var x = 32 + col * 30 + offset, y = 20 + row * 22;
+            ctx.fillStyle = ['#00e5ff', '#7c4dff', '#ff4d8d', '#ffca28'][row];
+            ctx.fillRect(x + 4, y + 3, 16, 10);
+            ctx.fillRect(x, y + 6, 4, 5);
+            ctx.fillRect(x + 20, y + 6, 4, 5);
+            ctx.fillStyle = '#050816';
+            ctx.fillRect(x + 7, y + 6, 3, 3);
+            ctx.fillRect(x + 14, y + 6, 3, 3);
+          }
+        }
+        bulletY -= 1.8;
+        if (bulletY < 30) bulletY = H - 28;
+        ctx.fillStyle = '#fff'; ctx.fillRect(W / 2 - 1, bulletY, 2, 8);
+        ctx.fillStyle = '#00e5ff';
+        ctx.fillRect(W / 2 - 15, H - 18, 30, 8);
+        ctx.fillRect(W / 2 - 7, H - 24, 14, 7);
+        ctx.strokeStyle = 'rgba(0,229,255,0.18)';
+        ctx.beginPath(); ctx.moveTo(0, H - 8); ctx.lineTo(W, H - 8); ctx.stroke();
         requestAnimationFrame(frame);
       }
       frame();

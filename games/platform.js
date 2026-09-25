@@ -18,6 +18,7 @@
     'ludo': 'Ludo',
     'connect4': 'Connect Four',
     'doodle-jump': 'Doodle Jump',
+    'space-invaders': 'Space Invaders',
     'wordle': 'Wordle',
     'sudoku': 'Sudoku'
   };
@@ -54,6 +55,7 @@
     { id: 'reach-2048',      name: 'The 2048',           desc: 'Reach the 2048 tile',        icon: '\u{1F451}' },
     { id: 'tron-5wins',      name: 'Light Rider',        desc: 'Win 5 Tron matches',         icon: '\u{1F3CD}\uFE0F' },
     { id: 'tetris-lines',    name: 'Line Clear',         desc: 'Clear 10 lines in Tetris',   icon: '\u{1F4CF}' },
+    { id: 'spaceinvaders-combo', name: 'Chain Reaction', desc: 'Reach a 10x combo in Space Invaders', icon: 'C' },
     { id: 'time-30m',        name: 'Marathon',            desc: 'Play for 30 min total',     icon: '\u{23F1}\uFE0F' },
     { id: 'night-owl',       name: 'Night Owl',           desc: 'Play after midnight',       icon: '\u{1F989}' },
     { id: 'early-bird',      name: 'Early Bird',          desc: 'Play before 7 AM',          icon: '\u{1F305}' },
@@ -131,6 +133,7 @@
     if ((gs['2048']?.bestScore || 0) >= 2048)      tryUnlock('reach-2048');
     if ((gs['tron']?.wins || 0) >= 5)              tryUnlock('tron-5wins');
     if ((gs['tetris']?.linesCleared || 0) >= 10)   tryUnlock('tetris-lines');
+    if ((gs['space-invaders']?.maxCombo || 0) >= 10) tryUnlock('spaceinvaders-combo');
 
     // Time achievement
     if (stats.totalTime >= 30 * 60 * 1000) tryUnlock('time-30m');
@@ -336,7 +339,7 @@
       const data = loadData();
       if (!data.gameStats) data.gameStats = {};
       if (!data.gameStats[gameId]) {
-        data.gameStats[gameId] = { timesPlayed: 0, bestScore: 0, totalPlayTime: 0, lastPlayed: 0, wins: 0, linesCleared: 0 };
+        data.gameStats[gameId] = { timesPlayed: 0, bestScore: 0, totalPlayTime: 0, lastPlayed: 0, wins: 0, linesCleared: 0, maxCombo: 0 };
       }
       const gs = data.gameStats[gameId];
       gs.timesPlayed = (gs.timesPlayed || 0) + 1;
@@ -348,6 +351,7 @@
       if (extra) {
         if (extra.win) gs.wins = (gs.wins || 0) + 1;
         if (extra.linesCleared) gs.linesCleared = (gs.linesCleared || 0) + extra.linesCleared;
+        if (extra.maxCombo > (gs.maxCombo || 0)) gs.maxCombo = extra.maxCombo;
       }
 
       // Recent games (keep last 50)
@@ -481,6 +485,7 @@
         '2048_best_classic', '2048_best_mini', '2048_best_big', '2048_best_timeattack',
         'tetris_highscores',
         'doodlejump_highscores',
+        'spaceinvaders_highscores',
         'wordle_stats', 'wordle_visited',
         'sudoku_stats',
         'connect4_stats',
@@ -569,6 +574,7 @@
         { gameId: 'minesweeper', desc: 'Win a Minesweeper game', check: function(s, e) { return e && e.win; } },
         { gameId: '2048', desc: 'Score 2000+ in 2048', check: function(s, e) { return s >= 2000; } },
         { gameId: 'tetris', desc: 'Score 500+ in Tetris', check: function(s, e) { return s >= 500; } },
+        { gameId: 'space-invaders', desc: 'Score 500+ in Space Invaders', check: function(s, e) { return s >= 500; } },
         { gameId: 'snake', desc: 'Score 100+ in Snake', check: function(s, e) { return s >= 100; } },
         { gameId: 'flappy', desc: 'Score 25+ in Flappy Bird', check: function(s, e) { return s >= 25; } },
         { gameId: 'breakout', desc: 'Score 500+ in Breakout', check: function(s, e) { return s >= 500; } },
