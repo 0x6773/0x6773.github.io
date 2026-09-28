@@ -1138,6 +1138,26 @@
       </div>
     </a>
 
+    <a href="battle-city/" class="game-card" data-category="arcade">
+      <div class="game-banner">
+        <canvas id="preview-battle-city" width="280" height="160"></canvas>
+      </div>
+      <div class="game-info">
+        <h2>Battle City</h2>
+        <p>Defend your base, break brick walls, and destroy enemy tanks in this original top-down tank battle.</p>
+      </div>
+      <div class="game-tags">
+        <span class="tag">Arcade</span>
+        <span class="tag">Tank Battle</span>
+        <span class="tag">Canvas</span>
+        <span class="tag">Touch</span>
+      </div>
+      <div class="game-stats-bar" data-game="battle-city">
+        <span>Best: <strong class="gs-best">--</strong></span>
+        <span>Played: <strong class="gs-played">0</strong> times</span>
+      </div>
+    </a>
+
       </div>
     </section>
 
@@ -1894,6 +1914,26 @@
         ctx.fillStyle = '#b4ff7a'; ctx.shadowColor = '#b4ff7a'; ctx.shadowBlur = 10;
         ctx.fillRect(moving.x, moving.y - Math.sin(tick * 0.08) * 2, moving.w, 12); ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(94,231,242,0.18)'; ctx.beginPath(); ctx.moveTo(0, H - 10); ctx.lineTo(W, H - 10); ctx.stroke();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    (function() {
+      var c = document.getElementById('preview-battle-city');
+      if (!c) return;
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height, tick = 0, tankX = 140;
+      function frame() {
+        tick++; tankX += Math.sin(tick * 0.02) * 0.5;
+        ctx.fillStyle = '#18201d'; ctx.fillRect(0, 0, W, H);
+        for (var r = 0; r < 5; r++) for (var col = 0; col < 9; col++) {
+          if ((r + col) % 4 === 0) { ctx.fillStyle = '#a9583d'; ctx.fillRect(col * 31 + 7, r * 22 + 16, 25, 17); }
+        }
+        ctx.fillStyle = '#226c91'; ctx.fillRect(90, 70, 100, 24);
+        ctx.fillStyle = '#ff5f7f'; ctx.fillRect(20 + (tick * 0.4) % 230, 25, 18, 18);
+        ctx.fillStyle = '#7dff83'; ctx.fillRect(tankX, 122, 22, 22); ctx.fillStyle = '#1e3325'; ctx.fillRect(tankX + 7, 114, 8, 16);
+        ctx.fillStyle = '#e7d96b'; ctx.fillRect(132, 145, 55, 10); ctx.fillStyle = '#283424'; ctx.fillRect(151, 147, 18, 6);
         requestAnimationFrame(frame);
       }
       frame();

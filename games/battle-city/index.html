@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Play Battle City-inspired tank defense free online. Destroy enemy tanks, break walls, and protect your base.">
+  <meta name="keywords" content="battle city game, tank game, tank battle, arcade game, free browser game">
+  <link rel="canonical" href="https://mnciitbhu.me/games/battle-city/">
+  <meta property="og:title" content="Battle City - Free Online Tank Defense Game">
+  <meta property="og:description" content="Destroy enemy tanks, break walls, and protect your base in this original arcade tank battle.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mnciitbhu.me/games/battle-city/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Battle City - Free Online Tank Defense Game">
+  <meta name="twitter:description" content="Destroy enemy tanks, break walls, and protect your base in this original arcade tank battle.">
+  <title>Battle City - Free Online Tank Defense Game</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../platform.css">
+  <script src="../platform.js"></script>
+</head>
+<body>
+  <main id="game-shell">
+    <div id="hud">
+      <div><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
+      <div><span class="hud-label">WAVE</span><strong id="wave">1</strong></div>
+      <div><span class="hud-label">BASE</span><strong id="base">3</strong></div>
+      <div><span class="hud-label">TANKS</span><strong id="tanks">0</strong></div>
+    </div>
+    <div id="game-area">
+      <canvas id="game-canvas" width="480" height="608"></canvas>
+      <div id="overlay" class="overlay">
+        <div class="overlay-content">
+          <h1>BATTLE CITY</h1>
+          <p id="overlay-message">Click or press any key to start</p>
+          <div class="how-to-play">
+            <div class="how-title">How to Play</div>
+            Move with Arrow Keys or WASD<br>
+            Fire with Space or the Fire button<br>
+            Break brick walls and destroy enemy tanks<br>
+            Protect the base at the bottom of the arena
+          </div>
+          <button id="overlay-button" type="button">Play</button>
+        </div>
+      </div>
+      <div id="wave-banner" class="hidden"></div>
+    </div>
+    <div id="touch-controls" aria-label="Touch controls">
+      <div class="dpad">
+        <button type="button" data-action="up">&#9650;</button>
+        <div><button type="button" data-action="left">&#9664;</button><button type="button" data-action="down">&#9660;</button><button type="button" data-action="right">&#9654;</button></div>
+      </div>
+      <button id="fire-button" type="button">FIRE</button>
+    </div>
+    <ol id="highscores" class="hidden" aria-label="High scores"></ol>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
