@@ -308,7 +308,7 @@
 
       var playerWon = player === P1;
       if (typeof GamePlatform !== 'undefined') {
-        GamePlatform.recordGame('connect4', scores[player], 0, { win: playerWon });
+        GamePlatform.recordGame('connect4', scores[P1], 0, { win: playerWon });
       }
 
       gameOverTimeoutId = setTimeout(function() {

@@ -42,6 +42,7 @@
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
   function playTone(freq, dur, type = 'square', vol = 0.1) {
+    if (window.GamePlatform && GamePlatform.isMuted()) return;
     ensureAudio();
     if (!audioCtx) return;
     const o = audioCtx.createOscillator();
@@ -284,7 +285,6 @@
         crashPositions.push({ x: p.x, y: p.y, player: i });
         continue;
       }
-      grid[p.y][p.x] = i + 1;
     }
 
     // Head-on collision
@@ -293,6 +293,10 @@
       players[1].alive = false;
       crashPositions.push({ x: players[0].x, y: players[0].y, player: 0 });
       crashPositions.push({ x: players[1].x, y: players[1].y, player: 1 });
+    }
+
+    for (let i = 0; i < 2; i++) {
+      if (players[i].alive) grid[players[i].y][players[i].x] = i + 1;
     }
 
     const p1Dead = !players[0].alive;
@@ -343,7 +347,7 @@
   function handleMatchEnd(winner) {
     sfxMatchWin();
     if (window.GamePlatform) {
-      GamePlatform.recordGame('tron', scores[0] + scores[1], 0, { win: winner === 0 });
+      GamePlatform.recordGame('tron', scores[0], 0, { win: winner === 0 });
     }
     const title = 'Player ' + (winner + 1) + ' Wins!';
     const sub = 'Final: ' + scores[0] + ' - ' + scores[1] + '  (First to ' + ROUNDS_TO_WIN + ')';

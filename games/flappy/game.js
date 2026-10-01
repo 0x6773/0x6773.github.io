@@ -85,7 +85,7 @@
   }
 
   function playTone(freq, duration, type, vol, ramp) {
-    if (!audioCtx) return;
+    if (!audioCtx || (window.GamePlatform && GamePlatform.isMuted())) return;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = type || "square";

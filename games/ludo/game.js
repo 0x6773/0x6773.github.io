@@ -301,7 +301,12 @@
     return audioCtx;
   }
 
+  function isMuted() {
+    return window.GamePlatform && GamePlatform.isMuted();
+  }
+
   function playTone(freq, dur, type, vol) {
+    if (isMuted()) return;
     try {
       var ctx = ensureAudio();
       var osc = ctx.createOscillator();
@@ -318,6 +323,7 @@
   }
 
   function playNoise(dur, vol) {
+    if (isMuted()) return;
     try {
       var ctx = ensureAudio();
       var bufSize = ctx.sampleRate * dur;

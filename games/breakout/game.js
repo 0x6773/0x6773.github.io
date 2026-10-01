@@ -212,6 +212,7 @@ function ensureAudio() {
 }
 
 function playTone(freq, duration, type = 'square', vol = 0.12) {
+  if (window.GamePlatform && GamePlatform.isMuted()) return;
   ensureAudio();
   if (!audioCtx) return;
   const osc = audioCtx.createOscillator();
@@ -503,7 +504,6 @@ function triggerShake(amount = 6, duration = 12) {
 
 function getShakeOffset() {
   if (shakeDuration <= 0) return { x: 0, y: 0 };
-  shakeDuration--;
   const intensity = shakeAmount * (shakeDuration / 12);
   return {
     x: (Math.random() - 0.5) * intensity * 2,
@@ -879,10 +879,12 @@ function updateBoss(dt) {
   for (var bi = 0; bi < balls.length; bi++) {
     var ball = balls[bi];
     if (magnetStuck && bi === 0) continue;
+    if (ball.bossCooldown > 0) { ball.bossCooldown--; continue; }
     if (ball.x + ball.r > boss.x && ball.x - ball.r < boss.x + boss.w &&
         ball.y + ball.r > boss.y && ball.y - ball.r < boss.y + boss.h) {
       boss.hp--;
-      ball.dy = Math.abs(ball.dy); // bounce down
+      bounceOffRect(ball, boss);
+      ball.bossCooldown = 10;
       sfxBrickBreak(0);
       spawnParticles(ball.x, ball.y, boss.color, 8);
       screenFlash(boss.color);
@@ -1461,6 +1463,26 @@ function updatePowerupHUD() {
   }).join('');
 }
 
+function bounceOffRect(ball, rect) {
+  const prevX = ball.x - ball.dx;
+  const prevY = ball.y - ball.dy;
+  const cameFromSide = prevX + ball.r <= rect.x || prevX - ball.r >= rect.x + rect.w;
+  const cameFromEnd = prevY + ball.r <= rect.y || prevY - ball.r >= rect.y + rect.h;
+  let horizontal;
+  if (cameFromSide !== cameFromEnd) {
+    horizontal = cameFromSide;
+  } else {
+    const overlapX = Math.min((ball.x + ball.r) - rect.x, (rect.x + rect.w) - (ball.x - ball.r));
+    const overlapY = Math.min((ball.y + ball.r) - rect.y, (rect.y + rect.h) - (ball.y - ball.r));
+    horizontal = overlapX < overlapY;
+  }
+  if (horizontal) {
+    ball.dx = ball.x < rect.x + rect.w / 2 ? -Math.abs(ball.dx) : Math.abs(ball.dx);
+  } else {
+    ball.dy = ball.y < rect.y + rect.h / 2 ? -Math.abs(ball.dy) : Math.abs(ball.dy);
+  }
+}
+
 // ── Update ──
 function update() {
   // Paddle keyboard movement
@@ -1581,6 +1603,7 @@ function update() {
     }
 
     // Brick collisions
+    bricksLoop:
     for (let r = 0; r < BRICK_ROWS; r++) {
       for (let c = 0; c < BRICK_COLS; c++) {
         const b = bricks[r][c];
@@ -1604,14 +1627,8 @@ function update() {
 
           // Fireball: don't reverse ball direction
           if (!activeEffects['fire']) {
-            const overlapLeft = (ball.x + ball.r) - b.x;
-            const overlapRight = (b.x + b.w) - (ball.x - ball.r);
-            const overlapTop = (ball.y + ball.r) - b.y;
-            const overlapBottom = (b.y + b.h) - (ball.y - ball.r);
-            const minOverlapX = Math.min(overlapLeft, overlapRight);
-            const minOverlapY = Math.min(overlapTop, overlapBottom);
-            if (minOverlapX < minOverlapY) ball.dx *= -1;
-            else ball.dy *= -1;
+            bounceOffRect(ball, b);
+            break bricksLoop;
           }
         }
       }
@@ -2105,11 +2122,26 @@ function gameOver(won) {
 }
 
 // ── Loop ──
-function loop() {
+const STEP_MS = 1000 / 60;
+let lastFrameAt = 0;
+let stepAccumulator = 0;
+
+function loop(now) {
   if (!running) return;
-  gameTime++;
-  update();
-  if (!running) return;
+  if (now === undefined) {
+    now = performance.now();
+    lastFrameAt = now;
+    stepAccumulator = STEP_MS;
+  }
+  stepAccumulator += Math.min(now - lastFrameAt, 100);
+  lastFrameAt = now;
+  while (stepAccumulator >= STEP_MS) {
+    stepAccumulator -= STEP_MS;
+    gameTime++;
+    if (shakeDuration > 0) shakeDuration--;
+    update();
+    if (!running) return;
+  }
   draw();
   animId = requestAnimationFrame(loop);
 }

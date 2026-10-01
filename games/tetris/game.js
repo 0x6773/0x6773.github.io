@@ -40,6 +40,7 @@
   let audioCtx;
   function ensureAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   function playTone(f, d, t = 'square', v = 0.1) {
+    if (window.GamePlatform && GamePlatform.isMuted()) return;
     ensureAudio();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type = t; o.frequency.value = f;
@@ -176,6 +177,10 @@
   let sprintStartTime = 0;
   let sprintElapsed = 0;
 
+  const RESTART_LOCK_MS = 700;
+  let endedAt = 0;
+  function restartLocked() { return performance.now() - endedAt < RESTART_LOCK_MS; }
+
   // ── Bag randomizer (7-bag) ──
   function fillBag() {
     const b = [...PIECE_NAMES];
@@ -295,6 +300,7 @@
     lastTime = performance.now();
     dropTimer = 0; lockTimer = 0;
     overlay.classList.add('hidden');
+    if (window.GamePlatform) { GamePlatform.resetTimer(); GamePlatform.startTimer(); }
     if (animId) cancelAnimationFrame(animId);
     loop(performance.now());
   }
@@ -323,6 +329,7 @@
   function hardDrop() {
     let dropped = 0;
     while (true) { current.y++; if (!isValid(current)) { current.y--; break; } dropped++; }
+    if (dropped > 0) lastActionWasRotate = false;
     score += dropped * 2;
     sfxDrop();
     lockPiece();
@@ -383,10 +390,25 @@
     drawHold();
   }
 
+  function tCornersFilled(piece) {
+    var cells = piecePositions(piece);
+    var center = cells.find(function (c) {
+      return cells.filter(function (o) { return Math.abs(o.x - c.x) + Math.abs(o.y - c.y) === 1; }).length === 3;
+    });
+    if (!center) return 0;
+    var filled = 0;
+    var corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+    for (var i = 0; i < corners.length; i++) {
+      var x = center.x + corners[i][0], y = center.y + corners[i][1];
+      if (x < 0 || x >= COLS || y >= ROWS || (y >= 0 && board[y][x])) filled++;
+    }
+    return filled;
+  }
+
   function lockPiece() {
     sfxLock();
     var lockedName = current.name;
-    var lockedRotate = lastActionWasRotate;
+    var lockedRotate = lastActionWasRotate && lockedName === 'T' && tCornersFilled(current) >= 3;
     for (const c of piecePositions(current)) {
       if (c.y >= 0 && c.y < ROWS) board[c.y][c.x] = current.color;
     }
@@ -485,6 +507,7 @@
 
   function gameOver() {
     gameRunning = false;
+    endedAt = performance.now();
     colorBombPending = false;
     colorPicker.classList.add('hidden');
     sfxGameOver();
@@ -512,11 +535,12 @@
 
   function sprintComplete() {
     gameRunning = false;
+    endedAt = performance.now();
     sprintElapsed = (performance.now() - sprintStartTime) / 1000;
     sfxWin();
     if (window.GamePlatform) {
       var t = GamePlatform.stopTimer();
-      GamePlatform.recordGame('tetris', Math.round(sprintElapsed * 100), t * 1000, { linesCleared: lines, mode: 'sprint' });
+      GamePlatform.recordGame('tetris', score, t * 1000, { linesCleared: lines, mode: 'sprint', sprintMs: Math.round(sprintElapsed * 1000) });
     }
     // For sprint, save inverted score so lower times rank higher (999999 - centiseconds)
     var centiseconds = Math.round(sprintElapsed * 100);
@@ -531,7 +555,7 @@
   // ── Input ──
   document.addEventListener('keydown', e => {
     if (!gameRunning) {
-      if (overlay && !overlay.classList.contains('hidden')) { ensureAudio(); init(); }
+      if (overlay && !overlay.classList.contains('hidden') && !restartLocked()) { ensureAudio(); init(); }
       return;
     }
     switch (e.key) {
@@ -579,7 +603,7 @@
   // Start on overlay click
   overlay.addEventListener('click', e => {
     // Don't start if user clicked inside the mode selector
-    if (modeSelector.contains(e.target)) return;
+    if (modeSelector.contains(e.target) || restartLocked()) return;
     ensureAudio(); init();
   });
 
@@ -803,7 +827,7 @@
   // ── Game Loop ──
   function loop(now) {
     if (!gameRunning) return;
-    const dt = now - lastTime;
+    const dt = Math.min(now - lastTime, 100);
     lastTime = now;
 
     dropTimer += dt;
@@ -819,6 +843,7 @@
         // Don't accumulate lockTimer here; the resting check below handles it
       } else {
         lockTimer = 0;
+        lastActionWasRotate = false;
       }
     }
 
@@ -1003,7 +1028,6 @@
   // Platform integration
   if (window.GamePlatform) {
     GamePlatform.initHeader('Tetris');
-    GamePlatform.startTimer();
   }
 
   // ── Show start screen ──

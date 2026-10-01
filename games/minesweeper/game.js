@@ -29,6 +29,7 @@
   let timerRunning = false;
   let timerDisplayInterval = null;
   let finalElapsed = 0;
+  let finalElapsedMs = 0;
   let longPressTimer = null;
   let gameGeneration = 0;
 
@@ -57,7 +58,12 @@
     return audioCtx;
   }
 
+  function isMuted() {
+    return window.GamePlatform && GamePlatform.isMuted();
+  }
+
   function playTone(freq, duration, type, volume, ramp) {
+    if (isMuted()) return;
     try {
       const ctx = getAudioCtx();
       const osc = ctx.createOscillator();
@@ -76,6 +82,7 @@
   }
 
   function playNoise(duration, volume) {
+    if (isMuted()) return;
     try {
       const ctx = getAudioCtx();
       const bufferSize = ctx.sampleRate * duration;
@@ -136,6 +143,7 @@
 
   function stopTimer() {
     if (timerRunning) {
+      finalElapsedMs = performance.now() - timerStart;
       finalElapsed = getElapsedSeconds();
     }
     timerRunning = false;
@@ -200,6 +208,7 @@
     revealedCount = 0;
     timerStart = 0;
     finalElapsed = 0;
+    finalElapsedMs = 0;
     timerEl.textContent = '00:00';
     overlayEl.classList.add('hidden');
 
@@ -531,7 +540,7 @@
     }
 
     if (window.GamePlatform) {
-      GamePlatform.recordGame('minesweeper', revealedCount, finalElapsed * 1000, { win: false });
+      GamePlatform.recordGame('minesweeper', 0, finalElapsedMs, { win: false, difficulty: difficulty });
     }
 
     // Show overlay after brief delay
@@ -559,7 +568,7 @@
     updateMineCounter();
 
     if (window.GamePlatform) {
-      GamePlatform.recordGame('minesweeper', revealedCount, finalElapsed * 1000, { win: true });
+      GamePlatform.recordGame('minesweeper', 0, finalElapsedMs, { win: true, timeMs: finalElapsedMs, difficulty: difficulty });
     }
 
     setTimeout(() => {

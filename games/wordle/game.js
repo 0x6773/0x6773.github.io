@@ -312,6 +312,7 @@ function getAudioCtx() {
 }
 
 function playSound(type) {
+    if (window.GamePlatform && GamePlatform.isMuted()) return;
     try {
         const ctx = getAudioCtx();
         const osc = ctx.createOscillator();
@@ -394,10 +395,8 @@ let stats = loadStats();
 
 // ===== Daily Word Logic =====
 function getDayIndex() {
-    const epoch = new Date(2024, 0, 1); // Jan 1, 2024
     const now = new Date();
-    const diff = now.getTime() - epoch.getTime();
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
+    return Math.round((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(2024, 0, 1)) / 86400000); // Jan 1, 2024
 }
 
 function seededRandom(seed) {
@@ -408,11 +407,62 @@ function seededRandom(seed) {
     };
 }
 
+const DAILY_ORDER = (function () {
+    const rng = seededRandom(20240101);
+    const words = ANSWER_WORDS.slice();
+    for (let i = words.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [words[i], words[j]] = [words[j], words[i]];
+    }
+    return words;
+})();
+
 function getDailyWord() {
-    const dayIdx = getDayIndex();
-    const rng = seededRandom(dayIdx + 42);
-    const idx = Math.floor(rng() * ANSWER_WORDS.length);
-    return ANSWER_WORDS[idx].toLowerCase();
+    return DAILY_ORDER[getDayIndex() % DAILY_ORDER.length].toLowerCase();
+}
+
+const DAILY_KEY = 'wordle_daily';
+
+function loadDaily() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(DAILY_KEY));
+        if (saved && saved.day === getDayIndex() && Array.isArray(saved.guesses)) return saved;
+    } catch (e) {}
+    return null;
+}
+
+function saveDaily(recorded) {
+    try {
+        localStorage.setItem(DAILY_KEY, JSON.stringify({
+            day: getDayIndex(),
+            guesses: guesses.map(g => g.word),
+            recorded: !!recorded
+        }));
+    } catch (e) {}
+}
+
+function restoreDaily() {
+    const saved = loadDaily();
+    if (!saved) return;
+    saved.guesses.slice(0, NUM_ROWS).forEach(word => {
+        if (typeof word !== 'string' || word.length !== NUM_COLS) return;
+        const result = evaluateGuess(word, targetWord);
+        guesses.push({ word, result });
+        for (let c = 0; c < NUM_COLS; c++) {
+            const tile = document.getElementById('tile-' + currentRow + '-' + c);
+            tile.querySelector('.tile-front').textContent = word[c].toUpperCase();
+            tile.querySelector('.tile-back').textContent = word[c].toUpperCase();
+            tile.classList.add('filled', 'revealed', result[c]);
+        }
+        updateKeyboard(word, result);
+        currentRow++;
+    });
+    const last = guesses[guesses.length - 1];
+    const won = !!last && last.result.every(r => r === 'correct');
+    if (won || guesses.length >= NUM_ROWS) {
+        gameOver = true;
+        if (!saved.recorded) recordResult(won, won ? guesses.length : 0);
+    }
 }
 
 function getRandomWord() {
@@ -513,6 +563,7 @@ function submitGuess() {
 
     const result = evaluateGuess(guess, targetWord);
     guesses.push({ word: guess, result });
+    if (gameMode === 'daily') saveDaily(false);
     isRevealing = true;
 
     revealRow(currentRow, result, () => {
@@ -520,14 +571,15 @@ function submitGuess() {
         updateKeyboard(guess, result);
 
         const won = result.every(r => r === 'correct');
+        const attempts = currentRow + 1;
         if (won) {
             gameOver = true;
             playSound('correct');
             const messages = ['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!', 'Phew!'];
             showToast(messages[currentRow] || 'Nice!');
             bounceRow(currentRow);
-            recordResult(true, currentRow + 1);
-            setTimeout(() => showStats(currentRow + 1), 2200);
+            recordResult(true, attempts);
+            setTimeout(() => showStats(attempts), 2200);
         } else if (currentRow >= NUM_ROWS - 1) {
             gameOver = true;
             playSound('wrong');
@@ -633,28 +685,37 @@ function recordResult(won, attempts) {
     stats.played++;
     if (won) {
         stats.won++;
-        stats.currentStreak++;
-        if (stats.currentStreak > stats.maxStreak) stats.maxStreak = stats.currentStreak;
         stats.distribution[attempts] = (stats.distribution[attempts] || 0) + 1;
-    } else {
-        stats.currentStreak = 0;
     }
     if (gameMode === 'daily') {
+        const day = getDayIndex();
+        if (won) {
+            stats.currentStreak = stats.lastDailyWinDay === day - 1 ? stats.currentStreak + 1 : 1;
+            stats.lastDailyWinDay = day;
+            if (stats.currentStreak > stats.maxStreak) stats.maxStreak = stats.currentStreak;
+        } else {
+            stats.currentStreak = 0;
+        }
         stats.lastDate = new Date().toDateString();
+        saveDaily(true);
     }
     saveStats(stats);
 
     // Platform integration
     if (window.GamePlatform) {
-        GamePlatform.recordGame('wordle', won ? attempts : 0, 0, { win: won });
+        GamePlatform.recordGame('wordle', won ? NUM_ROWS + 1 - attempts : 0, 0, { win: won, attempts: won ? attempts : 0 });
     }
+}
+
+function currentStreak() {
+    return stats.lastDailyWinDay >= getDayIndex() - 1 ? stats.currentStreak : 0;
 }
 
 function showStats(winRow) {
     const overlay = document.getElementById('stats-overlay');
     document.getElementById('stat-played').textContent = stats.played;
     document.getElementById('stat-win-pct').textContent = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) : 0;
-    document.getElementById('stat-streak').textContent = stats.currentStreak;
+    document.getElementById('stat-streak').textContent = currentStreak();
     document.getElementById('stat-max-streak').textContent = stats.maxStreak;
 
     // Distribution
@@ -720,6 +781,7 @@ function initGame() {
 
     if (gameMode === 'daily') {
         targetWord = getDailyWord();
+        restoreDaily();
     } else {
         targetWord = getRandomWord();
     }
@@ -759,6 +821,7 @@ document.getElementById('mode-daily').addEventListener('click', () => {
     document.getElementById('mode-daily').classList.add('active');
     document.getElementById('mode-random').classList.remove('active');
     initGame();
+    checkDailyPlayed();
 });
 
 document.getElementById('mode-random').addEventListener('click', () => {
@@ -814,8 +877,12 @@ document.getElementById('share-btn').addEventListener('click', () => {
 
 // Check if user already played daily today
 function checkDailyPlayed() {
-    if (gameMode === 'daily' && stats.lastDate === new Date().toDateString()) {
-        // Already played today - still allow but show stats
+    if (gameMode === 'daily' && gameOver) {
+        // Already played today - show stats
+        const last = guesses[guesses.length - 1];
+        const won = !!last && last.result.every(r => r === 'correct');
+        showToast('New word tomorrow. Try Random mode!', 2500);
+        setTimeout(() => showStats(won ? guesses.length : null), 600);
     }
 }
 

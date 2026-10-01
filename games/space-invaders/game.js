@@ -60,6 +60,7 @@
   let maxCombo = 0;
   let lastKillAt = 0;
   let waveBannerTimer = null;
+  let endedAt = 0;
 
   function isMuted() {
     return window.GamePlatform && GamePlatform.isMuted();
@@ -247,6 +248,7 @@
   function finishGame(won) {
     if (!gameRunning) return;
     gameRunning = false;
+    endedAt = performance.now();
     if (animationId) cancelAnimationFrame(animationId);
     animationId = null;
     if (won) tone(880, 0.2, 'triangle', 0.12); else sfxGameOver();
@@ -632,6 +634,7 @@
   }
 
   function startFromOverlay() {
+    if (performance.now() - endedAt < 700) return;
     ensureAudio();
     beginGame();
   }

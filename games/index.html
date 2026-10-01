@@ -1994,10 +1994,10 @@
           var bar = bars[i];
           var gameId = bar.getAttribute('data-game');
           var gs = allStats[gameId];
-          if (gs) {
-            bar.querySelector('.gs-best').textContent = gs.bestScore > 0 ? formatNumber(gs.bestScore) : '--';
-            bar.querySelector('.gs-played').textContent = formatNumber(gs.timesPlayed || 0);
-          }
+          var bestEl = bar.querySelector('.gs-best');
+          bestEl.parentNode.firstChild.nodeValue = GP.bestLabel(gameId) + ': ';
+          bestEl.textContent = GP.formatBest(gameId, gs);
+          bar.querySelector('.gs-played').textContent = formatNumber(gs ? gs.timesPlayed || 0 : 0);
         }
 
         // ── Recent Activity ──
@@ -2141,7 +2141,7 @@
           li.innerHTML =
             '<span class="recent-emoji">' + emoji + '</span>' +
             '<span class="recent-game-name">' + escHtml(gameName) + '</span>' +
-            '<span class="recent-score">' + formatNumber(r.score) + ' pts</span>' +
+            '<span class="recent-score">' + escHtml(GP.formatResult(r)) + '</span>' +
             '<span class="recent-time">' + timeAgo(r.timestamp) + '</span>';
           list.appendChild(li);
         }
@@ -2263,7 +2263,7 @@
           var emoji = (GP.GAME_EMOJIS && GP.GAME_EMOJIS[r.gameId]) || '\uD83C\uDFAE';
           var gameName = (GP.GAME_NAMES && GP.GAME_NAMES[r.gameId]) || r.gameId;
           var gs = allStats[r.gameId];
-          var detail = gs ? 'Best: ' + formatNumber(gs.bestScore) : '';
+          var detail = gs ? GP.bestLabel(r.gameId) + ': ' + GP.formatBest(r.gameId, gs) : '';
 
           var a = document.createElement('a');
           a.href = r.gameId + '/';

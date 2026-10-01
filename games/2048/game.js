@@ -37,6 +37,7 @@
   const winNewBtn       = document.getElementById('win-new-game-btn');
   const timerBarTrack   = document.getElementById('timer-bar-track');
   const timerBarFill    = document.getElementById('timer-bar-fill');
+  const startOverlayEl  = document.getElementById('start-overlay');
 
   // ---- State ----------------------------------------------
   let currentMode = 'classic';
@@ -108,6 +109,7 @@
   }
 
   function playTone(freq, duration, type, volume) {
+    if (window.GamePlatform && GamePlatform.isMuted()) return;
     try {
       const ctx = ensureAudio();
       const osc = ctx.createOscillator();
@@ -270,6 +272,7 @@
   // ---- Movement -------------------------------------------
   function move(dir) {
     if (moving || !gameActive) return;
+    if (startOverlayEl && !startOverlayEl.classList.contains('hidden')) return;
 
     const { dr, dc } = dir;
     let moved = false;
@@ -433,7 +436,7 @@
     stopTimers();
     if (gameOverMsg) gameOverMsg.textContent = msg;
     if (window.GamePlatform) {
-      GamePlatform.recordGame('2048', score, 0);
+      GamePlatform.recordGame('2048', score, 0, { maxTile: highestTile, win: hasWon });
       GamePlatform.updateScore(score);
     }
     gameOverOvl.classList.remove('hidden');
@@ -535,6 +538,9 @@
 
   // ---- Init / New Game ------------------------------------
   function newGame() {
+    if (gameActive && moveCount > 0 && window.GamePlatform) {
+      GamePlatform.recordGame('2048', score, 0, { maxTile: highestTile, win: hasWon });
+    }
     const mode = MODES[currentMode];
     SIZE = mode.size;
 

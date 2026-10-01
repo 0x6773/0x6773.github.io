@@ -51,6 +51,7 @@
   let spawnRemaining = 0;
   let waveActive = false;
   let waveBannerTimer = null;
+  let endedAt = 0;
 
   function isMuted() { return window.GamePlatform && GamePlatform.isMuted(); }
 
@@ -113,7 +114,12 @@
     if (window.GamePlatform) GamePlatform.updateScore(score);
   }
 
-  function setStatus(text) { document.getElementById('status-line')?.replaceChildren(document.createTextNode(text)); }
+  function setStatus(text) {
+    waveBanner.textContent = text;
+    waveBanner.classList.remove('hidden');
+    clearTimeout(waveBannerTimer);
+    waveBannerTimer = setTimeout(() => waveBanner.classList.add('hidden'), 1400);
+  }
 
   function createStars() {
     stars = [];
@@ -197,6 +203,7 @@
   function finishGame() {
     if (!gameRunning) return;
     gameRunning = false;
+    endedAt = performance.now();
     if (animationId) cancelAnimationFrame(animationId);
     animationId = null;
     sfxGameOver();
@@ -212,7 +219,7 @@
   function startWave() {
     if (!gameRunning || waveActive) return;
     waveActive = true; spawnRemaining = 4 + wave * 2; spawnTimer = 0;
-    setStatus('Wave ' + wave + ' incoming. Protect the base.'); sfxWave(); updateHud();
+    setStatus('WAVE ' + wave); sfxWave(); updateHud();
   }
 
   function spawnEnemy() {
@@ -357,7 +364,7 @@
       wave += 1;
       score += 250;
       updateHud();
-      setStatus('Wave cleared. Next wave incoming.');
+      setStatus('WAVE CLEARED');
       setTimeout(() => { if (gameRunning) startWave(); }, 900);
     }
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.x += p.vx * dt / 1000; p.y += p.vy * dt / 1000; p.life -= dt / 1000; if (p.life <= 0) particles.splice(i, 1); }
@@ -400,14 +407,14 @@
 
   function loop(now) { if (!gameRunning) { render(); return; } const dt = Math.min(40, now - lastTime); lastTime = now; update(dt); render(); if (gameRunning) animationId = requestAnimationFrame(loop); }
 
-  function startFromOverlay() { ensureAudio(); beginGame(); }
+  function startFromOverlay() { if (performance.now() - endedAt < 700) return; ensureAudio(); beginGame(); }
   overlayButton.addEventListener('click', event => { event.stopPropagation(); startFromOverlay(); });
   overlay.addEventListener('click', event => { if (event.target === overlay) startFromOverlay(); });
   document.addEventListener('keydown', event => { if (!gameRunning && event.key !== 'Tab') { event.preventDefault(); startFromOverlay(); } if (!gameRunning) return; if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','A','d','D','w','W','s','S',' '].includes(event.key)) event.preventDefault(); keys[event.code] = true; if (event.key === ' ') fire(player, 'player'); });
   document.addEventListener('keyup', event => { keys[event.code] = false; });
   window.addEventListener('blur', () => { keys = {}; });
   canvas.addEventListener('pointerdown', event => { event.preventDefault(); if (!gameRunning) startFromOverlay(); else fire(player, 'player'); if (event.pointerType === 'touch' && canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId); });
-  document.querySelectorAll('[data-action]').forEach(button => { const action = button.dataset.action; button.addEventListener('pointerdown', event => { event.preventDefault(); if (!gameRunning) startFromOverlay(); if (action === 'fire') fire(player, 'player'); else keys[action === 'up' ? 'ArrowUp' : action === 'down' ? 'ArrowDown' : action === 'left' ? 'ArrowLeft' : 'ArrowRight'] = true; button.classList.add('pressed'); }); const release = event => { event.preventDefault(); if (action !== 'fire') keys[action === 'up' ? 'ArrowUp' : action === 'down' ? 'ArrowDown' : action === 'left' ? 'ArrowLeft' : 'ArrowRight'] = false; button.classList.remove('pressed'); }; button.addEventListener('pointerup', release); button.addEventListener('pointercancel', release); button.addEventListener('pointerleave', release); });
+  document.querySelectorAll('[data-action]').forEach(button => { const action = button.dataset.action; button.addEventListener('pointerdown', event => { event.preventDefault(); if (!gameRunning) startFromOverlay(); if (!gameRunning) return; if (action === 'fire') fire(player, 'player'); else keys[action === 'up' ? 'ArrowUp' : action === 'down' ? 'ArrowDown' : action === 'left' ? 'ArrowLeft' : 'ArrowRight'] = true; button.classList.add('pressed'); }); const release = event => { event.preventDefault(); if (action !== 'fire') keys[action === 'up' ? 'ArrowUp' : action === 'down' ? 'ArrowDown' : action === 'left' ? 'ArrowLeft' : 'ArrowRight'] = false; button.classList.remove('pressed'); }; button.addEventListener('pointerup', release); button.addEventListener('pointercancel', release); button.addEventListener('pointerleave', release); });
 
   createStars(); generateMap(); resetPlayer(); renderScores(safeLoadScores()); render(); updateHud();
   if (window.GamePlatform) GamePlatform.initHeader('Battle City');

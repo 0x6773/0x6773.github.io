@@ -823,7 +823,7 @@
 
     // Record on platform
     if (window.GamePlatform) {
-      GamePlatform.recordGame('sudoku', 0, getElapsedMs(), { win: true });
+      GamePlatform.recordGame('sudoku', 0, getElapsedMs(), { win: true, timeMs: getElapsedMs(), difficulty: difficulty });
     }
 
     // Save best time

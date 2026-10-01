@@ -56,6 +56,7 @@
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
   function playTone(f, d, t = 'square', v = 0.1) {
+    if (window.GamePlatform && GamePlatform.isMuted()) return;
     ensureAudio();
     if (!audioCtx) return;
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
@@ -94,7 +95,15 @@
   // ── State ──
   let isHost = false, myPlayer = 0, peer, conn;
   let grid, players, scores = [0, 0], round = 1;
-  let tickInterval, gameRunning = false, myDir = null;
+  let tickInterval, gameRunning = false, inputQueues = [[], []];
+
+  function queueDir(pi, dir) {
+    if (!players || !players[pi] || !DIRS[dir]) return;
+    const q = inputQueues[pi];
+    const last = q.length ? q[q.length - 1] : players[pi].dir;
+    if (dir === last || OPPOSITE[dir] === last || q.length >= 2) return;
+    q.push(dir);
+  }
 
   // ── Latency / Interpolation ──
   let interpBuffer = { p: [{}, {}] };
@@ -236,7 +245,7 @@
         updateHUD();
       }
       else if (d.t === 'd' && isHost) {
-        if (d.dir && DIRS[d.dir]) { const p = players[1]; if (p && OPPOSITE[d.dir] !== p.dir) p.dir = d.dir; }
+        queueDir(1, d.dir);
       }
       else if (d.t === 'cd') showCountdown(d.n);
       else if (d.t === 'go') hideOverlay();
@@ -300,7 +309,7 @@
 
   function startRound() {
     initGrid(); initPlayers(); particles = [];
-    gameRunning = false; myDir = null;
+    gameRunning = false; inputQueues = [[], []];
     updateHUD(); sendInit();
 
     let count = COUNTDOWN_SECS;
@@ -334,7 +343,7 @@
     }
 
     // Host input
-    if (myDir && isHost) { const p = players[0]; if (OPPOSITE[myDir] !== p.dir) p.dir = myDir; myDir = null; }
+    for (let i = 0; i < 2; i++) if (inputQueues[i].length) players[i].dir = inputQueues[i].shift();
 
     // Move
     for (const p of players) { if (!p.alive) continue; const d = DIRS[p.dir]; p.x += d.x; p.y += d.y; }
@@ -345,7 +354,6 @@
       const p = players[i]; if (!p.alive) continue;
       if (p.x < 0 || p.x >= COLS || p.y < 0 || p.y >= ROWS) { p.alive = false; crashes.push({ x: Math.max(0, Math.min(COLS - 1, p.x)), y: Math.max(0, Math.min(ROWS - 1, p.y)), pi: i }); continue; }
       if (grid[p.y][p.x] !== 0) { p.alive = false; crashes.push({ x: p.x, y: p.y, pi: i }); continue; }
-      grid[p.y][p.x] = i + 1;
     }
 
     // Head-on
@@ -353,6 +361,8 @@
       players[0].alive = players[1].alive = false;
       crashes.push({ x: players[0].x, y: players[0].y, pi: 0 }, { x: players[1].x, y: players[1].y, pi: 1 });
     }
+
+    for (let i = 0; i < 2; i++) if (players[i].alive) grid[players[i].y][players[i].x] = i + 1;
 
     if (!players[0].alive || !players[1].alive) {
       stopGame();
@@ -401,7 +411,7 @@
     const isMe = w === myPlayer;
     if (isMe) sfxMatchWin(); else sfxCrash();
     if (window.GamePlatform) {
-      GamePlatform.recordGame('tron-online', scores[0] + scores[1], 0, { win: isMe });
+      GamePlatform.recordGame('tron-online', scores[myPlayer], 0, { win: isMe });
     }
 
     showOverlay(
@@ -470,7 +480,7 @@
   document.addEventListener('keydown', e => {
     const dir = keyMap[e.key]; if (!dir) return;
     e.preventDefault();
-    if (isHost) myDir = dir;
+    if (isHost) queueDir(0, dir);
     else send({ t: 'd', dir });
   });
 
@@ -483,7 +493,7 @@
     ts = null;
     if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
     const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-    if (isHost) myDir = dir; else send({ t: 'd', dir });
+    if (isHost) queueDir(0, dir); else send({ t: 'd', dir });
   }, { passive: false });
 
   // ── Render ──

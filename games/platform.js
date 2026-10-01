@@ -54,7 +54,7 @@
     { id: 'snake-50',        name: 'Snake Charmer',      desc: 'Score 50+ in Snake',         icon: '\u{1F40D}' },
     { id: 'flappy-10',       name: 'Sky High',           desc: 'Score 10+ in Flappy Bird',   icon: '\u{1F426}' },
     { id: 'minesweeper-win', name: 'Bomb Squad',         desc: 'Win a Minesweeper game',     icon: '\u{1F4A3}' },
-    { id: 'reach-1024',      name: 'Number Cruncher',    desc: 'Reach 1024 in 2048',         icon: '\u{1F522}' },
+    { id: 'reach-1024',      name: 'Number Cruncher',    desc: 'Reach the 1024 tile',        icon: '\u{1F522}' },
     { id: 'reach-2048',      name: 'The 2048',           desc: 'Reach the 2048 tile',        icon: '\u{1F451}' },
     { id: 'tron-5wins',      name: 'Light Rider',        desc: 'Win 5 Tron matches',         icon: '\u{1F3CD}\uFE0F' },
     { id: 'tetris-lines',    name: 'Line Clear',         desc: 'Clear 10 lines in Tetris',   icon: '\u{1F4CF}' },
@@ -70,6 +70,23 @@
     { id: 'streak-3',        name: 'On a Roll',           desc: 'Play 3 days in a row',      icon: '\u{1F4C5}' },
     { id: 'speed-5',         name: 'Speed Demon',         desc: 'Play 5 games in one hour',  icon: '\u26A1' }
   ];
+
+  const BEST_KIND = {
+    'minesweeper': 'time',
+    'sudoku': 'time',
+    'wordle': 'attempts',
+    'connect4': 'wins',
+    'tron': 'wins',
+    'tron-online': 'wins',
+    'ludo': 'wins'
+  };
+
+  function formatClock(ms) {
+    var s = Math.round(ms / 1000);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
 
   // ── Data persistence ──
 
@@ -137,8 +154,8 @@
     if ((gs['snake']?.bestScore || 0) >= 50)       tryUnlock('snake-50');
     if ((gs['flappy']?.bestScore || 0) >= 10)      tryUnlock('flappy-10');
     if ((gs['minesweeper']?.wins || 0) >= 1)       tryUnlock('minesweeper-win');
-    if ((gs['2048']?.bestScore || 0) >= 1024)      tryUnlock('reach-1024');
-    if ((gs['2048']?.bestScore || 0) >= 2048)      tryUnlock('reach-2048');
+    if ((gs['2048']?.maxTile || 0) >= 1024)        tryUnlock('reach-1024');
+    if ((gs['2048']?.maxTile || 0) >= 2048)        tryUnlock('reach-2048');
     if ((gs['tron']?.wins || 0) >= 5)              tryUnlock('tron-5wins');
     if ((gs['tetris']?.linesCleared || 0) >= 10)   tryUnlock('tetris-lines');
     if ((gs['space-invaders']?.maxCombo || 0) >= 10) tryUnlock('spaceinvaders-combo');
@@ -238,10 +255,9 @@
     header.id = 'gp-header';
     var muted = false;
     try { muted = localStorage.getItem('gp_muted') === '1'; } catch (e) {}
-    var bestScore = '--';
     var gameId = Object.keys(GAME_NAMES).find(function(k) { return GAME_NAMES[k] === gameName; }) || '';
     var gStats = gameId ? ((data.gameStats || {})[gameId] || null) : null;
-    if (gStats && gStats.bestScore) bestScore = gStats.bestScore;
+    var bestScore = GamePlatform.formatBest(gameId, gStats);
 
     header.innerHTML =
       '<div class="gp-header-top">' +
@@ -253,7 +269,7 @@
       '</div>' +
       '<div class="gp-header-stats">' +
         '<span class="gp-stat">Score: <strong id="gp-score">0</strong></span>' +
-        '<span class="gp-stat">Best: <strong id="gp-best">' + bestScore + '</strong></span>' +
+        '<span class="gp-stat">' + GamePlatform.bestLabel(gameId) + ': <strong id="gp-best">' + bestScore + '</strong></span>' +
         '<span class="gp-stat">\u23F1 <strong id="gp-timer">00:00</strong></span>' +
       '</div>';
 
@@ -341,6 +357,30 @@
       });
     },
 
+    bestLabel: function(gameId) {
+      var kind = BEST_KIND[gameId];
+      return kind === 'time' ? 'Fastest' : kind === 'wins' ? 'Wins' : 'Best';
+    },
+
+    formatBest: function(gameId, gs) {
+      var kind = BEST_KIND[gameId];
+      if (kind === 'time') return gs && gs.bestTime ? formatClock(gs.bestTime) : '--';
+      if (kind === 'attempts') return gs && gs.bestAttempts ? gs.bestAttempts + '/6' : '--';
+      if (kind === 'wins') return String((gs && gs.wins) || 0);
+      return gs && gs.bestScore > 0 ? gs.bestScore.toLocaleString() : '--';
+    },
+
+    formatResult: function(entry) {
+      var kind = BEST_KIND[entry.gameId];
+      if (kind && entry.win !== undefined) {
+        if (!entry.win) return 'Lost';
+        if (kind === 'time' && entry.timeMs) return 'Won in ' + formatClock(entry.timeMs);
+        if (kind === 'attempts' && entry.attempts) return 'Solved in ' + entry.attempts + '/6';
+        return 'Won';
+      }
+      return (entry.score || 0).toLocaleString() + ' pts';
+    },
+
     getRecentGames: function(limit) {
       const data = loadData();
       const recent = data.recentGames || [];
@@ -349,10 +389,15 @@
 
     recordGame: function(gameId, score, playTimeMs, extra) {
       var pt = (playTimeMs != null && playTimeMs !== 0) ? playTimeMs : this.getSessionTime();
+      if (this._sessionStart) {
+        this._sessionStart = Date.now();
+        this._sessionHiddenTime = 0;
+        this._sessionHiddenAt = document.hidden ? Date.now() : 0;
+      }
       const data = loadData();
       if (!data.gameStats) data.gameStats = {};
       if (!data.gameStats[gameId]) {
-        data.gameStats[gameId] = { timesPlayed: 0, bestScore: 0, totalPlayTime: 0, lastPlayed: 0, wins: 0, linesCleared: 0, maxCombo: 0, maxWave: 0, maxHeight: 0 };
+        data.gameStats[gameId] = { timesPlayed: 0, bestScore: 0, totalPlayTime: 0, lastPlayed: 0, wins: 0, linesCleared: 0, maxCombo: 0, maxWave: 0, maxHeight: 0, maxTile: 0 };
       }
       const gs = data.gameStats[gameId];
       gs.timesPlayed = (gs.timesPlayed || 0) + 1;
@@ -367,16 +412,23 @@
         if (extra.maxCombo > (gs.maxCombo || 0)) gs.maxCombo = extra.maxCombo;
         if (extra.maxWave > (gs.maxWave || 0)) gs.maxWave = extra.maxWave;
         if (extra.maxHeight > (gs.maxHeight || 0)) gs.maxHeight = extra.maxHeight;
+        if (extra.maxTile > (gs.maxTile || 0)) gs.maxTile = extra.maxTile;
+        if (extra.win && extra.timeMs > 0 && !(gs.bestTime <= extra.timeMs)) gs.bestTime = extra.timeMs;
+        if (extra.win && extra.attempts > 0 && !(gs.bestAttempts <= extra.attempts)) gs.bestAttempts = extra.attempts;
       }
 
       // Recent games (keep last 50)
       if (!data.recentGames) data.recentGames = [];
-      data.recentGames.unshift({
+      var entry = {
         gameId: gameId,
         score: score || 0,
         playTime: pt || 0,
         timestamp: Date.now()
-      });
+      };
+      if (extra && extra.win !== undefined) entry.win = !!extra.win;
+      if (extra && extra.win && extra.timeMs > 0) entry.timeMs = extra.timeMs;
+      if (extra && extra.win && extra.attempts > 0) entry.attempts = extra.attempts;
+      data.recentGames.unshift(entry);
       if (data.recentGames.length > 50) data.recentGames = data.recentGames.slice(0, 50);
 
       // Daily log for streak (use local date)
@@ -399,6 +451,9 @@
       // Check achievements
       const newlyUnlocked = checkAndUnlock(data);
       saveData(data);
+
+      var bestEl = document.getElementById('gp-best');
+      if (bestEl) bestEl.textContent = GamePlatform.formatBest(gameId, gs);
 
       // Show toast for new achievements
       for (const id of newlyUnlocked) {
@@ -601,7 +656,7 @@
         { gameId: 'breakout', desc: 'Score 500+ in Breakout', check: function(s, e) { return s >= 500; } },
         { gameId: 'tetris', desc: 'Score 1000+ in Tetris', check: function(s, e) { return s >= 1000; } },
         { gameId: '2048', desc: 'Score 5000+ in 2048', check: function(s, e) { return s >= 5000; } },
-        { gameId: 'minesweeper', desc: 'Win Minesweeper on Medium+', check: function(s, e) { return e && e.win; } },
+        { gameId: 'minesweeper', desc: 'Win Minesweeper on Medium+', check: function(s, e) { return e && e.win && (e.difficulty === 'medium' || e.difficulty === 'hard'); } },
         { gameId: 'wordle', desc: 'Win a Wordle game', check: function(s, e) { return e && e.win; } },
         { gameId: 'sudoku', desc: 'Complete a Sudoku puzzle', check: function(s, e) { return e && e.win; } },
         { gameId: 'connect4', desc: 'Win a Connect Four game', check: function(s, e) { return e && e.win; } },
