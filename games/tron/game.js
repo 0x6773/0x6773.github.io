@@ -16,6 +16,13 @@
   const roundOverlay = document.getElementById('round-overlay');
   const roundTitle = document.getElementById('round-title');
   const roundMsg = document.getElementById('round-msg');
+  const modeChips = overlay.querySelectorAll('.mode-chip[data-mode]');
+  const levelChips = overlay.querySelectorAll('.mode-chip[data-level]');
+  const levelRow = document.getElementById('level-row');
+  const p1Label = document.getElementById('p1-label');
+  const p1Keys = document.getElementById('p1-keys');
+  const p2Label = document.getElementById('p2-label');
+  const p2Keys = document.getElementById('p2-keys');
 
   // ── Constants ──
   const W = canvas.width;
@@ -34,6 +41,11 @@
 
   const DIRS = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
   const OPPOSITE = { up:'down', down:'up', left:'right', right:'left' };
+  const LEVEL_NAMES = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+
+  const ai = window.TronAI ? TronAI.create(COLS, ROWS) : null;
+  let vsCpu = !!ai && localStorage.getItem('tron_mode') !== 'pvp';
+  let cpuLevel = LEVEL_NAMES[localStorage.getItem('tron_level')] ? localStorage.getItem('tron_level') : 'medium';
 
   // ── Audio ──
   function ensureAudio() {
@@ -47,6 +59,7 @@
   function sfxCrash()     { playTone(120, 0.4, 'sawtooth', 0.15); setTimeout(() => playTone(80, 0.3, 'sawtooth', 0.1), 100); }
   function sfxWinRound()  { [660,880,1100].forEach((f,i) => setTimeout(() => playTone(f, 0.15, 'triangle', 0.12), i*80)); }
   function sfxMatchWin()  { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.2, 'triangle', 0.14), i*100)); }
+  function sfxMatchLose() { [523,440,349,262].forEach((f,i) => setTimeout(() => playTone(f, 0.22, 'triangle', 0.12), i*120)); }
 
   // ── Particles ──
   let particles = [];
@@ -103,7 +116,11 @@
     if (p2Map[e.key]) {
       e.preventDefault();
       const dir = p2Map[e.key];
-      if (players && players[1] && OPPOSITE[dir] !== players[1].dir) p2NextDir = dir;
+      if (vsCpu) {
+        if (players && players[0] && OPPOSITE[dir] !== players[0].dir) p1NextDir = dir;
+      } else if (players && players[1] && OPPOSITE[dir] !== players[1].dir) {
+        p2NextDir = dir;
+      }
     }
   });
 
@@ -157,7 +174,7 @@
       }
 
       // Determine which player based on touch position (left half = P1, right half = P2)
-      if (start.x < midX) {
+      if (vsCpu || start.x < midX) {
         // Player 1
         if (players && players[0] && OPPOSITE[dir] !== players[0].dir) p1NextDir = dir;
       } else {
@@ -245,6 +262,11 @@
   function tick() {
     if (!gameRunning) return;
 
+    if (vsCpu && ai && players[1].alive) {
+      const dir = ai.choose(grid, players[1], players[0], cpuLevel);
+      p2NextDir = OPPOSITE[dir] !== players[1].dir ? dir : null;
+    }
+
     // Apply buffered inputs
     if (p1NextDir) { players[0].dir = p1NextDir; p1NextDir = null; }
     if (p2NextDir) { players[1].dir = p2NextDir; p2NextDir = null; }
@@ -318,6 +340,7 @@
       // Next round
       let msg;
       if (roundWinner === -1) msg = 'Draw!';
+      else if (vsCpu) msg = roundWinner === 0 ? 'You win the round!' : 'CPU wins the round!';
       else msg = 'Player ' + (roundWinner + 1) + ' wins!';
       const color = roundWinner === -1 ? '#ffd700' : (roundWinner === 0 ? P1_COLOR : P2_COLOR);
 
@@ -334,12 +357,12 @@
   }
 
   function handleMatchEnd(winner) {
-    sfxMatchWin();
+    if (vsCpu && winner === 1) sfxMatchLose(); else sfxMatchWin();
     if (window.GamePlatform) {
-      GamePlatform.recordGame('tron', scores[0], 0, { win: winner === 0 });
+      GamePlatform.recordGame('tron', scores[0], 0, { win: winner === 0, mode: vsCpu ? 'cpu-' + cpuLevel : 'pvp' });
     }
-    const title = 'Player ' + (winner + 1) + ' Wins!';
-    const sub = 'Final: ' + scores[0] + ' - ' + scores[1] + '  (First to ' + ROUNDS_TO_WIN + ')';
+    const title = vsCpu ? (winner === 0 ? 'You Win!' : 'CPU Wins!') : 'Player ' + (winner + 1) + ' Wins!';
+    const sub = 'Final: ' + scores[0] + ' - ' + scores[1] + (vsCpu ? '  vs ' + LEVEL_NAMES[cpuLevel] + ' CPU' : '  (First to ' + ROUNDS_TO_WIN + ')');
     const color = winner === 0 ? P1_COLOR : P2_COLOR;
 
     // Show on main overlay with replay button
@@ -356,10 +379,33 @@
 
   // ── HUD ──
   function updateHUD() {
-    p1ScoreEl.textContent = 'P1: ' + (scores ? scores[0] : 0);
-    p2ScoreEl.textContent = 'P2: ' + (scores ? scores[1] : 0);
+    p1ScoreEl.textContent = (vsCpu ? 'You: ' : 'P1: ') + (scores ? scores[0] : 0);
+    p2ScoreEl.textContent = (vsCpu ? 'CPU: ' : 'P2: ') + (scores ? scores[1] : 0);
     roundInfoEl.textContent = 'Round ' + (round || 1);
   }
+
+  function applyMode() {
+    modeChips.forEach(c => c.classList.toggle('selected', (c.dataset.mode === 'cpu') === vsCpu));
+    levelChips.forEach(c => c.classList.toggle('selected', c.dataset.level === cpuLevel));
+    levelRow.hidden = !vsCpu;
+    p1Label.textContent = vsCpu ? 'You' : 'Player 1';
+    p1Keys.textContent = vsCpu ? 'WASD / Arrows' : 'W A S D';
+    p2Label.textContent = vsCpu ? 'Computer' : 'Player 2';
+    p2Keys.textContent = vsCpu ? LEVEL_NAMES[cpuLevel] : 'Arrow Keys';
+    updateHUD();
+  }
+
+  modeChips.forEach(chip => chip.addEventListener('click', () => {
+    if (chip.dataset.mode === 'cpu' && !ai) return;
+    vsCpu = chip.dataset.mode === 'cpu';
+    localStorage.setItem('tron_mode', vsCpu ? 'cpu' : 'pvp');
+    applyMode();
+  }));
+  levelChips.forEach(chip => chip.addEventListener('click', () => {
+    cpuLevel = chip.dataset.level;
+    localStorage.setItem('tron_level', cpuLevel);
+    applyMode();
+  }));
 
   // ── Overlays ──
   function showRoundOverlay(title, msg, color) {
@@ -440,6 +486,7 @@
   }
 
   // Initial render
+  applyMode();
   render();
 
   if (window.GamePlatform) {

@@ -6,17 +6,17 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-FNZT8PLH08');</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Play Tron Light Cycles with a friend on the same keyboard. Player 1 uses WASD, Player 2 uses Arrow Keys. First to 5 wins.">
-  <meta name="keywords" content="tron game, light cycles game, 2 player game, local multiplayer">
+  <meta name="description" content="Play Tron Light Cycles against the computer on Easy, Medium or Hard, or with a friend on the same keyboard. First to 5 wins.">
+  <meta name="keywords" content="tron game, light cycles game, tron vs computer, 2 player game, local multiplayer">
   <link rel="canonical" href="https://mnciitbhu.me/games/tron/">
-  <meta property="og:title" content="Tron Light Cycles - Free 2 Player Local Game">
-  <meta property="og:description" content="Play Tron Light Cycles with a friend on the same keyboard. Player 1 uses WASD, Player 2 uses Arrow Keys. First to 5 wins.">
+  <meta property="og:title" content="Tron Light Cycles - Play vs Computer or a Friend">
+  <meta property="og:description" content="Play Tron Light Cycles against the computer on Easy, Medium or Hard, or with a friend on the same keyboard. First to 5 wins.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://mnciitbhu.me/games/tron/">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Tron Light Cycles - Free 2 Player Local Game">
-  <meta name="twitter:description" content="Play Tron Light Cycles with a friend on the same keyboard. Player 1 uses WASD, Player 2 uses Arrow Keys. First to 5 wins.">
-  <title>Tron Light Cycles - Free 2 Player Local Game</title>
+  <meta name="twitter:title" content="Tron Light Cycles - Play vs Computer or a Friend">
+  <meta name="twitter:description" content="Play Tron Light Cycles against the computer on Easy, Medium or Hard, or with a friend on the same keyboard. First to 5 wins.">
+  <title>Tron Light Cycles - Play vs Computer or a Friend</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../platform.css">
   <script src="../platform.js"></script>
@@ -26,7 +26,7 @@
     "@context": "https://schema.org",
     "@type": "VideoGame",
     "name": "Tron Light Cycles",
-    "description": "Play Tron Light Cycles with a friend on the same keyboard. Player 1 uses WASD, Player 2 uses Arrow Keys. First to 5 wins.",
+    "description": "Play Tron Light Cycles against the computer on Easy, Medium or Hard, or with a friend on the same keyboard. First to 5 wins.",
     "url": "https://mnciitbhu.me/games/tron/",
     "genre": "Arcade",
     "gamePlatform": "Web Browser",
@@ -56,21 +56,32 @@
     <div id="overlay">
       <h1>TRON</h1>
       <p class="tagline">Light Cycle Battle</p>
+      <div id="mode-picker">
+        <div class="mode-row" role="group" aria-label="Opponent">
+          <button type="button" class="mode-chip" data-mode="cpu">vs Computer</button>
+          <button type="button" class="mode-chip" data-mode="pvp">2 Players</button>
+        </div>
+        <div class="mode-row" id="level-row" role="group" aria-label="Computer difficulty">
+          <button type="button" class="mode-chip" data-level="easy">Easy</button>
+          <button type="button" class="mode-chip" data-level="medium">Medium</button>
+          <button type="button" class="mode-chip" data-level="hard">Hard</button>
+        </div>
+      </div>
       <div id="controls-info">
         <div class="player-controls">
-          <span class="label-cyan">Player 1</span>
-          <span>W A S D</span>
+          <span class="label-cyan" id="p1-label">Player 1</span>
+          <span id="p1-keys">W A S D</span>
         </div>
         <div class="vs">vs</div>
         <div class="player-controls">
-          <span class="label-magenta">Player 2</span>
-          <span>Arrow Keys</span>
+          <span class="label-magenta" id="p2-label">Player 2</span>
+          <span id="p2-keys">Arrow Keys</span>
         </div>
       </div>
-      <div style="max-width:340px;text-align:left;margin:16px 0;padding:14px 18px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;line-height:1.7;color:#aaa">
-        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#666;margin-bottom:8px;text-transform:uppercase">How to Play</div>
-        Player 1: W, A, S, D keys<br>
-        Player 2: Arrow keys<br>
+      <div class="how-to">
+        <div class="how-to-title">How to Play</div>
+        vs Computer: steer with WASD, arrow keys or swipes<br>
+        2 Players: Player 1 uses WASD, Player 2 the arrow keys<br>
         Your light cycle leaves a trail behind it<br>
         Crash into any wall or trail = you lose the round<br>
         First to 5 round wins takes the match
@@ -83,6 +94,7 @@
       <p id="round-msg"></p>
     </div>
   </div>
+  <script src="ai.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

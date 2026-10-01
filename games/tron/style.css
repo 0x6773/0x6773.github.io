@@ -85,14 +85,14 @@ canvas {
   font-size: 16px;
   letter-spacing: 4px;
   text-transform: uppercase;
-  margin-bottom: 36px;
+  margin-bottom: 24px;
 }
 
 #controls-info {
   display: flex;
   align-items: center;
   gap: 24px;
-  margin-bottom: 36px;
+  margin-bottom: 24px;
 }
 
 .player-controls {
@@ -146,6 +146,72 @@ canvas {
   letter-spacing: 2px;
 }
 
+#mode-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mode-row[hidden] { display: none; }
+
+.mode-chip {
+  min-height: 36px;
+  padding: 7px 16px;
+  border: 1px solid #333;
+  border-radius: 999px;
+  background: transparent;
+  color: #888;
+  font: 700 13px 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mode-chip:hover { color: #ccc; border-color: #555; }
+
+.mode-chip.selected {
+  color: #00f0ff;
+  border-color: #00f0ff;
+  background: rgba(0, 240, 255, 0.1);
+}
+
+#level-row .mode-chip.selected {
+  color: #e040fb;
+  border-color: #e040fb;
+  background: rgba(224, 64, 251, 0.1);
+}
+
+.how-to {
+  max-width: 340px;
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #aaa;
+}
+
+.how-to-title {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #666;
+}
+
 #round-overlay h2 {
   font-size: 42px;
   margin-bottom: 10px;
@@ -172,6 +238,9 @@ canvas {
   #overlay h1 { font-size: 40px; letter-spacing: 10px; }
   .tagline { margin-bottom: 16px; }
   #controls-info { margin-bottom: 16px; }
+  #mode-picker { margin-bottom: 16px; gap: 6px; }
+  .how-to { margin-bottom: 14px; padding: 10px 14px; line-height: 1.55; }
+  .instructions { margin-top: 12px; }
 }
 
 @media (max-width: 500px), (max-height: 500px) {
@@ -183,7 +252,9 @@ canvas {
   #overlay:not(.hidden) > * { grid-column: 2; }
   #overlay:not(.hidden) > div:not([id]) { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
   #overlay h1 { font-size: 36px; letter-spacing: 8px; }
-  .tagline, #controls-info { margin-bottom: 10px; }
+  .tagline, #controls-info, #mode-picker { margin-bottom: 10px; }
+  .instructions { display: none; }
+  #hud { padding: 8px 12px; font-size: 14px; letter-spacing: 1px; white-space: nowrap; }
 }
 
 @media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
