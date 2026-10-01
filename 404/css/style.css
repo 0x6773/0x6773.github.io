@@ -46,6 +46,8 @@ img {
   text-transform: uppercase;
   text-decoration: none;
   display: inline-block;
+  margin: 6px;
+  cursor: pointer;
 }
 .container a.btn.search {
   border-radius: 0 2em 2em 0;
