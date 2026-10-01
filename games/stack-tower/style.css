@@ -21,7 +21,10 @@ body {
   padding: 24px 12px 40px;
 }
 
-#game-shell { width: min(400px, 100%); }
+#game-shell {
+  width: min(400px, 100%, max(240px, calc((100vh - 161px) * 2 / 3)));
+  width: min(400px, 100%, max(240px, calc((100dvh - 161px) * 2 / 3)));
+}
 
 #hud {
   display: flex;
@@ -72,7 +75,9 @@ body {
   inset: 0;
   display: flex;
   align-items: center;
+  align-items: safe center;
   justify-content: center;
+  overflow-y: auto;
   background: rgba(7, 16, 23, 0.91);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
@@ -162,7 +167,20 @@ body {
 #highscores::before { content: 'TOP SCORES'; display: block; color: #ffcf5c; font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-bottom: 4px; }
 #highscores li:first-child { color: #fff; font-weight: 800; }
 
-@media (pointer: coarse), (max-width: 600px) { #touch-controls { display: flex; } }
+@media (pointer: coarse), (max-width: 600px) {
+  #touch-controls { display: flex; }
+  #game-shell {
+    width: min(400px, 100%, max(240px, calc((100vh - 227px) * 2 / 3)));
+    width: min(400px, 100%, max(240px, calc((100dvh - 227px) * 2 / 3)));
+  }
+}
+
+@media (max-height: 760px) {
+  .overlay-content { padding: 14px 12px; }
+  .overlay h1 { margin-bottom: 6px; }
+  #overlay-message { margin-bottom: 10px; }
+  .how-to-play { padding: 10px 14px; line-height: 1.6; margin-bottom: 12px; }
+}
 
 @media (max-width: 500px) {
   body { padding: 12px 8px 28px; }

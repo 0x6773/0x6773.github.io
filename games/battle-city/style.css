@@ -1,7 +1,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { min-height: 100%; background: #11151a; color: #fff; font-family: 'Segoe UI', Tahoma, sans-serif; touch-action: pan-y; user-select: none; -webkit-user-select: none; overflow-x: hidden; }
 body { display: flex; justify-content: center; padding: 24px 12px 40px; }
-#game-shell { width: min(480px, 100%); }
+#game-shell { width: min(480px, 100%, max(280px, calc((100vh - 133px) * 480 / 608))); width: min(480px, 100%, max(280px, calc((100dvh - 133px) * 480 / 608))); }
 #hud { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #202b28; border: 1px solid #52675c; border-bottom: 0; border-radius: 12px 12px 0 0; font-variant-numeric: tabular-nums; }
 #hud > div { display: flex; align-items: baseline; gap: 5px; }
 .hud-label { color: #9caf9e; font-size: 9px; font-weight: 800; letter-spacing: 1px; }
@@ -11,7 +11,7 @@ body { display: flex; justify-content: center; padding: 24px 12px 40px; }
 #hud > div:nth-child(4) strong { color: #76d7ea; }
 #game-area { position: relative; width: 100%; overflow: hidden; border: 1px solid #52675c; border-top: 0; border-radius: 0 0 12px 12px; background: #18201d; touch-action: none; box-shadow: 0 14px 50px rgba(0,0,0,.55), 0 0 50px rgba(120,200,130,.08); }
 #game-canvas { display: block; width: 100%; height: auto; touch-action: none; image-rendering: pixelated; }
-.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(17,21,26,.92); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 10; }
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; align-items: safe center; justify-content: center; overflow-y: auto; background: rgba(17,21,26,.92); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 10; }
 .overlay.hidden, .hidden { display: none !important; }
 .overlay-content { width: min(370px, calc(100% - 32px)); text-align: center; padding: 24px 16px; }
 .overlay h1 { color: #e7d96b; font-size: clamp(30px, 8vw, 46px); letter-spacing: 4px; text-shadow: 0 0 24px rgba(231,217,107,.5); margin-bottom: 10px; }
@@ -19,7 +19,7 @@ body { display: flex; justify-content: center; padding: 24px 12px 40px; }
 .how-to-play { padding: 14px 16px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; color: #b9c8bb; font-size: 13px; line-height: 1.8; text-align: left; margin-bottom: 20px; }
 .how-title { color: #99aa9b; font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; }
 #overlay-button { min-width: 150px; padding: 13px 30px; border: 0; border-radius: 999px; background: linear-gradient(135deg,#e7d96b,#7ddf83); color: #18201d; cursor: pointer; font: 800 15px 'Segoe UI',sans-serif; letter-spacing: 1px; text-transform: uppercase; box-shadow: 0 5px 24px rgba(125,223,131,.3); }
-#wave-banner { position: absolute; top: 45%; left: 50%; transform: translate(-50%,-50%); color: #e7d96b; font-size: 28px; font-weight: 900; letter-spacing: 4px; pointer-events: none; text-shadow: 0 0 20px rgba(231,217,107,.8); z-index: 5; }
+#wave-banner { position: absolute; top: 45%; left: 50%; transform: translate(-50%,-50%); color: #e7d96b; font-size: 28px; font-weight: 900; letter-spacing: 4px; white-space: nowrap; pointer-events: none; text-shadow: 0 0 20px rgba(231,217,107,.8); z-index: 5; }
 #touch-controls { display: none; justify-content: center; align-items: center; gap: 22px; padding: 12px 0 0; }
 .dpad { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .dpad > div { display: flex; gap: 5px; }
@@ -29,5 +29,6 @@ body { display: flex; justify-content: center; padding: 24px 12px 40px; }
 #highscores { list-style: none; margin: 18px 0 0; padding: 12px 16px; background: #202b28; border: 1px solid #52675c; border-radius: 10px; color: #b9c8bb; text-align: center; font-size: 13px; line-height: 1.8; }
 #highscores::before { content: 'TOP SCORES'; display: block; color: #e7d96b; font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-bottom: 4px; }
 #highscores li:first-child { color: #fff; font-weight: 800; }
-@media (pointer: coarse), (max-width: 600px) { #touch-controls { display: flex; } }
+@media (pointer: coarse), (max-width: 600px) { #touch-controls { display: flex; } #game-shell { width: min(480px, 100%, max(280px, calc((100vh - 234px) * 480 / 608))); width: min(480px, 100%, max(280px, calc((100dvh - 234px) * 480 / 608))); } }
+@media (max-height: 760px) { .overlay-content { padding: 14px 12px; } .overlay h1 { margin-bottom: 6px; } #overlay-message { margin-bottom: 10px; } .how-to-play { padding: 10px 14px; line-height: 1.6; margin-bottom: 12px; } }
 @media (max-width: 500px) { body { padding: 12px 8px 28px; } #hud { gap: 4px; padding: 9px 7px; } #hud > div { gap: 3px; } #hud strong { font-size: 14px; } .hud-label { font-size: 7px; letter-spacing: .4px; } #touch-controls { gap: 12px; } .dpad button { width: 48px; height: 42px; } #fire-button { width: 78px; } }

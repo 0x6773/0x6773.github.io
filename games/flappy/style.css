@@ -29,8 +29,9 @@ html, body {
 
 /* ── HUD Bar ── */
 #hud {
-  width: 400px;
-  max-width: 100vw;
+  width: min(400px, 100vw, max(240px, calc((100vh - 146px) * 2 / 3)));
+  width: min(400px, 100vw, max(240px, calc((100dvh - 146px) * 2 / 3)));
+  flex-shrink: 0;
   background: #1a1a2e;
   padding: 10px 20px;
   display: flex;
@@ -61,8 +62,9 @@ html, body {
 /* ── Canvas Container ── */
 #canvas-container {
   position: relative;
-  width: 400px;
-  max-width: 100vw;
+  width: min(400px, 100vw, max(240px, calc((100vh - 146px) * 2 / 3)));
+  width: min(400px, 100vw, max(240px, calc((100dvh - 146px) * 2 / 3)));
+  flex-shrink: 0;
   border: 1px solid #2a2a4a;
   border-top: none;
   border-radius: 0 0 12px 12px;
@@ -84,7 +86,9 @@ html, body {
   inset: 0;
   display: flex;
   align-items: center;
+  align-items: safe center;
   justify-content: center;
+  overflow-y: auto;
   background: rgba(10, 10, 26, 0.75);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -141,6 +145,27 @@ html, body {
 @keyframes bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
+}
+
+.how-to {
+  max-width: 340px;
+  text-align: left;
+  margin: 16px 0;
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #aaa;
+}
+
+.how-to-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #666;
+  margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
 .start-hint {
@@ -403,4 +428,17 @@ html, body {
   #final-score {
     font-size: 36px;
   }
+}
+
+@media (max-height: 760px) {
+  .overlay-content { padding: 16px 20px; }
+  .game-title, .gameover-title { margin-bottom: 14px; }
+  .start-bird { margin-bottom: 14px; }
+  #final-score-box, #highscore-board { margin-bottom: 14px; }
+}
+
+@media (max-height: 640px) {
+  #mode-selector { margin: 8px 0 10px; }
+  .start-controls, .start-bird { display: none; }
+  .how-to { margin: 8px 0; padding: 10px 14px; font-size: 12px; line-height: 1.5; }
 }

@@ -26,8 +26,8 @@ body {
 
 /* ── HUD ── */
 #hud {
-  width: 100%;
-  max-width: 600px;
+  width: min(600px, calc(100vw - 16px), max(260px, calc(100vh - 146px)));
+  width: min(600px, calc(100vw - 16px), max(260px, calc(100dvh - 146px)));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -49,8 +49,9 @@ body {
 /* ── Canvas container ── */
 #canvas-container {
   position: relative;
-  width: 600px;
-  height: 600px;
+  width: min(600px, calc(100vw - 16px), max(260px, calc(100vh - 146px)));
+  width: min(600px, calc(100vw - 16px), max(260px, calc(100dvh - 146px)));
+  aspect-ratio: 1 / 1;
   border: 2px solid #0f3460;
   border-radius: 0 0 12px 12px;
   overflow: hidden;
@@ -90,7 +91,9 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  justify-content: safe center;
   align-items: center;
+  overflow-y: auto;
   background: rgba(10, 10, 26, .88);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -118,6 +121,34 @@ body {
   text-transform: uppercase;
   color: #7a8ba6;
   margin-bottom: 8px;
+}
+
+.how-to {
+  max-width: 340px;
+  text-align: left;
+  margin: 16px 0;
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #aaa;
+}
+
+.how-to-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #666;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+#snake-modes {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+  justify-content: center;
 }
 
 .overlay .controls-hint {
@@ -187,11 +218,12 @@ body {
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  #canvas-container,
-  #hud {
-    width: calc(100vw - 16px);
-    max-width: 600px;
-  }
-  #canvas-container { height: calc(100vw - 16px); max-height: 600px; }
-  .overlay h1 { font-size: 36px; }
+  .overlay h1 { font-size: 32px; }
+}
+@media (max-width: 640px), (max-height: 760px) {
+  .overlay { padding: 12px; gap: 6px; }
+  .overlay .subtitle, .overlay .controls-hint { display: none; }
+  .how-to { margin: 4px 0; padding: 10px 14px; line-height: 1.5; }
+  #snake-modes { margin: 4px 0; }
+  .btn { padding: 10px 36px; font-size: 16px; }
 }

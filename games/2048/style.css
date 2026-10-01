@@ -251,7 +251,8 @@ body {
 /* ===== Timer Bar ===== */
 .board-wrapper {
   width: 100%;
-  max-width: 500px;
+  max-width: min(500px, max(280px, calc(100vh - 234px)));
+  max-width: min(500px, max(280px, calc(100dvh - 234px)));
   position: relative;
 }
 

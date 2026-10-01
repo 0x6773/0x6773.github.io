@@ -31,7 +31,8 @@ body {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 2px;
-  width: 600px;
+  width: min(600px, 100vw, max(260px, calc(100vh - 138px)));
+  width: min(600px, 100vw, max(260px, calc(100dvh - 138px)));
 }
 
 .score-cyan { color: #00f0ff; }
@@ -40,6 +41,9 @@ body {
 
 canvas {
   display: block;
+  width: min(600px, 100vw, max(260px, calc(100vh - 138px)));
+  width: min(600px, 100vw, max(260px, calc(100dvh - 138px)));
+  height: auto;
   border-radius: 0 0 8px 8px;
   border: 2px solid #111;
   border-top: none;
@@ -56,7 +60,9 @@ canvas {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  justify-content: safe center;
   align-items: center;
+  overflow-y: auto;
   background: rgba(10, 10, 18, 0.9);
   border-radius: 8px;
   z-index: 10;
@@ -155,9 +161,15 @@ canvas {
 /* ── Responsive ── */
 @media (max-width: 640px) {
   #overlay h1 { font-size: 48px; letter-spacing: 12px; }
-  #hud { width: 100vw; font-size: 14px; padding: 8px 12px; }
+  #hud { font-size: 14px; padding: 8px 12px; }
   canvas { max-width: 100vw; height: auto; }
   .btn { padding: 12px 32px; font-size: 16px; }
   #controls-info { gap: 16px; }
   .player-controls { font-size: 13px; }
+}
+
+@media (max-width: 640px), (max-height: 760px) {
+  #overlay h1 { font-size: 40px; letter-spacing: 10px; }
+  .tagline { margin-bottom: 16px; }
+  #controls-info { margin-bottom: 16px; }
 }
