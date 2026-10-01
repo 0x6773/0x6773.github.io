@@ -576,10 +576,16 @@ body {
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 339px) {
   #number-pad {
     grid-template-columns: repeat(5, 1fr);
     gap: 5px;
+  }
+}
+
+@media (max-width: 420px) {
+  #number-pad {
+    gap: 4px;
   }
 
   .num-btn {
@@ -609,4 +615,85 @@ body {
   #action-buttons {
     gap: 4px;
   }
+}
+
+#board {
+  max-width: min(450px, max(240px, calc(100vh - var(--gp-header-h, 80px) - 250px)));
+  max-width: min(450px, max(240px, calc(100dvh - var(--gp-header-h, 80px) - 250px)));
+}
+
+#start-overlay,
+#win-overlay {
+  top: var(--gp-header-h, 80px);
+  height: auto;
+  bottom: 0;
+  overflow-y: auto;
+  align-items: safe center;
+}
+
+@media (max-width: 500px) {
+  #hud { flex-wrap: nowrap; justify-content: space-between; }
+  .hud-display { min-width: 0; padding: 6px 8px; letter-spacing: 1px; }
+  #difficulty-selector { gap: 4px; }
+  .diff-btn { padding: 8px 7px; font-size: 0.72rem; }
+  #controls { margin-top: 10px; }
+  #number-pad { margin-bottom: 8px; }
+}
+
+@media (pointer: coarse) {
+  .diff-btn { min-height: 36px; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #app {
+    max-width: 860px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 16px;
+    align-items: start;
+    padding: 8px;
+  }
+  #hud { grid-column: 2; grid-row: 1; margin-bottom: 8px; flex-wrap: nowrap; }
+  #board-wrapper { grid-column: 1; grid-row: 1 / span 2; width: auto; padding: 0; }
+  #board {
+    width: max(200px, calc(100vh - var(--gp-header-h, 48px) - 30px));
+    width: max(200px, calc(100dvh - var(--gp-header-h, 48px) - 30px));
+    max-width: none;
+  }
+  #controls { grid-column: 2; grid-row: 2; margin-top: 0; max-width: none; }
+  #number-pad { grid-template-columns: repeat(5, 1fr); }
+  .num-btn { min-height: 40px; }
+  .action-btn { min-height: 46px; }
+  #best-time-display { display: none; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #start-overlay .overlay-box { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: min(780px, calc(100% - 24px)); max-width: none; }
+  #start-overlay .overlay-box > * { grid-column: 2; }
+  #start-overlay .overlay-box > .how-to-play { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+}
+
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  #app { max-width: 640px; }
+  #controls { max-width: 600px; }
+  #board {
+    max-width: min(600px, max(240px, calc(100vh - var(--gp-header-h, 80px) - 250px)));
+    max-width: min(600px, max(240px, calc(100dvh - var(--gp-header-h, 80px) - 250px)));
+  }
+}
+
+#board {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-rows: repeat(9, minmax(0, 1fr));
+}
+
+.sudoku-cell {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .sudoku-cell { font-size: 1rem; }
 }

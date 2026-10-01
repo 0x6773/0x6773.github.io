@@ -22,8 +22,8 @@ body {
 }
 
 #game-shell {
-  width: min(420px, 100%, max(260px, calc((100vh - 162px) * 0.7)));
-  width: min(420px, 100%, max(260px, calc((100dvh - 162px) * 0.7)));
+  width: min(420px, 100%, max(150px, calc((100vh - var(--gp-header-h, 80px) - 82px) * 0.7)));
+  width: min(420px, 100%, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 82px) * 0.7)));
 }
 
 #hud {
@@ -247,8 +247,8 @@ body {
 @media (pointer: coarse), (max-width: 600px) {
   #mobile-controls { display: flex; }
   #game-shell {
-    width: min(420px, 100%, max(260px, calc((100vh - 226px) * 0.7)));
-    width: min(420px, 100%, max(260px, calc((100dvh - 226px) * 0.7)));
+    width: min(420px, 100%, max(150px, calc((100vh - var(--gp-header-h, 80px) - 146px) * 0.7)));
+    width: min(420px, 100%, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 146px) * 0.7)));
   }
 }
 
@@ -265,4 +265,73 @@ body {
   #hud > div { gap: 4px; }
   #hud strong { font-size: 15px; }
   .hud-label { font-size: 8px; letter-spacing: 0.5px; }
+}
+
+@media (max-width: 500px), (max-height: 500px) {
+  .overlay { position: fixed; top: var(--gp-header-h, 48px); right: 0; bottom: 0; left: 0; z-index: 900; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  body { padding-bottom: 8px; }
+  #game-shell { width: min(420px, 100%, max(150px, calc((100dvh - var(--gp-header-h, 48px) - 90px) * 0.7))); }
+  #mobile-controls {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: calc(50% + var(--gp-header-h, 48px) / 2);
+    transform: translateY(-50%);
+    padding: 0 16px;
+    gap: 10px;
+    pointer-events: none;
+    z-index: 50;
+  }
+  #mobile-controls .control-button { pointer-events: auto; }
+  .control-button[data-action="left"] { order: 1; }
+  .control-button[data-action="right"] { order: 2; margin-right: auto; }
+  .control-button.fire { order: 3; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .overlay-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: min(780px, calc(100% - 24px)); max-width: none; }
+  .overlay-content > * { grid-column: 2; }
+  .overlay-content > .how-to-play { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+  .overlay h1 { font-size: 30px; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #game-shell {
+    width: auto;
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 8px;
+    align-items: start;
+    justify-content: center;
+  }
+  #hud {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 1px solid #26345e;
+    border-radius: 12px;
+  }
+  #powerup-status { grid-column: 1; grid-row: 2; max-width: 130px; margin-top: 6px; border: 1px solid #26345e; border-radius: 10px; }
+  #game-area {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    width: max(150px, calc((100vh - var(--gp-header-h, 48px) - 12px) * 0.7));
+    width: max(150px, calc((100dvh - var(--gp-header-h, 48px) - 12px) * 0.7));
+    border-top: 1px solid #26345e;
+    border-radius: 12px;
+  }
+  #highscores { grid-column: 1 / -1; }
+}
+
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  #game-shell {
+    width: min(560px, 100%, max(150px, calc((100vh - var(--gp-header-h, 80px) - 146px) * 0.7)));
+    width: min(560px, 100%, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 146px) * 0.7)));
+  }
 }

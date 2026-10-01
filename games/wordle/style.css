@@ -24,8 +24,8 @@ body {
     flex-direction: column;
     align-items: center;
     padding: 0 8px 8px;
-    min-height: 100vh;
-    min-height: 100dvh;
+    min-height: calc(100vh - var(--gp-header-h, 80px));
+    min-height: calc(100dvh - var(--gp-header-h, 80px));
 }
 
 /* ===== Header ===== */
@@ -140,10 +140,8 @@ header h1 {
     grid-template-rows: repeat(6, 1fr);
     gap: 5px;
     padding: 10px 0;
-    flex-grow: 1;
-    max-height: 420px;
-    width: 100%;
-    max-width: 350px;
+    width: min(350px, 100%, max(150px, calc((100vh - var(--gp-header-h, 80px) - 347px) * 5 / 6 + 20px)));
+    width: min(350px, 100%, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 347px) * 5 / 6 + 20px)));
 }
 
 .row {
@@ -248,6 +246,7 @@ header h1 {
 #keyboard {
     width: 100%;
     max-width: 500px;
+    margin-top: auto;
     padding: 0 2px 6px;
 }
 
@@ -527,8 +526,57 @@ header h1 {
 }
 
 @media (max-height: 650px) {
-    #board { max-height: 300px; padding: 4px 0; }
+    #board {
+        padding: 4px 0;
+        width: min(350px, 100%, max(150px, calc((100vh - var(--gp-header-h, 80px) - 305px) * 5 / 6 + 20px)));
+        width: min(350px, 100%, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 305px) * 5 / 6 + 20px)));
+    }
     .tile { font-size: 22px; }
     header { padding: 6px 4px; }
     .mode-toggle { margin: 4px 0; }
+    #keyboard button { height: 44px; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+    #game-container {
+        max-width: 900px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+        column-gap: 20px;
+        align-items: center;
+    }
+    header { grid-column: 1; grid-row: 1; padding: 2px 0; }
+    header h1 { font-size: 18px; letter-spacing: 2px; }
+    .mode-toggle { grid-column: 2; grid-row: 1; margin: 2px auto; }
+    #board {
+        grid-column: 1;
+        grid-row: 2;
+        padding: 0;
+        width: max(120px, calc((100vh - var(--gp-header-h, 48px) - 60px) * 5 / 6));
+        width: max(120px, calc((100dvh - var(--gp-header-h, 48px) - 60px) * 5 / 6));
+    }
+    #keyboard { grid-column: 2; grid-row: 2; margin: 0; align-self: center; }
+    #keyboard button { height: 44px; }
+}
+
+.overlay {
+    top: var(--gp-header-h, 80px);
+    overflow-y: auto;
+    align-items: safe center;
+}
+
+@media (pointer: coarse) {
+    .mode-btn { min-height: 36px; }
+}
+
+.overlay-content {
+    max-height: calc(100% - 24px);
+}
+
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  #board {
+    width: min(440px, 100%, max(150px, calc((100vh - var(--gp-header-h, 80px) - 347px) * 5 / 6 + 20px)));
+    width: min(440px, 100%, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 347px) * 5 / 6 + 20px)));
+  }
 }

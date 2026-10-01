@@ -29,8 +29,8 @@ html, body {
 
 /* ── HUD Bar ── */
 #hud {
-  width: min(400px, 100vw, max(240px, calc((100vh - 146px) * 2 / 3)));
-  width: min(400px, 100vw, max(240px, calc((100dvh - 146px) * 2 / 3)));
+  width: min(400px, 100vw, max(150px, calc((100vh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
+  width: min(400px, 100vw, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
   flex-shrink: 0;
   background: #1a1a2e;
   padding: 10px 20px;
@@ -62,8 +62,8 @@ html, body {
 /* ── Canvas Container ── */
 #canvas-container {
   position: relative;
-  width: min(400px, 100vw, max(240px, calc((100vh - 146px) * 2 / 3)));
-  width: min(400px, 100vw, max(240px, calc((100dvh - 146px) * 2 / 3)));
+  width: min(400px, 100vw, max(150px, calc((100vh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
+  width: min(400px, 100vw, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
   flex-shrink: 0;
   border: 1px solid #2a2a4a;
   border-top: none;
@@ -441,4 +441,27 @@ html, body {
   #mode-selector { margin: 8px 0 10px; }
   .start-controls, .start-bird { display: none; }
   .how-to { margin: 8px 0; padding: 10px 14px; font-size: 12px; line-height: 1.5; }
+}
+
+@media (max-width: 500px), (max-height: 500px) {
+  .overlay { position: fixed; top: var(--gp-header-h, 48px); right: 0; bottom: 0; left: 0; z-index: 900; border-radius: 0; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #start-overlay .overlay-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: min(780px, calc(100% - 24px)); max-width: none; }
+  #start-overlay .overlay-content > * { grid-column: 2; }
+  #start-overlay .overlay-content > .how-to { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+  .game-title { font-size: 30px; margin-bottom: 8px; }
+}
+
+@media (pointer: coarse) {
+  .ghost-toggle { min-height: 36px; padding: 0 8px; }
+  .ghost-toggle input[type="checkbox"] { width: 18px; height: 18px; }
+}
+
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  #hud, #canvas-container {
+    width: min(540px, 100vw, max(150px, calc((100vh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
+    width: min(540px, 100vw, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
+  }
 }

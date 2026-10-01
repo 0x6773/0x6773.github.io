@@ -3,6 +3,10 @@
    Prefix: gp- to avoid conflicts with game CSS
    ============================================ */
 
+:root {
+  --gp-header-h: 80px;
+}
+
 /* Header */
 #gp-header {
   position: fixed;
@@ -16,15 +20,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0 12px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .gp-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 4px;
   color: #888;
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   transition: color 0.2s;
 }
 .gp-back:hover { color: #00d4ff; }
@@ -42,13 +53,20 @@
 }
 
 .gp-header-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
   background: none;
   border: none;
   font-size: 18px;
+  line-height: 1;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 0 6px;
+  border-radius: 6px;
   transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 .gp-header-actions button:hover {
   background: rgba(255,255,255,0.1);
@@ -103,11 +121,15 @@
 .gp-header-stats {
   display: flex;
   justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  height: 32px;
   gap: 24px;
-  padding: 6px 16px;
+  padding: 0 16px;
   font-size: 13px;
   color: #888;
   background: rgba(0,0,0,0.2);
+  white-space: nowrap;
 }
 
 .gp-stat strong {
@@ -117,7 +139,39 @@
 
 /* Body padding when header is active */
 body.gp-has-header {
-  padding-top: 80px !important;
+  padding-top: var(--gp-header-h) !important;
+}
+
+@media (max-width: 600px), (max-height: 500px) {
+  :root { --gp-header-h: 48px; }
+  #gp-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    box-sizing: border-box;
+    height: 48px;
+    padding: 0 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .gp-header-top { display: contents; }
+  .gp-game-name { display: none; }
+  .gp-back { grid-column: 1; grid-row: 1; }
+  .gp-header-actions { grid-column: 3; grid-row: 1; gap: 2px; }
+  .gp-header-stats {
+    grid-column: 2;
+    grid-row: 1;
+    height: auto;
+    gap: 10px;
+    padding: 0 4px;
+    background: none;
+    font-size: 12px;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 420px) {
+  .gp-back { font-size: 0; min-width: 40px; justify-content: center; }
+  .gp-back::before { content: '\2190'; font-size: 20px; }
 }
 
 /* Toast notifications */

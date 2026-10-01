@@ -38,8 +38,8 @@ body {
 
 canvas {
   display: block;
-  width: min(800px, 100vw, max(320px, calc((100vh - 168px) * 4 / 3)));
-  width: min(800px, 100vw, max(320px, calc((100dvh - 168px) * 4 / 3)));
+  width: min(800px, 100vw, max(240px, calc((100vh - var(--gp-header-h, 80px) - 88px) * 4 / 3)));
+  width: min(800px, 100vw, max(240px, calc((100dvh - var(--gp-header-h, 80px) - 88px) * 4 / 3)));
   height: auto;
   background: #16213e;
   border-radius: 0 0 8px 8px;
@@ -360,4 +360,21 @@ canvas {
   #overlay button, #overlay-btn-secondary { padding: 10px 28px; font-size: 16px; margin: 4px; }
   .ls-title { margin-bottom: 12px; }
   .ls-world-tabs, .ls-levels { margin-bottom: 14px; }
+}
+
+@media (max-width: 500px), (max-height: 500px) {
+  #overlay, #level-select { position: fixed; top: var(--gp-header-h, 48px); right: 0; bottom: 0; left: 0; z-index: 900; border-radius: 0; width: auto; height: auto; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #overlay:not(.hidden) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: auto; padding-left: max(12px, calc((100% - 780px) / 2)); padding-right: max(12px, calc((100% - 780px) / 2)); }
+  #overlay:not(.hidden) > * { grid-column: 2; }
+  #overlay:not(.hidden) > .how-to-play { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+}
+
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  canvas {
+    width: min(980px, 100vw, max(240px, calc((100vh - var(--gp-header-h, 80px) - 88px) * 4 / 3)));
+    width: min(980px, 100vw, max(240px, calc((100dvh - var(--gp-header-h, 80px) - 88px) * 4 / 3)));
+  }
 }

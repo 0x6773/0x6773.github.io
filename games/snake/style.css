@@ -26,8 +26,8 @@ body {
 
 /* ── HUD ── */
 #hud {
-  width: min(600px, calc(100vw - 16px), max(260px, calc(100vh - 146px)));
-  width: min(600px, calc(100vw - 16px), max(260px, calc(100dvh - 146px)));
+  width: min(600px, calc(100vw - 16px), max(200px, calc(100vh - var(--gp-header-h, 80px) - 66px)));
+  width: min(600px, calc(100vw - 16px), max(200px, calc(100dvh - var(--gp-header-h, 80px) - 66px)));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -49,8 +49,8 @@ body {
 /* ── Canvas container ── */
 #canvas-container {
   position: relative;
-  width: min(600px, calc(100vw - 16px), max(260px, calc(100vh - 146px)));
-  width: min(600px, calc(100vw - 16px), max(260px, calc(100dvh - 146px)));
+  width: min(600px, calc(100vw - 16px), max(200px, calc(100vh - var(--gp-header-h, 80px) - 66px)));
+  width: min(600px, calc(100vw - 16px), max(200px, calc(100dvh - var(--gp-header-h, 80px) - 66px)));
   aspect-ratio: 1 / 1;
   border: 2px solid #0f3460;
   border-radius: 0 0 12px 12px;
@@ -226,4 +226,22 @@ body {
   .how-to { margin: 4px 0; padding: 10px 14px; line-height: 1.5; }
   #snake-modes { margin: 4px 0; }
   .btn { padding: 10px 36px; font-size: 16px; }
+}
+
+@media (max-width: 500px), (max-height: 500px) {
+  .overlay { position: fixed; top: var(--gp-header-h, 48px); right: 0; bottom: 0; left: 0; z-index: 900; border-radius: 0; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #start-overlay:not(.hidden) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: auto; padding-left: max(12px, calc((100% - 780px) / 2)); padding-right: max(12px, calc((100% - 780px) / 2)); }
+  #start-overlay:not(.hidden) > * { grid-column: 2; }
+  #start-overlay:not(.hidden) > .how-to { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+  #start-overlay h1 { font-size: 34px; }
+}
+
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  #hud, #canvas-container {
+    width: min(760px, calc(100vw - 16px), max(200px, calc(100vh - var(--gp-header-h, 80px) - 66px)));
+    width: min(760px, calc(100vw - 16px), max(200px, calc(100dvh - var(--gp-header-h, 80px) - 66px)));
+  }
 }

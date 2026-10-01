@@ -171,8 +171,7 @@
     updateMineCounter();
 
     // Dynamic cell sizing for larger boards
-    const maxWidth = Math.min(window.innerWidth - 40, 600);
-    const cellSize = Math.max(20, Math.min(36, Math.floor(maxWidth / cols)));
+    const cellSize = computeCellSize();
 
     // Build grid data
     grid = [];
@@ -643,10 +642,25 @@
   boardEl.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // ── Resize / Orientation Handler ──
+  function computeCellSize() {
+    const app = document.getElementById('app');
+    const hud = document.getElementById('hud');
+    const header = document.getElementById('gp-header');
+    const sideBySide = !!app && getComputedStyle(app).flexDirection === 'row';
+    const hudW = sideBySide && hud ? hud.offsetWidth + 12 : 0;
+    const hudH = !sideBySide && hud ? hud.offsetHeight + 12 : 0;
+    const headerH = header ? header.offsetHeight : (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gp-header-h')) || 0);
+    const availW = Math.min(window.innerWidth - 40 - hudW, 860);
+    const availH = window.innerHeight - headerH - hudH - 36;
+    const minSize = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 26 : 20;
+    const maxSize = minSize === 26 && Math.min(window.innerWidth, window.innerHeight) >= 700 ? 46 : 36;
+    const fit = Math.floor(Math.min(availW / cols, availH / rows)) - 2;
+    return Math.max(minSize, Math.min(maxSize, fit));
+  }
+
   function resizeBoard() {
     if (!cellElements || !cellElements.length) return;
-    const maxWidth = Math.min(window.innerWidth - 40, 600);
-    const cellSize = Math.max(20, Math.min(36, Math.floor(maxWidth / cols)));
+    const cellSize = computeCellSize();
     boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
     boardEl.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
     const fontSize = Math.max(10, cellSize * 0.4) + 'px';

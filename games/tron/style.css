@@ -31,8 +31,8 @@ body {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 2px;
-  width: min(600px, 100vw, max(260px, calc(100vh - 138px)));
-  width: min(600px, 100vw, max(260px, calc(100dvh - 138px)));
+  width: min(600px, 100vw, max(200px, calc(100vh - var(--gp-header-h, 80px) - 58px)));
+  width: min(600px, 100vw, max(200px, calc(100dvh - var(--gp-header-h, 80px) - 58px)));
 }
 
 .score-cyan { color: #00f0ff; }
@@ -41,8 +41,8 @@ body {
 
 canvas {
   display: block;
-  width: min(600px, 100vw, max(260px, calc(100vh - 138px)));
-  width: min(600px, 100vw, max(260px, calc(100dvh - 138px)));
+  width: min(600px, 100vw, max(200px, calc(100vh - var(--gp-header-h, 80px) - 58px)));
+  width: min(600px, 100vw, max(200px, calc(100dvh - var(--gp-header-h, 80px) - 58px)));
   height: auto;
   border-radius: 0 0 8px 8px;
   border: 2px solid #111;
@@ -172,4 +172,23 @@ canvas {
   #overlay h1 { font-size: 40px; letter-spacing: 10px; }
   .tagline { margin-bottom: 16px; }
   #controls-info { margin-bottom: 16px; }
+}
+
+@media (max-width: 500px), (max-height: 500px) {
+  #overlay { position: fixed; top: var(--gp-header-h, 48px); right: 0; bottom: 0; left: 0; z-index: 900; border-radius: 0; width: auto; height: auto; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #overlay:not(.hidden) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: auto; padding-left: max(12px, calc((100% - 780px) / 2)); padding-right: max(12px, calc((100% - 780px) / 2)); }
+  #overlay:not(.hidden) > * { grid-column: 2; }
+  #overlay:not(.hidden) > div:not([id]) { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+  #overlay h1 { font-size: 36px; letter-spacing: 8px; }
+  .tagline, #controls-info { margin-bottom: 10px; }
+}
+
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  #hud, canvas {
+    width: min(760px, 100vw, max(200px, calc(100vh - var(--gp-header-h, 80px) - 58px)));
+    width: min(760px, 100vw, max(200px, calc(100dvh - var(--gp-header-h, 80px) - 58px)));
+  }
 }

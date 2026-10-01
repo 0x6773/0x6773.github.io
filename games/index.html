@@ -521,6 +521,12 @@
 
     .hub-footer a:hover { text-decoration: underline; }
 
+    @media (pointer: coarse) {
+      .section-toggle { min-height: 36px; padding: 8px 12px; }
+      .filter-btn { min-height: 36px; }
+      .hub-footer a { display: inline-block; padding: 10px 4px; }
+    }
+
     /* ── Responsive ── */
     @media (max-width: 900px) {
       .stats-row { grid-template-columns: repeat(2, 1fr); }

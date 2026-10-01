@@ -22,7 +22,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 100px 16px 40px;
+  padding: 16px 16px 40px;
 }
 
 /* ── HUD ── */
@@ -137,6 +137,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
 #ghost-row {
@@ -424,7 +425,7 @@ body {
 /* ── Responsive ── */
 
 @media (max-width: 520px) {
-  #app { padding-top: 90px; }
+  #app { padding-top: 12px; }
 
   #hud {
     gap: 6px;
@@ -499,4 +500,73 @@ body {
 
   .hud-player { min-width: 50px; }
   .hud-score { font-size: 18px; }
+}
+
+#board,
+#ghost-row {
+  max-width: min(490px, max(240px, calc((100vh - var(--gp-header-h, 80px) - 170px) * 7 / 6)));
+  max-width: min(490px, max(240px, calc((100dvh - var(--gp-header-h, 80px) - 170px) * 7 / 6)));
+}
+
+#start-overlay,
+#gameover-overlay {
+  top: var(--gp-header-h, 80px);
+  height: auto;
+  bottom: 0;
+  overflow-y: auto;
+  align-items: safe center;
+}
+
+@media (pointer: coarse) {
+  #hud-buttons button { padding: 10px 14px; font-size: 12px; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #app {
+    max-width: 860px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 6px 12px;
+  }
+  #hud {
+    width: 220px;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 0;
+  }
+  #board-container { flex: 0 0 auto; width: auto; }
+  #board,
+  #ghost-row {
+    width: calc((100vh - var(--gp-header-h, 48px) - 56px) * 7 / 6);
+    width: calc((100dvh - var(--gp-header-h, 48px) - 56px) * 7 / 6);
+    max-width: none;
+  }
+  #ghost-row { height: 34px; }
+  .ghost-disc { width: 26px; height: 26px; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #start-overlay .overlay-box { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: min(780px, calc(100% - 24px)); max-width: none; }
+  #start-overlay .overlay-box > * { grid-column: 2; }
+  #start-overlay .overlay-box > .how-to-play { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+}
+
+@media (max-height: 700px) {
+  .overlay-box { padding: 16px 20px; }
+  .overlay-box h1 { font-size: 32px; }
+  .overlay-box .how-to-play { margin: 10px 0; padding: 10px 14px; line-height: 1.5; }
+  .mode-buttons { gap: 8px; }
+  .mode-btn { padding-top: 10px; padding-bottom: 10px; }
+}
+
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  #app { max-width: 720px; }
+  #hud { max-width: 660px; }
+  #board,
+  #ghost-row {
+    max-width: min(640px, max(240px, calc((100vh - var(--gp-header-h, 80px) - 170px) * 7 / 6)));
+    max-width: min(640px, max(240px, calc((100dvh - var(--gp-header-h, 80px) - 170px) * 7 / 6)));
+  }
 }

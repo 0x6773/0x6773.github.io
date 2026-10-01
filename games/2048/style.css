@@ -251,8 +251,8 @@ body {
 /* ===== Timer Bar ===== */
 .board-wrapper {
   width: 100%;
-  max-width: min(500px, max(280px, calc(100vh - 234px)));
-  max-width: min(500px, max(280px, calc(100dvh - 234px)));
+  max-width: min(500px, max(220px, calc(100vh - var(--gp-header-h, 80px) - 154px)));
+  max-width: min(500px, max(220px, calc(100dvh - var(--gp-header-h, 80px) - 154px)));
   position: relative;
 }
 
@@ -584,5 +584,52 @@ body {
 
   .stat-value {
     font-size: 0.75rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .container {
+    max-width: 900px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 16px;
+  }
+  .hud { width: 280px; }
+  .board-wrapper {
+    width: max(200px, calc(100vh - var(--gp-header-h, 48px) - 28px));
+    width: max(200px, calc(100dvh - var(--gp-header-h, 48px) - 28px));
+    max-width: none;
+  }
+  .instructions { display: none; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #start-overlay > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: min(780px, calc(100% - 24px)); max-width: none; }
+  #start-overlay > div > * { grid-column: 2; }
+  #start-overlay > div > div:not([class]) { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+}
+
+@media (max-height: 700px) {
+  #start-overlay > div { padding: 14px !important; }
+  #start-overlay h1 { font-size: 38px !important; margin-bottom: 4px !important; }
+  #start-overlay > div > div:not([class]) { line-height: 1.5 !important; padding: 10px 14px !important; margin-bottom: 10px !important; }
+}
+
+@media (pointer: coarse) {
+  .new-game-btn, .undo-btn { min-height: 38px; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #start-overlay h1 { font-size: 30px !important; }
+  #start-overlay .mode-btn { padding-top: 6px; padding-bottom: 6px; }
+}
+
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  .container { max-width: 620px; }
+  .board-wrapper {
+    max-width: min(620px, max(220px, calc(100vh - var(--gp-header-h, 80px) - 154px)));
+    max-width: min(620px, max(220px, calc(100dvh - var(--gp-header-h, 80px) - 154px)));
   }
 }

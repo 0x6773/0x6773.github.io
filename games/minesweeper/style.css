@@ -410,3 +410,39 @@ body {
     font-size: 0.8rem;
   }
 }
+
+#overlay {
+  top: var(--gp-header-h, 80px);
+  overflow-y: auto;
+  align-items: safe center;
+}
+
+@media (pointer: coarse) {
+  .diff-btn { min-height: 36px; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #app {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    max-width: none;
+    gap: 12px;
+    padding: 6px;
+  }
+  #hud {
+    width: auto;
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 0;
+    padding: 8px;
+  }
+  #difficulty-selector { flex-direction: column; }
+  #board-wrapper { width: auto; padding: 0; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #start-overlay > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: min(780px, calc(100% - 24px)); max-width: none; }
+  #start-overlay > div > * { grid-column: 2; }
+  #start-overlay > div > div { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+}
