@@ -392,7 +392,7 @@
       if (this._sessionStart) {
         this._sessionStart = Date.now();
         this._sessionHiddenTime = 0;
-        this._sessionHiddenAt = document.hidden ? Date.now() : 0;
+        this._sessionHiddenAt = (document.hidden || this._paused) ? Date.now() : 0;
       }
       const data = loadData();
       if (!data.gameStats) data.gameStats = {};
@@ -524,7 +524,35 @@
 
     stopTimer: function() {
       if (this._timerInterval) { clearInterval(this._timerInterval); this._timerInterval = null; }
+      this._timerWasRunning = false;
       return this._timerSeconds;
+    },
+
+    setPaused: function(paused) {
+      var self = this;
+      self._paused = !!paused;
+      if (self._paused && self._timerInterval) {
+        clearInterval(self._timerInterval);
+        self._timerInterval = null;
+        self._timerWasRunning = true;
+      } else if (!self._paused && self._timerWasRunning) {
+        self._timerWasRunning = false;
+        self._timerInterval = setInterval(function() {
+          self._timerSeconds++;
+          self.updateTimer(self._timerSeconds);
+        }, 1000);
+      }
+      self._syncIdle();
+    },
+
+    _syncIdle: function() {
+      var idle = document.hidden || this._paused;
+      if (idle && !this._sessionHiddenAt) {
+        this._sessionHiddenAt = Date.now();
+      } else if (!idle && this._sessionHiddenAt) {
+        this._sessionHiddenTime += Date.now() - this._sessionHiddenAt;
+        this._sessionHiddenAt = 0;
+      }
     },
 
     resetTimer: function() {
@@ -596,12 +624,7 @@
       // Track tab visibility to subtract hidden time
       var self = this;
       document.addEventListener('visibilitychange', self._onVisChange = function() {
-        if (document.hidden) {
-          self._sessionHiddenAt = Date.now();
-        } else if (self._sessionHiddenAt > 0) {
-          self._sessionHiddenTime += Date.now() - self._sessionHiddenAt;
-          self._sessionHiddenAt = 0;
-        }
+        self._syncIdle();
       });
     },
 

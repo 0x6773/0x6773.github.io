@@ -4,6 +4,8 @@
 (() => {
   "use strict";
 
+  const { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame, performance } = GameEngine.clock;
+
   /* ── Constants ── */
   const CANVAS_SIZE = 600;
   const CELL        = 20;
@@ -27,6 +29,7 @@
   /* ── DOM refs ── */
   const canvas       = document.getElementById("game-canvas");
   const ctx          = canvas.getContext("2d");
+  GameEngine.sharpCanvas(canvas);
   const scoreEl      = document.getElementById("score");
   const highScoreEl  = document.getElementById("high-score");
   const startOverlay = document.getElementById("start-overlay");
@@ -59,23 +62,12 @@
   });
 
   /* ── Audio (Web Audio API) ── */
-  let audioCtx = null;
   function ensureAudio() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
+    return GameEngine.audio();
   }
 
   function playTone(freq, type, duration, vol) {
-    if (!audioCtx || (window.GamePlatform && GamePlatform.isMuted())) return;
-    const osc  = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type      = type;
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
+    GameEngine.tone(freq, duration, { type, volume: vol });
   }
 
   function sfxEat() {
@@ -680,25 +672,6 @@
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
   }
 
-  /* ── Visibility pause: stop ticking when the tab is hidden ── */
-  let pausedByVisibility = false;
-
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      // Only pause if the game is actively running
-      if (running) {
-        pausedByVisibility = true;
-        stopLoop();
-      }
-    } else {
-      // Resume only if we were the ones who paused it
-      if (pausedByVisibility) {
-        pausedByVisibility = false;
-        startLoop();
-      }
-    }
-  });
-
   /* ── Game over ── */
   function gameOver() {
     stopLoop();
@@ -735,7 +708,6 @@
   /* ── Start / Restart ── */
   function startGame() {
     ensureAudio();
-    pausedByVisibility = false;
     startOverlay.classList.add("hidden");
     overOverlay.classList.add("hidden");
     init();
@@ -824,4 +796,5 @@
   if (window.GamePlatform) {
     GamePlatform.initHeader('Snake');
   }
+  GameEngine.pausable({ isActive: () => running, container });
 })();

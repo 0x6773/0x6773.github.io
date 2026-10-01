@@ -304,11 +304,8 @@ const VALID_GUESSES_EXTRA = [
 const ALL_VALID = new Set([...ANSWER_WORDS, ...VALID_GUESSES_EXTRA].map(w => w.toLowerCase()));
 
 // ===== Audio System =====
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx;
 function getAudioCtx() {
-    if (!audioCtx) audioCtx = new AudioCtx();
-    return audioCtx;
+    return GameEngine.audio();
 }
 
 function playSound(type) {

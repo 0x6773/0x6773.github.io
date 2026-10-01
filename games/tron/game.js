@@ -1,9 +1,12 @@
 (function() {
   'use strict';
 
+  const { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame, performance } = GameEngine.clock;
+
   // ── DOM ──
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
+  GameEngine.sharpCanvas(canvas);
   const p1ScoreEl = document.getElementById('p1-score');
   const p2ScoreEl = document.getElementById('p2-score');
   const roundInfoEl = document.getElementById('round-info');
@@ -33,25 +36,11 @@
   const OPPOSITE = { up:'down', down:'up', left:'right', right:'left' };
 
   // ── Audio ──
-  let audioCtx;
   function ensureAudio() {
-    if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-      catch (e) { return; }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    return GameEngine.audio();
   }
   function playTone(freq, dur, type = 'square', vol = 0.1) {
-    if (window.GamePlatform && GamePlatform.isMuted()) return;
-    ensureAudio();
-    if (!audioCtx) return;
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + dur);
+    GameEngine.tone(freq, dur, { type, volume: vol });
   }
   function sfxCountdown() { playTone(440, 0.15, 'triangle', 0.12); }
   function sfxGo()        { playTone(880, 0.2, 'triangle', 0.15); }
@@ -456,4 +445,5 @@
   if (window.GamePlatform) {
     GamePlatform.initHeader('Tron');
   }
+  GameEngine.pausable({ isActive: () => overlay.classList.contains('hidden'), container: '#game-container' });
 })();

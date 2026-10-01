@@ -53,6 +53,52 @@
 .gp-header-actions button:hover {
   background: rgba(255,255,255,0.1);
 }
+.gp-header-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+  background: none;
+}
+
+.gp-pause {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(8, 10, 22, 0.78);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+  text-align: center;
+  cursor: pointer;
+}
+.gp-pause[hidden] { display: none; }
+.gp-pause-title {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+}
+.gp-pause-resume {
+  padding: 10px 32px;
+  border: 2px solid #00d4ff;
+  border-radius: 999px;
+  background: rgba(0, 212, 255, 0.12);
+  color: #00d4ff;
+  font: 700 15px 'Segoe UI', sans-serif;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.gp-pause-resume:hover { background: rgba(0, 212, 255, 0.25); }
+.gp-pause-hint {
+  font-size: 12px;
+  color: #9aa3c0;
+  letter-spacing: 0.5px;
+}
 
 .gp-header-stats {
   display: flex;

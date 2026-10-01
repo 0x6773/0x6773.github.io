@@ -5,9 +5,12 @@
 (() => {
   "use strict";
 
+  const { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame, performance } = GameEngine.clock;
+
   /* ── DOM refs ── */
   const canvas = document.getElementById("game-canvas");
   const ctx = canvas.getContext("2d");
+  GameEngine.sharpCanvas(canvas);
   const hudScore = document.getElementById("hud-score");
   const hudMilestone = document.getElementById("hud-milestone");
   const startOverlay = document.getElementById("start-overlay");
@@ -73,30 +76,13 @@
   let lastTime = 0;
 
   /* ── Audio (Web Audio API) ── */
-  let audioCtx = null;
 
   function ensureAudio() {
-    if (!audioCtx) {
-      try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      } catch { /* AudioContext unavailable in this browser */ return; }
-    }
-    if (audioCtx.state === "suspended") audioCtx.resume();
+    return GameEngine.audio();
   }
 
   function playTone(freq, duration, type, vol, ramp) {
-    if (!audioCtx || (window.GamePlatform && GamePlatform.isMuted())) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type || "square";
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    if (ramp) osc.frequency.linearRampToValueAtTime(ramp, audioCtx.currentTime + duration);
-    gain.gain.setValueAtTime(vol || 0.1, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
+    GameEngine.tone(freq, duration, { type: type || "square", volume: vol || 0.1, slideTo: ramp });
   }
 
   function sfxFlap() {
@@ -1144,4 +1130,5 @@
   if (window.GamePlatform) {
     GamePlatform.initHeader('Flappy Bird');
   }
+  GameEngine.pausable({ isActive: () => state === "playing", container: "#canvas-container" });
 })();

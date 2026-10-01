@@ -56,34 +56,9 @@
   let cellElements = []; // 9x9 DOM references
 
   // ── Audio Engine (Web Audio API) ──
-  let audioCtx = null;
-
-  function getAudioCtx() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    return audioCtx;
-  }
-
-  function isMuted() {
-    return window.GamePlatform && GamePlatform.isMuted();
-  }
 
   function playTone(freq, duration, type, volume) {
-    if (isMuted()) return;
-    try {
-      const ctx = getAudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type || 'sine';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(volume || 0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + duration);
-    } catch (e) { /* audio not supported */ }
+    GameEngine.tone(freq, duration, { type: type || 'sine', volume: volume || 0.1 });
   }
 
   const Sound = {

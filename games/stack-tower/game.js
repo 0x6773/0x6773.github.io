@@ -1,8 +1,11 @@
 (function () {
   'use strict';
 
+  const { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame, performance } = GameEngine.clock;
+
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
+  GameEngine.sharpCanvas(canvas);
   const scoreEl = document.getElementById('score');
   const heightEl = document.getElementById('height');
   const comboEl = document.getElementById('combo');
@@ -26,7 +29,6 @@
     { id: 'narrow', text: 'Make 3 narrow drops', target: 3 }
   ];
 
-  let audioCtx = null;
   let gameRunning = false;
   let animationId = null;
   let lastTime = 0;
@@ -45,33 +47,12 @@
   let perfectTimer = null;
   let endedAt = 0;
 
-  function isMuted() {
-    return window.GamePlatform && GamePlatform.isMuted();
-  }
-
   function ensureAudio() {
-    if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-      catch (e) { return null; }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    return audioCtx;
+    return GameEngine.audio();
   }
 
   function tone(frequency, duration, type, volume) {
-    if (isMuted()) return;
-    const audio = ensureAudio();
-    if (!audio) return;
-    const oscillator = audio.createOscillator();
-    const gain = audio.createGain();
-    oscillator.type = type || 'sine';
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(volume || 0.08, audio.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
-    oscillator.connect(gain);
-    gain.connect(audio.destination);
-    oscillator.start();
-    oscillator.stop(audio.currentTime + duration);
+    GameEngine.tone(frequency, duration, { type: type || 'sine', volume: volume || 0.08 });
   }
 
   function sfxDrop() { tone(240, 0.08, 'triangle', 0.08); }
@@ -413,4 +394,5 @@
   updateHud();
 
   if (window.GamePlatform) GamePlatform.initHeader('Stack Tower');
+  GameEngine.pausable({ isActive: () => gameRunning, container: '#game-area' });
 })();

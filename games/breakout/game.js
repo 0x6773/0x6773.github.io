@@ -1,6 +1,7 @@
 // ── Canvas & Context ──
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+GameEngine.sharpCanvas(canvas);
 
 // ── HUD Elements ──
 const scoreEl = document.getElementById('score');
@@ -203,28 +204,12 @@ const LEVEL_PATTERNS = {
 };
 
 // ── Audio (Web Audio API) ──
-let audioCtx;
 function ensureAudio() {
-  if (!audioCtx) {
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
-  }
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return GameEngine.audio();
 }
 
 function playTone(freq, duration, type = 'square', vol = 0.12) {
-  if (window.GamePlatform && GamePlatform.isMuted()) return;
-  ensureAudio();
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = type;
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + duration);
+  GameEngine.tone(freq, duration, { type, volume: vol });
 }
 
 function sfxPaddleHit()  { playTone(440, 0.08, 'triangle', 0.15); }
@@ -725,7 +710,7 @@ function startBossLevel(worldNum, keepScore) {
     attackTimer: 0,
     attackInterval: worldNum === 3 ? 3000 : 0,
     worldNum: worldNum,
-    lastTime: Date.now(),
+    lastTime: GameEngine.now(),
     dropTimer: 0,
     dropInterval: worldNum === 2 ? 5000 : 0
   };
@@ -738,7 +723,7 @@ function startBossLevel(worldNum, keepScore) {
   updateHUD();
   updatePowerupHUD();
   hideSecondaryBtn();
-  if (animId) cancelAnimationFrame(animId);
+  if (animId) GameEngine.clock.cancelAnimationFrame(animId);
   if (window.GamePlatform) GamePlatform.startTimer();
   loop();
 }
@@ -812,7 +797,7 @@ function spawnBossObstacle() {
 function updateBoss(dt) {
   if (!boss) return;
 
-  var now = Date.now();
+  var now = GameEngine.now();
   var elapsed = now - boss.lastTime;
   boss.lastTime = now;
 
@@ -1001,8 +986,8 @@ function bossDefeated() {
   bossMode = false;
   bossProjectiles = [];
   running = false;
-  cancelAnimationFrame(animId);
-  Object.values(activeEffects).forEach(function(e) { clearTimeout(e.timer); });
+  GameEngine.clock.cancelAnimationFrame(animId);
+  Object.values(activeEffects).forEach(function(e) { GameEngine.clock.clearTimeout(e.timer); });
   activeEffects = {};
   powerupHud.innerHTML = '';
   lasers = [];
@@ -1271,7 +1256,7 @@ function startLevel(world, level) {
   updateHUD();
   updatePowerupHUD();
   hideSecondaryBtn();
-  if (animId) cancelAnimationFrame(animId);
+  if (animId) GameEngine.clock.cancelAnimationFrame(animId);
   if (window.GamePlatform) GamePlatform.startTimer();
   loop();
 }
@@ -1424,12 +1409,12 @@ function checkCombos() {
 }
 
 function setTimedEffect(id, duration) {
-  if (activeEffects[id]) clearTimeout(activeEffects[id].timer);
-  const expiresAt = Date.now() + duration;
+  if (activeEffects[id]) GameEngine.clock.clearTimeout(activeEffects[id].timer);
+  const expiresAt = GameEngine.now() + duration;
   activeEffects[id] = {
     expiresAt,
     duration,
-    timer: setTimeout(() => {
+    timer: GameEngine.clock.setTimeout(() => {
       delete activeEffects[id];
       if (id === 'wide') {
         paddle.w = PADDLE_WIDTH;
@@ -1453,8 +1438,8 @@ function updatePowerupHUD() {
     const t = POWERUP_TYPES.find(p => p.id === id);
     if (!t) return '';
     const effect = activeEffects[id];
-    const remaining = Math.max(0, Math.ceil((effect.expiresAt - Date.now()) / 1000));
-    const fraction = Math.max(0, (effect.expiresAt - Date.now()) / effect.duration);
+    const remaining = Math.max(0, Math.ceil((effect.expiresAt - GameEngine.now()) / 1000));
+    const fraction = Math.max(0, (effect.expiresAt - GameEngine.now()) / effect.duration);
     const barWidth = Math.round(fraction * 100);
     return `<span class="powerup-indicator" style="background:${t.color}">
       ${t.name} ${remaining}s
@@ -1647,7 +1632,7 @@ function update() {
     triggerShake(8, 15);
     updateHUD();
     // Clear timed effects
-    Object.values(activeEffects).forEach(e => clearTimeout(e.timer));
+    Object.values(activeEffects).forEach(e => GameEngine.clock.clearTimeout(e.timer));
     activeEffects = {};
     paddle.w = PADDLE_WIDTH;
     lasers = [];
@@ -1974,8 +1959,8 @@ function updateHUD() {
 // ── Level Complete ──
 function levelComplete() {
   running = false;
-  cancelAnimationFrame(animId);
-  Object.values(activeEffects).forEach(e => clearTimeout(e.timer));
+  GameEngine.clock.cancelAnimationFrame(animId);
+  Object.values(activeEffects).forEach(e => GameEngine.clock.clearTimeout(e.timer));
   activeEffects = {};
   powerupHud.innerHTML = '';
   lasers = [];
@@ -1986,7 +1971,7 @@ function levelComplete() {
     // Don't save level 5 yet - save after boss is defeated to gate world unlock
     var bossWorld = currentWorld;
     // Brief delay then start boss
-    setTimeout(function() { startBossLevel(bossWorld, true); }, 600);
+    GameEngine.clock.setTimeout(function() { startBossLevel(bossWorld, true); }, 600);
     sfxLevelComplete();
     return;
   }
@@ -2069,8 +2054,8 @@ function gameOver(won) {
   bossMode = false;
   boss = null;
   bossProjectiles = [];
-  cancelAnimationFrame(animId);
-  Object.values(activeEffects).forEach(e => clearTimeout(e.timer));
+  GameEngine.clock.cancelAnimationFrame(animId);
+  Object.values(activeEffects).forEach(e => GameEngine.clock.clearTimeout(e.timer));
   activeEffects = {};
   powerupHud.innerHTML = '';
   lasers = [];
@@ -2129,7 +2114,7 @@ let stepAccumulator = 0;
 function loop(now) {
   if (!running) return;
   if (now === undefined) {
-    now = performance.now();
+    now = GameEngine.now();
     lastFrameAt = now;
     stepAccumulator = STEP_MS;
   }
@@ -2143,7 +2128,7 @@ function loop(now) {
     if (!running) return;
   }
   draw();
-  animId = requestAnimationFrame(loop);
+  animId = GameEngine.clock.requestAnimationFrame(loop);
 }
 
 // Platform integration
@@ -2160,3 +2145,4 @@ if (window.GamePlatform) {
 
 // ── Show start screen ──
 showStartScreen();
+GameEngine.pausable({ isActive: () => running, container: '#game-container' });

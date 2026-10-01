@@ -154,6 +154,7 @@
     DOM.gameHud = document.getElementById('game-hud');
     DOM.canvas = document.getElementById('boardCanvas');
     DOM.ctx = DOM.canvas.getContext('2d');
+    GameEngine.sharpCanvas(DOM.canvas);
     DOM.diceFace = document.getElementById('dice-face');
     DOM.btnRoll = document.getElementById('btn-roll');
     DOM.toggleHints = document.getElementById('toggle-hints');
@@ -292,53 +293,16 @@
   //  6. AUDIO (Web Audio API)
   // =====================================================================
 
-  var audioCtx = null;
   function ensureAudio() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    return audioCtx;
-  }
-
-  function isMuted() {
-    return window.GamePlatform && GamePlatform.isMuted();
+    return GameEngine.audio();
   }
 
   function playTone(freq, dur, type, vol) {
-    if (isMuted()) return;
-    try {
-      var ctx = ensureAudio();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = type || 'sine';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(vol || 0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + dur);
-    } catch (e) { /* audio not available */ }
+    GameEngine.tone(freq, dur, { type: type || 'sine', volume: vol || 0.15 });
   }
 
   function playNoise(dur, vol) {
-    if (isMuted()) return;
-    try {
-      var ctx = ensureAudio();
-      var bufSize = ctx.sampleRate * dur;
-      var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-      var data = buf.getChannelData(0);
-      for (var i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
-      var src = ctx.createBufferSource();
-      src.buffer = buf;
-      var gain = ctx.createGain();
-      gain.gain.setValueAtTime(vol || 0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-      src.connect(gain);
-      gain.connect(ctx.destination);
-      src.start();
-    } catch (e) { /* audio not available */ }
+    GameEngine.noise(dur, { volume: vol || 0.08, level: 0.5 });
   }
 
   var SFX = {

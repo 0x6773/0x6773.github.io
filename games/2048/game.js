@@ -96,32 +96,13 @@
   }
 
   // ---- Audio context (lazy) --------------------------------
-  let audioCtx = null;
 
   function ensureAudio() {
-    if (!audioCtx) {
-      try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      } catch (e) { return null; }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    return audioCtx;
+    return GameEngine.audio();
   }
 
   function playTone(freq, duration, type, volume) {
-    if (window.GamePlatform && GamePlatform.isMuted()) return;
-    try {
-      const ctx = ensureAudio();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type || 'sine';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(volume || 0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + duration);
-    } catch (_) { /* audio not available */ }
+    GameEngine.tone(freq, duration, { type: type || 'sine', volume: volume || 0.08 });
   }
 
   function sfxSlide()   { playTone(300, 0.10, 'sine', 0.06); }

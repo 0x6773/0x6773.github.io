@@ -24,17 +24,9 @@
   var gameOverTimeoutId = null;
 
   // ── Audio Context ──
-  var audioCtx = null;
 
   function getAudioCtx() {
-    if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-      catch (e) { return null; }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-    return audioCtx;
+    return GameEngine.audio();
   }
 
   function isMuted() {

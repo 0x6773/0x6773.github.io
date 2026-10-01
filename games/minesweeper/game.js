@@ -46,60 +46,12 @@
   const diffBtns      = document.querySelectorAll('.diff-btn');
 
   // ── Audio Engine (Web Audio API) ──
-  let audioCtx = null;
-
-  function getAudioCtx() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-    return audioCtx;
-  }
-
-  function isMuted() {
-    return window.GamePlatform && GamePlatform.isMuted();
-  }
-
   function playTone(freq, duration, type, volume, ramp) {
-    if (isMuted()) return;
-    try {
-      const ctx = getAudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type || 'sine';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(volume || 0.15, ctx.currentTime);
-      if (ramp !== false) {
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-      }
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + duration);
-    } catch (e) { /* audio not supported */ }
+    GameEngine.tone(freq, duration, { type: type || 'sine', volume: volume || 0.15, decay: ramp !== false });
   }
 
   function playNoise(duration, volume) {
-    if (isMuted()) return;
-    try {
-      const ctx = getAudioCtx();
-      const bufferSize = ctx.sampleRate * duration;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-      }
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(volume || 0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-      source.connect(gain);
-      gain.connect(ctx.destination);
-      source.start(ctx.currentTime);
-    } catch (e) { /* audio not supported */ }
+    GameEngine.noise(duration, { volume: volume || 0.2, fade: true });
   }
 
   const Sound = {

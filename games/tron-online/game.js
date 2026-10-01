@@ -4,6 +4,7 @@
   // ── DOM ──
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
+  GameEngine.sharpCanvas(canvas);
   const lobby = document.getElementById('lobby');
   const gameScreen = document.getElementById('game-screen');
   const btnHost = document.getElementById('btn-host');
@@ -47,23 +48,11 @@
   };
 
   // ── Audio ──
-  let audioCtx;
   function ensureAudio() {
-    if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-      catch (e) { return; }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    return GameEngine.audio();
   }
   function playTone(f, d, t = 'square', v = 0.1) {
-    if (window.GamePlatform && GamePlatform.isMuted()) return;
-    ensureAudio();
-    if (!audioCtx) return;
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = t; o.frequency.value = f;
-    g.gain.setValueAtTime(v, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
-    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + d);
+    GameEngine.tone(f, d, { type: t, volume: v });
   }
   function sfxCountdown() { playTone(440, 0.15, 'triangle', 0.12); }
   function sfxGo() { playTone(880, 0.2, 'triangle', 0.15); }
