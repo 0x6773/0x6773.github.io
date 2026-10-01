@@ -1,37 +1,45 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { min-height: 100%; background: #11151a; color: #fff; font-family: 'Segoe UI', Tahoma, sans-serif; touch-action: pan-y; user-select: none; -webkit-user-select: none; overflow-x: hidden; }
+html, body { min-height: 100%; background: radial-gradient(circle at 50% 0%, #1b2029 0%, #0d1014 60%) fixed, #0d1014; color: #fff; font-family: 'Segoe UI', Tahoma, sans-serif; touch-action: pan-y; user-select: none; -webkit-user-select: none; overflow-x: hidden; }
 body { display: flex; justify-content: center; padding: 24px 12px 40px; }
-#game-shell { width: min(480px, 100%, max(160px, calc((100vh - var(--gp-header-h, 80px) - 53px) * 480 / 608))); width: min(480px, 100%, max(160px, calc((100dvh - var(--gp-header-h, 80px) - 53px) * 480 / 608))); }
-#hud { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #202b28; border: 1px solid #52675c; border-bottom: 0; border-radius: 12px 12px 0 0; font-variant-numeric: tabular-nums; }
-#hud > div { display: flex; align-items: baseline; gap: 5px; }
-.hud-label { color: #9caf9e; font-size: 9px; font-weight: 800; letter-spacing: 1px; }
-#hud strong { color: #e7d96b; font-size: 17px; }
-#hud > div:nth-child(2) strong { color: #7ddf83; }
-#hud > div:nth-child(3) strong { color: #ff7f7f; }
-#hud > div:nth-child(4) strong { color: #76d7ea; }
-#game-area { position: relative; width: 100%; overflow: hidden; border: 1px solid #52675c; border-top: 0; border-radius: 0 0 12px 12px; background: #18201d; touch-action: none; box-shadow: 0 14px 50px rgba(0,0,0,.55), 0 0 50px rgba(120,200,130,.08); }
-#game-canvas { display: block; width: 100%; height: auto; touch-action: none; image-rendering: pixelated; }
-.overlay { position: absolute; inset: 0; display: flex; align-items: center; align-items: safe center; justify-content: center; overflow-y: auto; background: rgba(17,21,26,.92); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 10; }
+#game-shell { width: min(768px, 100%, max(240px, calc((100vh - var(--gp-header-h, 80px) - 50px) * 512 / 448))); width: min(768px, 100%, max(240px, calc((100dvh - var(--gp-header-h, 80px) - 50px) * 512 / 448))); }
+#game-area { position: relative; width: 100%; overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: #0f1217; touch-action: none; box-shadow: 0 18px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.4); }
+#game-canvas { display: block; width: 100%; height: auto; touch-action: none; }
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; align-items: safe center; justify-content: center; overflow-y: auto; background: rgba(12,15,20,.88); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 10; }
 .overlay.hidden, .hidden { display: none !important; }
-.overlay-content { width: min(370px, calc(100% - 32px)); text-align: center; padding: 24px 16px; }
-.overlay h1 { color: #e7d96b; font-size: clamp(30px, 8vw, 46px); letter-spacing: 4px; text-shadow: 0 0 24px rgba(231,217,107,.5); margin-bottom: 10px; }
-#overlay-message { color: #c4d2c6; font-size: 16px; margin-bottom: 18px; }
-.how-to-play { padding: 14px 16px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; color: #b9c8bb; font-size: 13px; line-height: 1.8; text-align: left; margin-bottom: 20px; }
-.how-title { color: #99aa9b; font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; }
-#overlay-button { min-width: 150px; padding: 13px 30px; border: 0; border-radius: 999px; background: linear-gradient(135deg,#e7d96b,#7ddf83); color: #18201d; cursor: pointer; font: 800 15px 'Segoe UI',sans-serif; letter-spacing: 1px; text-transform: uppercase; box-shadow: 0 5px 24px rgba(125,223,131,.3); }
-#wave-banner { position: absolute; top: 45%; left: 50%; transform: translate(-50%,-50%); color: #e7d96b; font-size: 28px; font-weight: 900; letter-spacing: 4px; white-space: nowrap; pointer-events: none; text-shadow: 0 0 20px rgba(231,217,107,.8); z-index: 5; }
+.overlay-content { width: min(390px, calc(100% - 32px)); text-align: center; padding: 24px 16px; }
+.overlay h1 { font-size: clamp(30px, 8vw, 46px); font-weight: 900; letter-spacing: 4px; background: linear-gradient(135deg, #ffe18a, #ff8a3d); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 18px rgba(255,138,61,.35)); margin-bottom: 10px; }
+#overlay-message { color: #c8d0da; font-size: 16px; margin-bottom: 18px; }
+.how-to-play { padding: 14px 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; color: #b8c1cb; font-size: 13px; line-height: 1.8; text-align: left; margin-bottom: 20px; }
+.how-title { color: #8a95a2; font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; }
+#overlay-button { min-width: 150px; padding: 13px 30px; border: 0; border-radius: 999px; background: linear-gradient(135deg,#ffe18a,#ff8a3d); color: #1a1208; cursor: pointer; font: 800 15px 'Segoe UI',sans-serif; letter-spacing: 1px; text-transform: uppercase; box-shadow: 0 5px 24px rgba(232,112,28,.3); }
 #touch-controls { display: none; justify-content: center; align-items: center; gap: 22px; padding: 12px 0 0; }
 .dpad { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .dpad > div { display: flex; gap: 5px; }
-.dpad button, #fire-button { width: 54px; height: 46px; border: 2px solid #617b68; border-radius: 9px; background: #202b28; color: #b6dbb9; cursor: pointer; font: 800 18px 'Segoe UI',sans-serif; touch-action: none; -webkit-tap-highlight-color: transparent; }
-#fire-button { width: 92px; color: #ff9a86; border-color: #9b5a4d; font-size: 12px; letter-spacing: 1px; }
-.dpad button:active, .dpad button.pressed, #fire-button:active, #fire-button.pressed { background: #34483b; border-color: #e7d96b; color: #fff; transform: scale(.95); }
-#highscores { list-style: none; margin: 18px 0 0; padding: 12px 16px; background: #202b28; border: 1px solid #52675c; border-radius: 10px; color: #b9c8bb; text-align: center; font-size: 13px; line-height: 1.8; }
-#highscores::before { content: 'TOP SCORES'; display: block; color: #e7d96b; font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-bottom: 4px; }
+.dpad button, #fire-button { width: 54px; height: 46px; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; background: linear-gradient(180deg,#232a34,#171c23); color: #d6dde5; box-shadow: 0 3px 10px rgba(0,0,0,.35); cursor: pointer; font: 800 18px 'Segoe UI',sans-serif; touch-action: none; -webkit-tap-highlight-color: transparent; }
+#fire-button { width: 92px; color: #ffb066; border-color: rgba(255,138,61,.55); font-size: 12px; letter-spacing: 1px; }
+.dpad button:active, .dpad button.pressed, #fire-button:active, #fire-button.pressed { background: #2c3541; border-color: #ffd36e; color: #fff; transform: scale(.95); }
+#highscores { list-style: none; margin: 18px 0 0; padding: 12px 16px; background: #151a21; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; color: #c3cbd4; text-align: center; font-size: 13px; line-height: 1.8; }
+#highscores::before { content: 'TOP SCORES'; display: block; color: #ffd36e; font-size: 10px; font-weight: 800; letter-spacing: 2px; margin-bottom: 4px; }
 #highscores li:first-child { color: #fff; font-weight: 800; }
-@media (pointer: coarse), (max-width: 600px) { #touch-controls { display: flex; } #game-shell { width: min(480px, 100%, max(160px, calc((100vh - var(--gp-header-h, 80px) - 154px) * 480 / 608))); width: min(480px, 100%, max(160px, calc((100dvh - var(--gp-header-h, 80px) - 154px) * 480 / 608))); } }
-@media (max-height: 760px) { .overlay-content { padding: 14px 12px; } .overlay h1 { margin-bottom: 6px; } #overlay-message { margin-bottom: 10px; } .how-to-play { padding: 10px 14px; line-height: 1.6; margin-bottom: 12px; } }
-@media (max-width: 500px) { body { padding: 12px 8px 28px; } #hud { gap: 4px; padding: 9px 7px; } #hud > div { gap: 3px; } #hud strong { font-size: 14px; } .hud-label { font-size: 7px; letter-spacing: .4px; } #touch-controls { gap: 12px; } .dpad button { width: 48px; height: 42px; } #fire-button { width: 78px; } }
+
+@media (pointer: coarse), (max-width: 600px) {
+  #touch-controls { display: flex; }
+  #game-shell { width: min(768px, 100%, max(200px, calc((100vh - var(--gp-header-h, 80px) - 150px) * 512 / 448))); width: min(768px, 100%, max(200px, calc((100dvh - var(--gp-header-h, 80px) - 150px) * 512 / 448))); }
+}
+
+@media (max-height: 760px) {
+  .overlay-content { padding: 14px 12px; }
+  .overlay h1 { margin-bottom: 6px; }
+  #overlay-message { margin-bottom: 10px; }
+  .how-to-play { padding: 10px 14px; line-height: 1.6; margin-bottom: 12px; }
+}
+
+@media (max-width: 500px) {
+  body { padding: 12px 8px 28px; }
+  #touch-controls { gap: 12px; }
+  .dpad button { width: 48px; height: 42px; }
+  #fire-button { width: 78px; }
+}
 
 @media (max-width: 500px), (max-height: 500px) {
   .overlay { position: fixed; top: var(--gp-header-h, 48px); right: 0; bottom: 0; left: 0; z-index: 900; }
@@ -39,62 +47,28 @@ body { display: flex; justify-content: center; padding: 24px 12px 40px; }
 
 @media (orientation: landscape) and (max-height: 500px) {
   body { padding-bottom: 8px; }
-  #game-shell { width: min(480px, 100%, max(160px, calc((100dvh - var(--gp-header-h, 48px) - 61px) * 480 / 608))); }
+  #game-shell { width: max(200px, calc((100vh - var(--gp-header-h, 48px) - 12px) * 512 / 448)); width: max(200px, calc((100dvh - var(--gp-header-h, 48px) - 12px) * 512 / 448)); }
   #touch-controls {
     position: fixed;
     left: 0;
     right: 0;
     top: calc(50% + var(--gp-header-h, 48px) / 2);
     transform: translateY(-50%);
+    justify-content: space-between;
     padding: 0 16px;
     gap: 10px;
     pointer-events: none;
     z-index: 50;
   }
-  #touch-controls { justify-content: space-between; }
   #touch-controls button { pointer-events: auto; }
-}
-
-@media (orientation: landscape) and (max-height: 500px) {
   .overlay-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: min(780px, calc(100% - 24px)); max-width: none; }
   .overlay-content > * { grid-column: 2; }
   .overlay-content > .how-to-play { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
   .overlay h1 { font-size: 30px; }
 }
 
-@media (orientation: landscape) and (max-height: 500px) {
-  #game-shell {
-    width: auto;
-    display: grid;
-    grid-template-columns: auto auto;
-    column-gap: 8px;
-    align-items: start;
-    justify-content: center;
-  }
-  #hud {
-    grid-column: 1;
-    grid-row: 1;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    padding: 8px 10px;
-    border: 1px solid #52675c;
-    border-radius: 12px;
-  }
-  #game-area {
-    grid-column: 2;
-    grid-row: 1 / span 3;
-    width: max(150px, calc((100vh - var(--gp-header-h, 48px) - 12px) * 480 / 608));
-    width: max(150px, calc((100dvh - var(--gp-header-h, 48px) - 12px) * 480 / 608));
-    border-top: 1px solid #52675c;
-    border-radius: 12px;
-  }
-  #highscores { grid-column: 1 / -1; }
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
+  #game-shell { width: min(900px, 100%, max(200px, calc((100vh - var(--gp-header-h, 80px) - 150px) * 512 / 448))); width: min(900px, 100%, max(200px, calc((100dvh - var(--gp-header-h, 80px) - 150px) * 512 / 448))); }
 }
 
-@media (pointer: coarse) and (min-width: 700px) and (min-height: 700px) {
-  #game-shell {
-    width: min(640px, 100%, max(160px, calc((100vh - var(--gp-header-h, 80px) - 154px) * 480 / 608)));
-    width: min(640px, 100%, max(160px, calc((100dvh - var(--gp-header-h, 80px) - 154px) * 480 / 608)));
-  }
-}
+.gp-btn-music.off { opacity: .4; }

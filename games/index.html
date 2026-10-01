@@ -1150,10 +1150,11 @@
       </div>
       <div class="game-info">
         <h2>Battle City</h2>
-        <p>Defend your base, break brick walls, and destroy enemy tanks in this original top-down tank battle.</p>
+        <p>The classic tank battle with a modern look: defend the eagle, destroy 20 enemy tanks per stage and grab power-ups across 15 stages.</p>
       </div>
       <div class="game-tags">
         <span class="tag">Arcade</span>
+        <span class="tag">Classic</span>
         <span class="tag">Tank Battle</span>
         <span class="tag">Canvas</span>
         <span class="tag">Touch</span>
@@ -1929,17 +1930,55 @@
       var c = document.getElementById('preview-battle-city');
       if (!c) return;
       var ctx = c.getContext('2d');
-      var W = c.width, H = c.height, tick = 0, tankX = 140;
-      function frame() {
-        tick++; tankX += Math.sin(tick * 0.02) * 0.5;
-        ctx.fillStyle = '#18201d'; ctx.fillRect(0, 0, W, H);
-        for (var r = 0; r < 5; r++) for (var col = 0; col < 9; col++) {
-          if ((r + col) % 4 === 0) { ctx.fillStyle = '#a9583d'; ctx.fillRect(col * 31 + 7, r * 22 + 16, 25, 17); }
+      var W = c.width, H = c.height, tick = 0;
+      function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+      function wall(x, y, w, h) {
+        for (var j = 0; j < h; j += 6) for (var i = (j / 6) % 2 ? -6 : 0; i < w; i += 12) {
+          var bx = Math.max(x, x + i), bw = Math.min(x + w, x + i + 12) - bx;
+          if (bw <= 0) continue;
+          ctx.fillStyle = '#2b1810'; ctx.fillRect(bx, y + j, bw, 6);
+          ctx.fillStyle = '#b5532a'; ctx.fillRect(bx + 0.5, y + j + 0.5, bw - 1, 5);
+          ctx.fillStyle = 'rgba(255,190,150,0.35)'; ctx.fillRect(bx + 0.5, y + j + 0.5, bw - 1, 1);
         }
-        ctx.fillStyle = '#226c91'; ctx.fillRect(90, 70, 100, 24);
-        ctx.fillStyle = '#ff5f7f'; ctx.fillRect(20 + (tick * 0.4) % 230, 25, 18, 18);
-        ctx.fillStyle = '#7dff83'; ctx.fillRect(tankX, 122, 22, 22); ctx.fillStyle = '#1e3325'; ctx.fillRect(tankX + 7, 114, 8, 16);
-        ctx.fillStyle = '#e7d96b'; ctx.fillRect(132, 145, 55, 10); ctx.fillStyle = '#283424'; ctx.fillRect(151, 147, 18, 6);
+      }
+      function steel(x, y) {
+        var g = ctx.createLinearGradient(x, y, x + 14, y + 14); g.addColorStop(0, '#e8edf2'); g.addColorStop(1, '#838d98');
+        ctx.fillStyle = '#3e454d'; ctx.fillRect(x, y, 14, 14); ctx.fillStyle = g; ctx.fillRect(x + 1, y + 1, 12, 12);
+      }
+      function tank(x, y, rot, hull, dark, step) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+        ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 10, 10, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#262a30'; rr(-10, -10, 5, 20, 2); ctx.fill(); rr(5, -10, 5, 20, 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        for (var k = -9 + step % 3; k < 9; k += 3) { ctx.fillRect(-9, k, 3, 1); ctx.fillRect(6, k, 3, 1); }
+        var g = ctx.createLinearGradient(-7, -8, 7, 9); g.addColorStop(0, hull); g.addColorStop(1, dark);
+        ctx.fillStyle = g; rr(-7, -8, 14, 17, 3); ctx.fill();
+        ctx.fillStyle = dark; ctx.fillRect(-1.5, -13, 3, 12);
+        ctx.fillStyle = hull; ctx.beginPath(); ctx.arc(0, 1, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      function frame() {
+        tick++;
+        var bg = ctx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#181c24'); bg.addColorStop(1, '#0c0e12');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#11151b'; rr(8, 8, W - 52, H - 16, 6); ctx.fill();
+        ctx.fillStyle = '#161b22'; rr(W - 38, 8, 30, H - 16, 6); ctx.fill();
+        wall(26, 22, 36, 24); wall(88, 22, 36, 24); wall(150, 22, 36, 24);
+        wall(26, 80, 18, 36); wall(168, 80, 18, 36); wall(88, 70, 48, 12);
+        steel(98, 92); steel(112, 92);
+        wall(90, 128, 8, 24); wall(98, 128, 22, 8); wall(120, 128, 8, 24);
+        ctx.fillStyle = '#23282f'; rr(100, 137, 18, 16, 4); ctx.fill();
+        ctx.fillStyle = '#f2c94c'; ctx.beginPath(); ctx.moveTo(109, 140); ctx.lineTo(116, 145); ctx.lineTo(109, 150); ctx.lineTo(102, 145); ctx.closePath(); ctx.fill();
+        var px = 60 + Math.round((Math.sin(tick * 0.02) + 1) * 12);
+        tank(px, 146, 0, '#ffe18a', '#c9921a', tick >> 2);
+        var ey = 40 + (tick % 200) * 0.35;
+        tank(206, Math.min(ey, 104), Math.PI, '#e2e7ec', '#7d8792', tick >> 2);
+        tank(70, 62, Math.PI, (tick >> 3) % 2 ? '#ff9d88' : '#e2e7ec', (tick >> 3) % 2 ? '#c2361f' : '#7d8792', 0);
+        var glow = ctx.createRadialGradient(px, 130, 0, px, 130, 6); glow.addColorStop(0, 'rgba(255,238,170,0.9)'); glow.addColorStop(1, 'rgba(255,200,120,0)');
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(px, 130 - (tick % 30) * 2, 6, 0, Math.PI * 2); ctx.fill();
+        for (var i = 0; i < 10; i++) { ctx.fillStyle = i < 7 ? '#c6cdd5' : 'rgba(255,255,255,0.08)'; rr(W - 32 + (i % 2) * 12, 18 + (i >> 1) * 11, 8, 6, 1.5); ctx.fill(); }
+        ctx.fillStyle = '#ff8a3d'; ctx.beginPath(); ctx.moveTo(W - 30, 118); ctx.lineTo(W - 20, 121); ctx.lineTo(W - 30, 125); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#9aa3ad'; ctx.fillRect(W - 31, 117, 1.5, 16);
         requestAnimationFrame(frame);
       }
       frame();

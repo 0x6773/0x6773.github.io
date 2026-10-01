@@ -63,7 +63,7 @@
     { id: 'asteroids-combo', name: 'Rock Chain', desc: 'Reach a 10x combo in Asteroids', icon: 'X' },
     { id: 'stacktower-height', name: 'Skyline', desc: 'Reach height 25 in Stack Tower', icon: 'S' },
     { id: 'stacktower-combo', name: 'Perfect Builder', desc: 'Reach a 10x combo in Stack Tower', icon: 'P' },
-    { id: 'battlecity-wave-10', name: 'Tank Commander', desc: 'Reach wave 10 in Battle City', icon: 'T' },
+    { id: 'battlecity-wave-10', name: 'Tank Commander', desc: 'Reach stage 5 in Battle City', icon: 'T' },
     { id: 'time-30m',        name: 'Marathon',            desc: 'Play for 30 min total',     icon: '\u{23F1}\uFE0F' },
     { id: 'night-owl',       name: 'Night Owl',           desc: 'Play after midnight',       icon: '\u{1F989}' },
     { id: 'early-bird',      name: 'Early Bird',          desc: 'Play before 7 AM',          icon: '\u{1F305}' },
@@ -163,7 +163,7 @@
     if ((gs['asteroids']?.maxCombo || 0) >= 10) tryUnlock('asteroids-combo');
     if ((gs['stack-tower']?.maxHeight || 0) >= 25) tryUnlock('stacktower-height');
     if ((gs['stack-tower']?.maxCombo || 0) >= 10) tryUnlock('stacktower-combo');
-    if ((gs['battle-city']?.maxWave || 0) >= 10) tryUnlock('battlecity-wave-10');
+    if ((gs['battle-city']?.maxWave || 0) >= 5) tryUnlock('battlecity-wave-10');
 
     // Time achievement
     if (stats.totalTime >= 30 * 60 * 1000) tryUnlock('time-30m');
@@ -673,7 +673,7 @@
         { gameId: 'space-invaders', desc: 'Score 500+ in Space Invaders', check: function(s, e) { return s >= 500; } },
         { gameId: 'asteroids', desc: 'Score 500+ in Asteroids', check: function(s, e) { return s >= 500; } },
         { gameId: 'stack-tower', desc: 'Score 500+ in Stack Tower', check: function(s, e) { return s >= 500; } },
-        { gameId: 'battle-city', desc: 'Score 500+ in Battle City', check: function(s, e) { return s >= 500; } },
+        { gameId: 'battle-city', desc: 'Score 3,000+ in Battle City', check: function(s, e) { return s >= 3000; } },
         { gameId: 'snake', desc: 'Score 100+ in Snake', check: function(s, e) { return s >= 100; } },
         { gameId: 'flappy', desc: 'Score 25+ in Flappy Bird', check: function(s, e) { return s >= 25; } },
         { gameId: 'breakout', desc: 'Score 500+ in Breakout', check: function(s, e) { return s >= 500; } },

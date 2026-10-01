@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="description" content="Play Battle City-inspired tank defense free online. Destroy enemy tanks, break walls, and protect your base.">
-  <meta name="keywords" content="battle city game, tank game, tank battle, arcade game, free browser game">
+  <meta name="description" content="Play a classic Battle City-style tank game free online. Defend your eagle base against 20 enemy tanks per stage across 15 handcrafted stages, with power-ups, brick, steel, water, forest and ice.">
+  <meta name="keywords" content="battle city game, classic tank game, tank 1990, nes tank game, tank battle, free browser game">
   <link rel="canonical" href="https://mnciitbhu.me/games/battle-city/">
   <meta property="og:title" content="Battle City - Free Online Tank Defense Game">
-  <meta property="og:description" content="Destroy enemy tanks, break walls, and protect your base in this original arcade tank battle.">
+  <meta property="og:description" content="Classic arcade tank battle: defend the eagle, destroy 20 enemy tanks per stage and grab power-ups across 15 handcrafted stages.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://mnciitbhu.me/games/battle-city/">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Battle City - Free Online Tank Defense Game">
-  <meta name="twitter:description" content="Destroy enemy tanks, break walls, and protect your base in this original arcade tank battle.">
+  <meta name="twitter:description" content="Classic arcade tank battle: defend the eagle, destroy 20 enemy tanks per stage and grab power-ups across 15 handcrafted stages.">
   <title>Battle City - Free Online Tank Defense Game</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../platform.css">
@@ -22,29 +22,22 @@
 </head>
 <body>
   <main id="game-shell">
-    <div id="hud">
-      <div><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
-      <div><span class="hud-label">WAVE</span><strong id="wave">1</strong></div>
-      <div><span class="hud-label">BASE</span><strong id="base">3</strong></div>
-      <div><span class="hud-label">TANKS</span><strong id="tanks">0</strong></div>
-    </div>
     <div id="game-area">
-      <canvas id="game-canvas" width="480" height="608"></canvas>
+      <canvas id="game-canvas" width="512" height="448"></canvas>
       <div id="overlay" class="overlay">
         <div class="overlay-content">
           <h1>BATTLE CITY</h1>
           <p id="overlay-message">Click or press any key to start</p>
           <div class="how-to-play">
             <div class="how-title">How to Play</div>
-            Move with Arrow Keys or WASD<br>
-            Fire with Space or the Fire button<br>
-            Break brick walls and destroy enemy tanks<br>
-            Protect the base at the bottom of the arena
+            Move with Arrow Keys or WASD, fire with Space, M toggles music<br>
+            Defend the eagle: one hit on it and the game is over<br>
+            Destroy all 20 enemy tanks to clear the stage<br>
+            Red flashing tanks drop power-ups: star, grenade, helmet, shovel, clock and extra tank
           </div>
           <button id="overlay-button" type="button">Play</button>
         </div>
       </div>
-      <div id="wave-banner" class="hidden"></div>
     </div>
     <div id="touch-controls" aria-label="Touch controls">
       <div class="dpad">
@@ -55,6 +48,9 @@
     </div>
     <ol id="highscores" class="hidden" aria-label="High scores"></ol>
   </main>
+  <script src="stages.js"></script>
+  <script src="core.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
