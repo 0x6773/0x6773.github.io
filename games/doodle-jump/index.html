@@ -7,16 +7,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="description" content="Play Doodle Jump free online. Jump from platform to platform in this endless vertical scroller. Watch out for fragile and moving platforms!">
-  <meta name="keywords" content="doodle jump, online doodle jump, free doodle jump game, endless platformer, jumping game">
+  <meta name="description" content="Play Doodle Jump free online. Bounce up through the sky to outer space, grab jetpacks and springs, stomp monsters and dodge black holes in this endless jumping game.">
+  <meta name="keywords" content="doodle jump, online doodle jump, free doodle jump game, endless jumper, jetpack, jumping game">
   <link rel="canonical" href="https://mnciitbhu.me/games/doodle-jump/">
   <meta property="og:title" content="Doodle Jump - Free Online Endless Platformer Game">
-  <meta property="og:description" content="Play Doodle Jump free online. Jump from platform to platform in this endless vertical scroller. Watch out for fragile and moving platforms!">
+  <meta property="og:description" content="Play Doodle Jump free online. Bounce up through the sky to outer space, grab jetpacks and springs, stomp monsters and dodge black holes in this endless jumping game.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://mnciitbhu.me/games/doodle-jump/">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Doodle Jump - Free Online Endless Platformer Game">
-  <meta name="twitter:description" content="Play Doodle Jump free online. Jump from platform to platform in this endless vertical scroller. Watch out for fragile and moving platforms!">
+  <meta name="twitter:description" content="Play Doodle Jump free online. Bounce up through the sky to outer space, grab jetpacks and springs, stomp monsters and dodge black holes in this endless jumping game.">
   <title>Doodle Jump - Free Online Endless Platformer Game</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../platform.css">
@@ -27,7 +27,7 @@
     "@context": "https://schema.org",
     "@type": "VideoGame",
     "name": "Doodle Jump",
-    "description": "Play Doodle Jump free online. Jump from platform to platform in this endless vertical scroller. Watch out for fragile and moving platforms!",
+    "description": "Play Doodle Jump free online. Bounce up through the sky to outer space, grab jetpacks and springs, stomp monsters and dodge black holes in this endless jumping game.",
     "url": "https://mnciitbhu.me/games/doodle-jump/",
     "genre": "Arcade",
     "gamePlatform": "Web Browser",
@@ -46,7 +46,6 @@
   </script>
 </head>
 <body>
-  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
   <div id="game-wrapper">
     <div id="hud">
       <div id="hud-score-label">SCORE</div>
@@ -62,15 +61,15 @@
           <div class="start-doodler"></div>
           <div class="how-to">
             <div class="how-to-title">How to Play</div>
-            Use Arrow Keys or A/D to move left/right<br>
-            On mobile: drag left/right or tilt your device<br>
-            Auto-bounce on platforms to climb higher<br>
-            Green = safe, Blue = moving, Brown = fragile<br>
-            Red springs launch you extra high!<br>
-            Screen wraps: go off one side, appear on the other
+            Arrow Keys or A/D to steer; on touch, hold a side or drag<br>
+            Bounce from the sky up into space<br>
+            Planks crack, rotten wood breaks, clouds vanish<br>
+            Springs and jetpacks send you flying<br>
+            Stomp monsters from above; avoid black holes
           </div>
+          <button id="tilt-toggle" class="hidden" type="button">Tilt controls: Off</button>
           <p class="start-hint">Click or tap to start</p>
-          <p class="start-controls">Arrow Keys / A-D / Touch / Tilt</p>
+          <p class="start-controls">Arrow Keys / A-D / Touch / Tilt &middot; M: music</p>
         </div>
       </div>
       <!-- Game Over Overlay -->
@@ -90,6 +89,9 @@
       </div>
     </div>
   </div>
+  <script src="core.js"></script>
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

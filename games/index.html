@@ -1070,11 +1070,12 @@
       </div>
       <div class="game-info">
         <h2>Doodle Jump</h2>
-        <p>Endless vertical platformer. Bounce on platforms, avoid falling. Normal, moving, fragile, and spring platforms!</p>
+        <p>Bounce from the sky into space: grab jetpacks, propellers and springs, stomp monsters and dodge black holes.</p>
       </div>
       <div class="game-tags">
         <span class="tag">Arcade</span>
         <span class="tag">Endless</span>
+        <span class="tag">Power-ups</span>
         <span class="tag">Canvas</span>
         <span class="tag">Mobile</span>
       </div>
@@ -1774,40 +1775,37 @@
       if (!c) return;
       var ctx = c.getContext('2d');
       var W = c.width, H = c.height;
-      var platforms = [];
-      for (var i = 0; i < 6; i++) platforms.push({x: 30+Math.random()*(W-100), y: 30+i*25, w: 50});
-      var px = W/2, py = H-40, vy = -3;
-      var tick = 0;
+      var platforms = [{ x: 30, y: 128 }, { x: 150, y: 104 }, { x: 70, y: 74 }, { x: 190, y: 50 }, { x: 110, y: 26 }];
+      var clouds = [{ x: 40, y: 30, s: 0.6 }, { x: 200, y: 70, s: 0.8 }, { x: 120, y: 120, s: 0.5 }];
+      var px = 60, py = 110, vy = -4, tick = 0, target = 1;
+      function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
       function frame() {
         tick++;
-        ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0,0,W,H);
-        // Platforms
-        for (var p of platforms) {
-          ctx.fillStyle = '#2ecc71';
-          ctx.fillRect(p.x, p.y, p.w, 8);
-          ctx.fillStyle = '#27ae60';
-          ctx.fillRect(p.x, p.y+6, p.w, 2);
+        var sky = ctx.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#5fb6ff'); sky.addColorStop(1, '#d6f2ff');
+        ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = 'rgba(255,244,184,0.9)'; ctx.beginPath(); ctx.arc(240, 28, 14, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        for (var i = 0; i < clouds.length; i++) {
+          var cl = clouds[i], cx = (cl.x + tick * 0.15 * cl.s) % (W + 60) - 30;
+          ctx.beginPath(); ctx.arc(cx, cl.y, 12 * cl.s, 0, 7); ctx.arc(cx + 13 * cl.s, cl.y + 4 * cl.s, 9 * cl.s, 0, 7); ctx.arc(cx - 12 * cl.s, cl.y + 4 * cl.s, 8 * cl.s, 0, 7); ctx.fill();
         }
-        // Player
-        vy += 0.15;
-        py += vy;
-        px += Math.sin(tick*0.03)*1.5;
-        // Bounce
-        for (var p of platforms) {
-          if (vy > 0 && py >= p.y-8 && py <= p.y && px > p.x-5 && px < p.x+p.w+5) {
-            vy = -4;
-          }
+        for (var j = 0; j < platforms.length; j++) {
+          var p = platforms[j];
+          ctx.fillStyle = '#7a4c28'; rr(p.x + 1, p.y + 2, 40, 7, 3); ctx.fill();
+          ctx.fillStyle = '#5ccf4c'; rr(p.x, p.y, 42, 5, 2.5); ctx.fill();
         }
-        if (py > H) { py = H-40; vy = -3; }
-        // Draw player
-        ctx.fillStyle = '#53d769';
-        ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(px-3, py-2, 2.5, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(px+3, py-2, 2.5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#333';
-        ctx.beginPath(); ctx.arc(px-2.5, py-2, 1, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(px+3.5, py-2, 1, 0, Math.PI*2); ctx.fill();
+        vy += 0.22; py += vy;
+        var t = platforms[target], dx = t.x + 21 - px;
+        px += Math.max(-1.6, Math.min(1.6, dx * 0.08));
+        if (vy > 0 && py >= t.y - 1 && py <= t.y + 6 && Math.abs(dx) < 24) { vy = -4.6; py = t.y - 1; target = target === 1 ? 2 : target === 2 ? 3 : target === 3 ? 4 : 0; }
+        if (py > H + 20) { px = 51; py = 110; vy = -4; target = 1; }
+        ctx.save(); ctx.translate(px, py - 9);
+        var g = ctx.createRadialGradient(-2, -3, 1, 0, 0, 10); g.addColorStop(0, '#c2f8cf'); g.addColorStop(1, '#22985a');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, 8, 8.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#3cc26f'; rr(5, -2, 6, 4, 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-2, -3, 2.4, 0, 7); ctx.arc(3, -3, 2.4, 0, 7); ctx.fill();
+        ctx.fillStyle = '#1b1f2a'; ctx.beginPath(); ctx.arc(-1.4, -2.8, 1.1, 0, 7); ctx.arc(3.6, -2.8, 1.1, 0, 7); ctx.fill();
+        ctx.restore();
         requestAnimationFrame(frame);
       }
       frame();

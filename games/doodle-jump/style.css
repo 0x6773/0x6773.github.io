@@ -9,7 +9,7 @@ html, body {
   width: 100%;
   height: 100%;
   overflow-x: hidden;
-  background: #0f0f1a;
+  background: radial-gradient(circle at 50% 0%, #22345c 0%, #0c1222 65%) fixed, #0c1222;
   font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
@@ -32,19 +32,19 @@ html, body {
   width: min(400px, 100vw, max(150px, calc((100vh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
   width: min(400px, 100vw, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
   flex-shrink: 0;
-  background: #1a1a2e;
+  background: linear-gradient(180deg, rgba(28,42,74,0.96), rgba(20,30,56,0.96));
   padding: 10px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  border-radius: 12px 12px 0 0;
-  border: 1px solid #2a2a4a;
+  border-radius: 16px 16px 0 0;
+  border: 1px solid rgba(255,255,255,0.1);
   border-bottom: none;
 }
 
 #hud-score-label {
-  color: #7a7aaa;
+  color: #9fb4d8;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 3px;
@@ -56,7 +56,7 @@ html, body {
   font-size: 28px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 20px rgba(100, 200, 255, 0.4);
+  text-shadow: 0 2px 14px rgba(95, 184, 255, 0.45);
 }
 
 /* ── Canvas Container ── */
@@ -65,11 +65,11 @@ html, body {
   width: min(400px, 100vw, max(150px, calc((100vh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
   width: min(400px, 100vw, max(150px, calc((100dvh - var(--gp-header-h, 80px) - 66px) * 2 / 3)));
   flex-shrink: 0;
-  border: 1px solid #2a2a4a;
+  border: 1px solid rgba(255,255,255,0.1);
   border-top: none;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 16px 16px;
   overflow: hidden;
-  box-shadow: 0 10px 60px rgba(0, 0, 0, 0.6), 0 0 80px rgba(50, 100, 200, 0.08);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55), 0 0 90px rgba(95, 184, 255, 0.12);
 }
 
 #game-canvas {
@@ -89,9 +89,9 @@ html, body {
   align-items: safe center;
   justify-content: center;
   overflow-y: auto;
-  background: rgba(10, 10, 26, 0.75);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, rgba(14, 26, 54, 0.62), rgba(10, 18, 40, 0.78));
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   z-index: 10;
   transition: opacity 0.3s ease;
 }
@@ -111,36 +111,49 @@ html, body {
 .game-title {
   font-size: 42px;
   font-weight: 900;
-  background: linear-gradient(135deg, #00e676, #00bcd4, #7c4dff);
+  background: linear-gradient(135deg, #8ff5a8, #5fb8ff 55%, #c9a0ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 30px;
   text-shadow: none;
-  filter: drop-shadow(0 2px 8px rgba(0, 230, 118, 0.3));
+  filter: drop-shadow(0 4px 14px rgba(95, 184, 255, 0.4));
 }
 
 .start-doodler {
-  width: 40px;
-  height: 40px;
-  background: #66ff66;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  background: radial-gradient(circle at 35% 30%, #c2f8cf, #52d283 55%, #22985a);
+  border-radius: 48% 48% 46% 46%;
   margin: 0 auto 30px;
   position: relative;
-  box-shadow: 0 0 20px rgba(102, 255, 102, 0.5);
+  box-shadow: 0 6px 20px rgba(82, 210, 131, 0.45);
   animation: bob 1.2s ease-in-out infinite;
 }
 
 .start-doodler::before {
   content: '';
   position: absolute;
-  width: 7px;
-  height: 7px;
-  background: #1a1a2e;
-  border-radius: 50%;
-  top: 12px;
+  width: 24px;
+  height: 13px;
+  top: 9px;
   left: 10px;
-  box-shadow: 14px 0 0 #1a1a2e;
+  background:
+    radial-gradient(circle at 7px 7px, #1b1f2a 2.4px, transparent 2.9px),
+    radial-gradient(circle at 19px 7px, #1b1f2a 2.4px, transparent 2.9px),
+    radial-gradient(4.6px 6px at 6px 6.5px, #ffffff 92%, transparent 100%),
+    radial-gradient(4.6px 6px at 18px 6.5px, #ffffff 92%, transparent 100%);
+}
+
+.start-doodler::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 8px;
+  background: #3cc26f;
+  border-radius: 4px;
+  top: 19px;
+  right: -9px;
 }
 
 @keyframes bob {
@@ -153,18 +166,19 @@ html, body {
   text-align: left;
   margin: 16px 0;
   padding: 14px 18px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
   font-size: 13px;
   line-height: 1.7;
-  color: #aaa;
+  color: #dbe6f6;
 }
 
 .how-to-title {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 2px;
-  color: #666;
+  color: #a9bcdd;
   margin-bottom: 8px;
   text-transform: uppercase;
 }
@@ -179,7 +193,7 @@ html, body {
 
 .start-controls {
   font-size: 13px;
-  color: #6a6a9a;
+  color: #a9bcdd;
   letter-spacing: 1px;
 }
 
@@ -192,9 +206,9 @@ html, body {
 .gameover-title {
   font-size: 36px;
   font-weight: 900;
-  color: #ff3366;
+  color: #ff6b7d;
   margin-bottom: 24px;
-  text-shadow: 0 0 30px rgba(255, 51, 102, 0.4);
+  text-shadow: 0 4px 24px rgba(255, 90, 110, 0.45);
 }
 
 #final-score-box {
@@ -269,6 +283,33 @@ html, body {
   font-size: 13px;
 }
 
+#tilt-toggle {
+  margin: 4px 0 14px;
+  padding: 9px 18px;
+  min-height: 40px;
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: #e8f0fb;
+  font: 700 13px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+#tilt-toggle.on {
+  background: rgba(127, 240, 154, 0.2);
+  border-color: #7ff09a;
+  color: #c9ffd6;
+}
+
+#tilt-toggle.hidden {
+  display: none;
+}
+
+.gp-btn-music.off {
+  opacity: .4;
+}
+
 /* ── HUD Milestone ── */
 #hud-milestone {
   font-size: 12px;
@@ -288,8 +329,8 @@ html, body {
 
 /* ── Play Again Button ── */
 #play-again-btn {
-  background: linear-gradient(135deg, #00e676, #00bcd4);
-  color: #0f0f1a;
+  background: linear-gradient(135deg, #8ff5a8, #5fb8ff);
+  color: #0c1830;
   border: none;
   padding: 14px 48px;
   font-size: 16px;
@@ -298,13 +339,13 @@ html, body {
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 20px rgba(0, 230, 118, 0.4);
+  box-shadow: 0 6px 22px rgba(95, 184, 255, 0.4);
   text-transform: uppercase;
 }
 
 #play-again-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 30px rgba(0, 230, 118, 0.6);
+  box-shadow: 0 8px 30px rgba(95, 184, 255, 0.6);
 }
 
 #play-again-btn:active {
