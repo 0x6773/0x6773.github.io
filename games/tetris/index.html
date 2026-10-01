@@ -45,7 +45,6 @@
   </script>
 </head>
 <body>
-  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
 
   <div id="game-container">
     <div id="side-left">
@@ -57,9 +56,9 @@
 
     <div id="center">
       <div id="hud">
-        <span id="score-display">Score: 0</span>
-        <span id="level-display">Level: 1</span>
-        <span id="lines-display">Lines: 0</span>
+        <div class="stat stat-score"><span class="stat-label" id="score-label">Score</span><span class="stat-value" id="score-display">0</span></div>
+        <div class="stat stat-level"><span class="stat-label" id="level-label">Level</span><span class="stat-value" id="level-display">1</span></div>
+        <div class="stat stat-lines"><span class="stat-label" id="lines-label">Lines</span><span class="stat-value" id="lines-display">0</span></div>
       </div>
       <canvas id="gameCanvas" width="300" height="600"></canvas>
     </div>
@@ -74,21 +73,17 @@
     <div id="overlay">
       <h1>TETRIS</h1>
       <p id="overlay-sub">Click or press any key to start</p>
-      <div style="max-width:340px;text-align:left;margin:16px 0;padding:14px 18px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;line-height:1.7;color:#aaa">
-        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#666;margin-bottom:8px;text-transform:uppercase">How to Play</div>
-        Arrow keys / WASD to move and rotate<br>
-        Space for hard drop, Z for counter-rotate<br>
-        C or Shift to hold piece<br>
-        Clear lines to score<br>
-        Power-ups available in Arcade mode:<br>
-        Press 1/2/3 to use — B = Bomb (3x3 clear), R = Row Blast<br>
-        N = Nuke (3 rows), S = Slow (15s)<br>
-        I = Flat Piece (I-piece next), C = Color Bomb
+      <div class="how-to">
+        <div class="how-to-title">How to Play</div>
+        Arrow keys / WASD move and rotate, Z rotates back<br>
+        Space hard drops, C or Shift holds, M toggles music<br>
+        Touch: tap to rotate, drag to slide, flick down to drop, flick up to hold<br>
+        Arcade power-ups (keys 1/2/3): B = Bomb (3x3 clear), R = Row Blast, N = Nuke (3 rows), S = Slow (15s), I = Flat Piece (I-piece next), C = Color Bomb
       </div>
-      <div id="mode-selector" style="display:flex;gap:10px;margin:16px 0">
-        <button class="mode-btn selected" data-mode="classic" style="padding:10px 20px;font-size:14px;font-weight:700;border:2px solid #00d4ff;border-radius:6px;background:transparent;color:#00d4ff;cursor:pointer;letter-spacing:1px;transition:all 0.2s">Classic</button>
-        <button class="mode-btn" data-mode="arcade" style="padding:10px 20px;font-size:14px;font-weight:700;border:2px solid #333;border-radius:6px;background:transparent;color:#666;cursor:pointer;letter-spacing:1px;transition:all 0.2s">Arcade</button>
-        <button class="mode-btn" data-mode="sprint" style="padding:10px 20px;font-size:14px;font-weight:700;border:2px solid #333;border-radius:6px;background:transparent;color:#666;cursor:pointer;letter-spacing:1px;transition:all 0.2s">Sprint 40L</button>
+      <div id="mode-selector">
+        <button class="mode-btn selected" data-mode="classic">Classic</button>
+        <button class="mode-btn" data-mode="arcade">Arcade</button>
+        <button class="mode-btn" data-mode="sprint">Sprint 40L</button>
       </div>
       <div id="highscores" class="hidden">
         <h2>High Scores</h2>
@@ -123,6 +118,8 @@
     </div>
   </div>
 
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

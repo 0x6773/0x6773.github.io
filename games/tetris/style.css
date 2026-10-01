@@ -1,7 +1,14 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  background: #0f0f1a;
+  --hue: 220;
+  background:
+    radial-gradient(circle at 20% 15%, hsla(calc(var(--hue) + 40), 90%, 55%, 0.2), transparent 45%),
+    radial-gradient(circle at 85% 80%, hsla(calc(var(--hue) - 50), 90%, 55%, 0.17), transparent 50%),
+    linear-gradient(160deg, hsl(var(--hue), 45%, 9%), hsl(calc(var(--hue) + 30), 50%, 5%));
+  background-size: 160% 160%, 160% 160%, 100% 100%;
+  background-attachment: fixed;
+  animation: bg-drift 20s ease-in-out infinite alternate;
   color: #fff;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   min-height: 100vh;
@@ -24,25 +31,30 @@ body {
 #side-left, #side-right { padding-top: 50px; }
 
 .panel {
-  background: #1a1a2e;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
   padding: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 30px rgba(0, 0, 0, 0.35);
 }
+
+.panel.flash { animation: panel-flash 0.35s ease-out; }
 
 .panel-label {
   text-align: center;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 2px;
-  color: #666;
+  color: #9aa6c6;
   text-transform: uppercase;
   margin-bottom: 6px;
 }
 
 .panel canvas {
   display: block;
-  background: #111;
-  border-radius: 4px;
+  background: rgba(4, 7, 18, 0.55);
+  border-radius: 8px;
 }
 
 /* ── Center ── */
@@ -52,26 +64,34 @@ body {
   display: flex;
   justify-content: space-between;
   padding: 10px 16px;
-  background: #1a1a2e;
-  border-radius: 8px 8px 0 0;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px 0 0 rgba(255, 255, 255, 0.1);
+  border-radius: 12px 12px 0 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 1px;
 }
 
-#score-display { color: #00d4ff; }
-#level-display { color: #ffd700; }
-#lines-display { color: #00e676; }
+.stat { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.stat-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #8f9bbd; }
+.stat-value { font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat-score .stat-value { color: #5ff3ff; text-shadow: 0 0 12px rgba(95, 243, 255, 0.55); }
+.stat-level .stat-value { color: #ffd34d; text-shadow: 0 0 12px rgba(255, 211, 77, 0.5); }
+.stat-lines .stat-value { color: #7cf9a6; text-shadow: 0 0 12px rgba(124, 249, 166, 0.5); }
+.stat.bump .stat-value { display: inline-block; animation: stat-bump 0.35s ease-out; }
 
 #gameCanvas {
   display: block;
   width: min(304px, max(124px, calc((100vh - var(--gp-header-h, 80px) - 56px) / 2 + 3px)));
   width: min(304px, max(124px, calc((100dvh - var(--gp-header-h, 80px) - 56px) / 2 + 3px)));
   height: auto;
-  background: #111;
-  border-radius: 0 0 8px 8px;
-  border: 2px solid #1a1a2e;
+  background: #070a16;
+  border-radius: 0 0 12px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
   border-top: none;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 0 60px hsla(var(--hue), 90%, 60%, 0.18);
   touch-action: none;
 }
 
@@ -84,8 +104,10 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(15, 15, 26, 0.92);
-  border-radius: 8px;
+  background: rgba(6, 9, 22, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
   z-index: 10;
   cursor: pointer;
 }
@@ -96,16 +118,27 @@ body {
 #overlay h1 {
   font-size: 52px;
   letter-spacing: 12px;
-  background: linear-gradient(90deg, #00d4ff, #e040fb);
+  background: linear-gradient(90deg, #5ff3ff, #b18cff 50%, #ff6bff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 0 18px rgba(177, 140, 255, 0.55));
   margin-bottom: 12px;
 }
 
-#overlay-sub { color: #888; font-size: 16px; margin-bottom: 20px; }
+#overlay-sub { color: #aab4d0; font-size: 16px; margin-bottom: 20px; }
 
-#highscores h2 { font-size: 18px; color: #ffd700; margin-bottom: 8px; }
+.how-to { max-width: 340px; text-align: left; margin: 16px 0; padding: 14px 18px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-size: 13px; line-height: 1.7; color: #c3cbe2; }
+.how-to-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #8f9bbd; margin-bottom: 8px; text-transform: uppercase; }
+
+#mode-selector { display: flex; gap: 10px; margin: 16px 0; }
+.mode-btn { padding: 10px 20px; font-size: 14px; font-weight: 700; border: 2px solid rgba(255, 255, 255, 0.16); border-radius: 999px; background: rgba(255, 255, 255, 0.04); color: #8f9bbd; cursor: pointer; letter-spacing: 1px; transition: all 0.2s; }
+.mode-btn:hover { color: #dfe6fb; border-color: rgba(255, 255, 255, 0.35); }
+.mode-btn.selected[data-mode="classic"] { color: #5ff3ff; border-color: #5ff3ff; background: rgba(95, 243, 255, 0.12); box-shadow: 0 0 18px rgba(95, 243, 255, 0.35); }
+.mode-btn.selected[data-mode="arcade"] { color: #ff6bff; border-color: #ff6bff; background: rgba(255, 107, 255, 0.12); box-shadow: 0 0 18px rgba(255, 107, 255, 0.35); }
+.mode-btn.selected[data-mode="sprint"] { color: #7cf9a6; border-color: #7cf9a6; background: rgba(124, 249, 166, 0.12); box-shadow: 0 0 18px rgba(124, 249, 166, 0.35); }
+
+#highscores h2 { font-size: 18px; color: #ffd34d; margin-bottom: 8px; }
 
 #score-list {
   list-style: none;
@@ -113,8 +146,8 @@ body {
   text-align: center;
 }
 
-#score-list li { font-size: 14px; padding: 2px 0; color: #ccc; }
-#score-list li:first-child { color: #ffd700; font-weight: 700; }
+#score-list li { font-size: 14px; padding: 2px 0; color: #c3cbe2; }
+#score-list li:first-child { color: #ffd34d; font-weight: 700; }
 #score-list li:nth-child(2) { color: #c0c0c0; }
 #score-list li:nth-child(3) { color: #cd7f32; }
 
@@ -124,8 +157,11 @@ body {
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
-  background: #1a1a2e;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   min-height: 48px;
 }
 
@@ -133,12 +169,12 @@ body {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 2px;
-  color: #555;
+  color: #8f9bbd;
 }
 
 .pu-hint {
   font-size: 10px;
-  color: #444;
+  color: #6c7699;
 }
 
 #pu-slots {
@@ -181,9 +217,12 @@ body {
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(15, 15, 26, 0.96);
-  border: 2px solid #e040fb;
-  border-radius: 12px;
+  background: rgba(8, 11, 26, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid #ff6bff;
+  box-shadow: 0 0 30px rgba(255, 107, 255, 0.35);
+  border-radius: 14px;
   padding: 20px 24px;
   z-index: 30;
   text-align: center;
@@ -252,42 +291,68 @@ body {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 1px;
-  border: 2px solid #333;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.05);
-  color: #999;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
+  color: #c3cbe2;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .t-btn:active, .t-btn.pressed {
-  background: rgba(0, 212, 255, 0.2);
-  border-color: #00d4ff;
-  color: #00d4ff;
+  background: rgba(95, 243, 255, 0.2);
+  border-color: #5ff3ff;
+  color: #5ff3ff;
+  box-shadow: 0 0 16px rgba(95, 243, 255, 0.4);
 }
 
 .t-btn.arrow { font-size: 22px; max-width: 80px; }
 
 .t-btn.accent {
-  border-color: #e040fb;
-  color: #e040fb;
+  border-color: rgba(255, 107, 255, 0.6);
+  color: #ff6bff;
 }
 .t-btn.accent:active, .t-btn.accent.pressed {
-  background: rgba(224, 64, 251, 0.2);
-  border-color: #e040fb;
-  color: #e040fb;
+  background: rgba(255, 107, 255, 0.2);
+  border-color: #ff6bff;
+  color: #ff6bff;
+  box-shadow: 0 0 16px rgba(255, 107, 255, 0.4);
 }
 
 .t-btn.drop {
-  border-color: #00e676;
-  color: #00e676;
+  border-color: rgba(124, 249, 166, 0.6);
+  color: #7cf9a6;
 }
 .t-btn.drop:active, .t-btn.drop.pressed {
-  background: rgba(0, 230, 118, 0.2);
-  border-color: #00e676;
-  color: #00e676;
+  background: rgba(124, 249, 166, 0.2);
+  border-color: #7cf9a6;
+  color: #7cf9a6;
+  box-shadow: 0 0 16px rgba(124, 249, 166, 0.4);
 }
+
+@keyframes bg-drift {
+  from { background-position: 0% 0%, 100% 100%, 0 0; }
+  to { background-position: 100% 60%, 0% 30%, 0 0; }
+}
+
+@keyframes panel-flash {
+  from { box-shadow: inset 0 0 0 2px rgba(95, 243, 255, 0.9), 0 0 30px rgba(95, 243, 255, 0.6); }
+  to { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 30px rgba(0, 0, 0, 0.35); }
+}
+
+@keyframes stat-bump {
+  30% { transform: scale(1.25); }
+  to { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body { animation: none; }
+}
+
+.gp-btn-music.off { opacity: .4; }
 
 /* ── Touch device layout ── */
 @media (pointer: coarse) {
@@ -315,6 +380,8 @@ body {
   .panel-label { font-size: 10px; letter-spacing: 1px; margin-bottom: 4px; }
   .panel canvas { width: 64px; height: auto; }
   #hud { flex-wrap: wrap; justify-content: center; gap: 0 10px; font-size: 12px; padding: 6px 8px; }
+  .stat { gap: 4px; }
+  .stat-label { font-size: 9px; letter-spacing: 1px; }
   #gameCanvas {
     width: min(304px, calc(100vw - 188px), max(124px, calc((100vh - var(--gp-header-h, 48px) - 138px) / 2 + 3px)));
     width: min(304px, calc(100vw - 188px), max(124px, calc((100dvh - var(--gp-header-h, 48px) - 138px) / 2 + 3px)));
@@ -360,6 +427,8 @@ body {
   .panel canvas { width: 64px; height: auto; }
   #center { width: min-content; }
   #hud { flex-wrap: wrap; justify-content: center; gap: 0 8px; font-size: 11px; padding: 4px 6px; }
+  .stat { gap: 4px; }
+  .stat-label { font-size: 9px; letter-spacing: 1px; }
   #gameCanvas {
     width: min(304px, max(100px, calc((100vh - var(--gp-header-h, 48px) - 48px) / 2 + 3px)));
     width: min(304px, max(100px, calc((100dvh - var(--gp-header-h, 48px) - 48px) / 2 + 3px)));

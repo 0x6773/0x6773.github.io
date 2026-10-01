@@ -964,7 +964,7 @@
           </div>
           <div class="game-info">
             <h2>Tetris</h2>
-            <p>Classic falling blocks. Clear lines, level up, chase your high score. Hold, ghost piece, and 7-bag randomizer.</p>
+            <p>Falling blocks with a neon glass look: flashy line clears, music that speeds up as you level, touch gestures, plus Arcade power-ups and Sprint 40L.</p>
           </div>
           <div class="game-tags">
             <span class="tag">Puzzle</span>
@@ -1534,6 +1534,14 @@
       const shapes = [[[0,0],[1,0],[2,0],[3,0]],[[0,0],[1,0],[0,1],[1,1]],[[0,0],[1,0],[2,0],[1,1]]];
       let piece = {s:shapes[0],c:colors[0],x:3,y:0};
       let tick = 0;
+      function cell(px, py, color) {
+        const g = ctx.createLinearGradient(px, py, px + cs, py + cs);
+        g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, color); g.addColorStop(1, color);
+        ctx.shadowColor = color; ctx.shadowBlur = 6;
+        ctx.fillStyle = g; ctx.fillRect(px + 0.5, py + 0.5, cs - 1, cs - 1);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(px + 1.5, py + 1.5, cs - 3, 2);
+      }
       function newPiece() {
         const si = Math.floor(Math.random()*shapes.length);
         piece = {s:shapes[si],c:colors[Math.floor(Math.random()*colors.length)],x:Math.floor(Math.random()*7),y:0};
@@ -1558,14 +1566,16 @@
             newPiece();
           }
         }
-        ctx.fillStyle='#111'; ctx.fillRect(0,0,W,H);
+        const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#1b1440'); bg.addColorStop(1, '#071a26');
+        ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+        ctx.fillStyle = 'rgba(7,10,22,0.85)'; ctx.fillRect(ox - 3, oy - 3, cols * cs + 6, rows * cs + 6);
+        ctx.strokeStyle = 'rgba(177,140,255,0.45)'; ctx.lineWidth = 1; ctx.strokeRect(ox - 3.5, oy - 3.5, cols * cs + 7, rows * cs + 7);
         // Board
         for (let y=0;y<rows;y++) for (let x=0;x<cols;x++) {
-          if (board[y][x]) { ctx.fillStyle=board[y][x]; ctx.fillRect(ox+x*cs+0.5,oy+y*cs+0.5,cs-1,cs-1); }
+          if (board[y][x]) cell(ox+x*cs, oy+y*cs, board[y][x]);
         }
         // Piece
-        ctx.fillStyle=piece.c;
-        for (const b of piece.s) { const px=ox+(piece.x+b[0])*cs, py=oy+(piece.y+b[1])*cs; ctx.fillRect(px+0.5,py+0.5,cs-1,cs-1); }
+        for (const b of piece.s) cell(ox+(piece.x+b[0])*cs, oy+(piece.y+b[1])*cs, piece.c);
         requestAnimationFrame(frame);
       }
       frame();

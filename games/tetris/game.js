@@ -18,6 +18,9 @@
   const scoreEl = document.getElementById('score-display');
   const levelEl = document.getElementById('level-display');
   const linesEl = document.getElementById('lines-display');
+  const scoreLabel = document.getElementById('score-label');
+  const levelLabel = document.getElementById('level-label');
+  const linesLabel = document.getElementById('lines-label');
   const overlay = document.getElementById('overlay');
   const overlaySub = document.getElementById('overlay-sub');
   const highscoresDiv = document.getElementById('highscores');
@@ -42,26 +45,24 @@
   const SPEED = level => Math.max(50, 800 - (level - 1) * 70);
 
   // ── Audio ──
+  const Sound = window.TetrisAudio;
   function ensureAudio() {
     return GameEngine.audio();
   }
-  function playTone(f, d, t = 'square', v = 0.1) {
-    GameEngine.tone(f, d, { type: t, volume: v });
-  }
-  function sfxMove()    { playTone(200, 0.05, 'sine', 0.06); }
-  function sfxRotate()  { playTone(400, 0.06, 'triangle', 0.08); }
-  function sfxDrop()    { playTone(150, 0.12, 'triangle', 0.1); }
-  function sfxLock()    { playTone(250, 0.08, 'square', 0.08); }
-  function sfxLine(n)   { const base = 500 + n * 100; [base, base+200, base+400].forEach((f,i) => setTimeout(() => playTone(f, 0.12, 'triangle', 0.1), i*60)); }
-  function sfxTetris()  { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.15, 'triangle', 0.13), i*70)); }
-  function sfxGameOver(){ [300,250,200,150].forEach((f,i) => setTimeout(() => playTone(f, 0.25, 'sawtooth', 0.1), i*120)); }
-  function sfxHold()    { playTone(350, 0.06, 'sine', 0.08); }
-  function sfxPowerup() { playTone(880, 0.08, 'sine', 0.12); setTimeout(() => playTone(1100, 0.1, 'sine', 0.1), 60); }
-  function sfxBomb()    { playTone(80, 0.5, 'sawtooth', 0.15); setTimeout(() => playTone(60, 0.4, 'sawtooth', 0.12), 80); }
-  function sfxNuke()    { [60,50,40,30].forEach((f,i) => setTimeout(() => playTone(f, 0.3, 'sawtooth', 0.13), i*80)); }
-  function sfxSlow()    { [400,500,600].forEach((f,i) => setTimeout(() => playTone(f, 0.15, 'sine', 0.1), i*80)); }
-  function sfxFlat()    { playTone(600, 0.1, 'triangle', 0.1); setTimeout(() => playTone(800, 0.15, 'triangle', 0.12), 80); }
-  function sfxColorBomb(){ [800,600,400,200].forEach((f,i) => setTimeout(() => playTone(f, 0.12, 'square', 0.08), i*60)); }
+  function sfxMove()    { Sound.sfx('move'); }
+  function sfxRotate()  { Sound.sfx('rotate'); }
+  function sfxDrop()    { Sound.sfx('harddrop'); }
+  function sfxLock()    { Sound.sfx('lock'); }
+  function sfxLine(n)   { Sound.sfx('line' + Math.min(3, n)); }
+  function sfxTetris()  { Sound.sfx('tetris'); }
+  function sfxGameOver(){ Sound.sfx('gameover'); }
+  function sfxHold()    { Sound.sfx('hold'); }
+  function sfxPowerup() { Sound.sfx('powerup'); }
+  function sfxBomb()    { Sound.sfx('bomb'); }
+  function sfxNuke()    { Sound.sfx('nuke'); }
+  function sfxSlow()    { Sound.sfx('slow'); }
+  function sfxFlat()    { Sound.sfx('flat'); }
+  function sfxColorBomb(){ Sound.sfx('colorbomb'); }
 
   // ── Power-up definitions ──
   const POWERUPS = [
@@ -111,56 +112,83 @@
   }
 
   // ── Particles ──
-  let particles = [];
+  let fx = [];
+  let shakeTime = 0, shakeMax = 1, shakeAmp = 0;
+  let collapse = null;
+  let greyRow = -1;
+  const holdPanel = holdCvs.parentElement;
+  const scoreChip = scoreEl.parentElement;
+
+  function addFx(o) {
+    fx.push(o);
+    if (fx.length > 800) fx.splice(0, fx.length - 800);
+  }
+
+  function sparks(x, y, color, n, speed) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = (0.6 + Math.random()) * (speed || 3);
+      addFx({ k: 'spark', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.5, size: 1.5 + Math.random() * 2.5, color, life: 500 + Math.random() * 400, max: 900 });
+    }
+  }
+
   function spawnLineParticles(row) {
     for (let x = 0; x < COLS; x++) {
-      for (let i = 0; i < 3; i++) {
-        const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 4;
-        particles.push({
-          x: x * CELL + CELL / 2, y: row * CELL + CELL / 2,
-          vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2,
-          r: 2 + Math.random() * 2, color: '#fff', life: 1, decay: 0.02 + Math.random() * 0.02
-        });
-      }
-    }
-  }
-  function updateParticles() {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= p.decay;
-      if (p.life <= 0) particles.splice(i, 1);
-    }
-  }
-  function drawParticles() {
-    for (const p of particles) {
-      ctx.save(); ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      const color = (board[row] && board[row][x]) || '#ffffff';
+      sparks(x * CELL + CELL / 2, row * CELL + CELL / 2, color, 2, 3.5);
+      sparks(x * CELL + CELL / 2, row * CELL + CELL / 2, '#ffffff', 1, 2);
     }
   }
 
   function spawnExplosion(cx, cy, color, count) {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 5;
-      particles.push({
-        x: cx * CELL + CELL / 2, y: cy * CELL + CELL / 2,
-        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1,
-        r: 2 + Math.random() * 3, color, life: 1, decay: 0.018 + Math.random() * 0.02
-      });
-    }
+    sparks(cx * CELL + CELL / 2, cy * CELL + CELL / 2, color, count + 2, 4.5);
   }
-
-  let flashAlpha = 0, flashColor = '#fff';
 
   function screenFlash(color) {
-    flashColor = color; flashAlpha = 0.4;
+    addFx({ k: 'flash', color, life: 380, max: 380 });
   }
 
-  function drawFlash() {
-    if (flashAlpha <= 0) return;
-    ctx.save(); ctx.globalAlpha = flashAlpha; ctx.fillStyle = flashColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
-    flashAlpha -= 0.015;
-    if (flashAlpha < 0) flashAlpha = 0;
+  function shake(ms, amp) {
+    if (ms >= shakeTime) { shakeTime = ms; shakeMax = ms; }
+    shakeAmp = Math.max(amp, shakeTime > 0 ? shakeAmp : 0);
+  }
+
+  function banner(text, color, size) {
+    const slot = fx.filter(f => f.k === 'banner' && f.life > 300).length;
+    addFx({ k: 'banner', text, color, size: size || 24, slot, life: 1400, max: 1400 });
+  }
+
+  function popup(text, x, y, color) {
+    addFx({ k: 'popup', text, x, y, color: color || '#ffffff', life: 950, max: 950 });
+  }
+
+  function pulse(el, cls) {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+
+  function setHue(lv) {
+    document.body.style.setProperty('--hue', String((220 + (lv - 1) * 28) % 360));
+  }
+
+  function updateFx(dt) {
+    const k = dt / 16.67;
+    for (const f of fx) {
+      f.life -= dt;
+      if (f.k === 'spark') {
+        f.x += f.vx * k;
+        f.y += f.vy * k;
+        f.vy += 0.12 * k;
+        f.vx *= Math.pow(0.97, k);
+      } else if (f.k === 'popup') f.y -= 0.5 * k;
+    }
+    fx = fx.filter(f => f.life > 0);
+    if (shakeTime > 0) shakeTime = Math.max(0, shakeTime - dt);
+    if (collapse) {
+      collapse.t += dt;
+      if (collapse.t >= collapse.dur) collapse = null;
+    }
+    if (greyRow >= 0 && greyRow > 0) greyRow = Math.max(0, greyRow - dt / 30);
   }
 
   // ── Game State ──
@@ -171,7 +199,6 @@
   let comboCount = 0;
   let lastClearWasDifficult = false;
   let lastActionWasRotate = false;
-  let activeComboTexts = [];
 
   // ── Sprint mode state ──
   let sprintStartTime = 0;
@@ -271,14 +298,16 @@
     nextQueue = [];
     for (let i = 0; i < 3; i++) nextQueue.push(nextPieceName());
     holdPiece = null; holdUsed = false;
-    particles = [];
+    fx = [];
+    collapse = null;
+    greyRow = -1;
+    shakeTime = 0;
     puInventory = [];
     colorBombPending = false;
     slowActive = false; if (slowTimer) clearTimeout(slowTimer);
     comboCount = 0;
     lastClearWasDifficult = false;
     lastActionWasRotate = false;
-    activeComboTexts = [];
     sprintStartTime = performance.now();
     sprintElapsed = 0;
     renderPowerupBar();
@@ -301,8 +330,9 @@
     dropTimer = 0; lockTimer = 0;
     overlay.classList.add('hidden');
     if (window.GamePlatform) { GamePlatform.resetTimer(); GamePlatform.startTimer(); }
-    if (animId) cancelAnimationFrame(animId);
-    loop(performance.now());
+    setHue(1);
+    Sound.setLevel(1);
+    Sound.music.start();
   }
 
   function spawnNext() {
@@ -328,10 +358,20 @@
 
   function hardDrop() {
     let dropped = 0;
+    const startY = current.y;
     while (true) { current.y++; if (!isValid(current)) { current.y--; break; } dropped++; }
-    if (dropped > 0) lastActionWasRotate = false;
+    if (dropped > 0) {
+      lastActionWasRotate = false;
+      const tops = {};
+      for (const c of current.cells) tops[current.x + c.x] = Math.min(tops[current.x + c.x] ?? 99, c.y);
+      addFx({ k: 'trail', cols: Object.keys(tops).map(Number).map(x => ({ x, top: startY + tops[x], bottom: current.y + tops[x] })), color: current.color, life: 260, max: 260 });
+      for (const c of piecePositions(current)) {
+        if (!current.cells.some(o => o.x === c.x - current.x && o.y === c.y - current.y + 1)) sparks(c.x * CELL + CELL / 2, (c.y + 1) * CELL, current.color, 2, 1.6);
+      }
+    }
     score += dropped * 2;
     sfxDrop();
+    shake(140, 2.5);
     lockPiece();
   }
 
@@ -378,6 +418,7 @@
   function hold() {
     if (holdUsed) return;
     sfxHold();
+    pulse(holdPanel, 'flash');
     holdUsed = true;
     const name = current.name;
     if (holdPiece) {
@@ -409,6 +450,7 @@
     sfxLock();
     var lockedName = current.name;
     var lockedRotate = lastActionWasRotate && lockedName === 'T' && tCornersFilled(current) >= 3;
+    addFx({ k: 'lock', cells: piecePositions(current), life: 180, max: 180 });
     for (const c of piecePositions(current)) {
       if (c.y >= 0 && c.y < ROWS) board[c.y][c.x] = current.color;
     }
@@ -420,12 +462,9 @@
   // ── Combo text helpers ──
   function showComboText(texts) {
     for (var i = 0; i < texts.length; i++) {
-      activeComboTexts.push({
-        text: texts[i],
-        y: canvas.height / 2 - 40 + i * 30,
-        alpha: 2.0,
-        scale: 1.2
-      });
+      var t = texts[i];
+      var color = t.indexOf('TETRIS') === 0 ? '#5ff3ff' : t.indexOf('T-SPIN') === 0 ? '#ff6bff' : t.indexOf('BACK') === 0 ? '#b18cff' : '#ffb347';
+      banner(t, color, t === 'TETRIS!' ? 34 : 22);
     }
   }
 
@@ -438,7 +477,16 @@
     const n = fullRows.length;
 
     if (n > 0) {
+      const scoreBefore = score, levelBefore = level;
       for (const row of fullRows) spawnLineParticles(row);
+      addFx({ k: 'rows', rows: fullRows.slice(), life: 340, max: 340 });
+      const shift = new Array(ROWS).fill(0);
+      let below = 0;
+      for (let y = ROWS - 1; y >= 0; y--) {
+        if (fullRows.includes(y)) below++;
+        else if (y + below < ROWS) shift[y + below] = below;
+      }
+      collapse = { shift, t: 0, dur: 160 };
       if (n === 4) sfxTetris(); else sfxLine(n);
 
       // Remove rows
@@ -464,6 +512,7 @@
         else if (n === 2) comboTexts.push('T-SPIN DOUBLE');
         else if (n === 3) comboTexts.push('T-SPIN TRIPLE');
         score += [0, 400, 800, 1200][n] * level;
+        Sound.sfx('tspin');
       }
 
       if (n === 4) comboTexts.push('TETRIS!');
@@ -471,16 +520,29 @@
       if (isDifficult && lastClearWasDifficult) {
         comboTexts.push('BACK-TO-BACK');
         score += Math.floor(LINE_SCORES[n] * level * 0.5);
+        Sound.sfx('b2b');
       }
 
       if (comboCount > 1) {
         comboTexts.push('COMBO x' + comboCount);
         score += 50 * comboCount * level;
+        Sound.sfx('combo', comboCount);
       }
 
       lastClearWasDifficult = isDifficult;
 
       if (comboTexts.length > 0) showComboText(comboTexts);
+
+      popup('+' + (score - scoreBefore).toLocaleString(), COLS * CELL / 2, (fullRows[0] + n / 2) * CELL, n === 4 ? '#5ff3ff' : '#ffffff');
+      pulse(scoreChip, 'bump');
+      if (n === 4) { shake(320, 5); screenFlash('#5ff3ff'); }
+      else if (n >= 2) shake(160, 2);
+      if (level > levelBefore) {
+        banner('LEVEL ' + level, '#7cf9a6', 26);
+        Sound.sfx('levelup');
+        Sound.setLevel(level);
+        setHue(level);
+      }
 
       updateHUD();
 
@@ -511,6 +573,9 @@
     colorBombPending = false;
     colorPicker.classList.add('hidden');
     sfxGameOver();
+    Sound.music.stop();
+    greyRow = ROWS;
+    shake(260, 4);
     saveHS(score);
     if (window.GamePlatform) {
       var t = GamePlatform.stopTimer();
@@ -518,14 +583,21 @@
       GamePlatform.updateScore(score);
     }
     overlay.querySelector('h1').textContent = 'GAME OVER';
-    overlaySub.textContent = 'Score: ' + score + '  |  Lines: ' + lines;
+    overlaySub.textContent = 'Score: ' + score.toLocaleString() + '  |  Lines: ' + lines;
     renderHS();
-    modeSelector.style.display = 'flex';
-    overlay.classList.remove('hidden');
+    showOverlayLater();
+  }
+
+  function showOverlayLater() {
+    setTimeout(() => {
+      if (gameRunning) return;
+      modeSelector.style.display = 'flex';
+      overlay.classList.remove('hidden');
+    }, 650);
   }
 
   // ── Sprint helpers ──
-  function sfxWin() { [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => playTone(f, 0.2, 'triangle', 0.12), i * 80)); }
+  function sfxWin() { Sound.sfx('win'); }
 
   function formatSprintTime(seconds) {
     var m = Math.floor(seconds / 60);
@@ -538,6 +610,9 @@
     endedAt = performance.now();
     sprintElapsed = (performance.now() - sprintStartTime) / 1000;
     sfxWin();
+    Sound.music.stop();
+    banner('SPRINT COMPLETE', '#7cf9a6', 26);
+    for (let i = 0; i < 6; i++) sparks(COLS * CELL * (0.15 + i * 0.14), ROWS * CELL * 0.45, ['#5ff3ff', '#ff6bff', '#ffd34d', '#7cf9a6'][i % 4], 8, 5);
     if (window.GamePlatform) {
       var t = GamePlatform.stopTimer();
       GamePlatform.recordGame('tetris', score, t * 1000, { linesCleared: lines, mode: 'sprint', sprintMs: Math.round(sprintElapsed * 1000) });
@@ -548,12 +623,45 @@
     overlay.querySelector('h1').textContent = 'SPRINT COMPLETE!';
     overlaySub.textContent = '40 Lines in ' + formatSprintTime(sprintElapsed);
     renderHS();
-    modeSelector.style.display = 'flex';
-    overlay.classList.remove('hidden');
+    showOverlayLater();
   }
 
   // ── Input ──
+  function syncMusicButton() {
+    const btn = document.querySelector('#gp-header .gp-btn-music');
+    if (!btn) return;
+    const on = Sound.music.isEnabled();
+    btn.classList.toggle('off', !on);
+    btn.title = on ? 'Music on (M)' : 'Music off (M)';
+    btn.setAttribute('aria-pressed', String(on));
+  }
+
+  function toggleMusic() {
+    Sound.music.setEnabled(!Sound.music.isEnabled());
+    syncMusicButton();
+  }
+
+  function addMusicButton() {
+    const actions = document.querySelector('#gp-header .gp-header-actions');
+    if (!actions || actions.querySelector('.gp-btn-music')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-btn-music';
+    btn.textContent = '\u{1F3B5}';
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      btn.blur();
+      toggleMusic();
+    });
+    actions.insertBefore(btn, actions.querySelector('.gp-btn-sound'));
+    syncMusicButton();
+  }
+
   document.addEventListener('keydown', e => {
+    if ((e.key === 'm' || e.key === 'M') && !e.metaKey && !e.ctrlKey) {
+      if (!e.repeat) toggleMusic();
+      return;
+    }
     if (!gameRunning) {
       if (overlay && !overlay.classList.contains('hidden') && !restartLocked()) { ensureAudio(); init(); }
       return;
@@ -561,7 +669,7 @@
     switch (e.key) {
       case 'ArrowLeft': case 'a': case 'A': e.preventDefault(); moveLeft(); break;
       case 'ArrowRight': case 'd': case 'D': e.preventDefault(); moveRight(); break;
-      case 'ArrowDown': case 's': case 'S': e.preventDefault(); if (moveDown()) score += 1; break;
+      case 'ArrowDown': case 's': case 'S': e.preventDefault(); if (moveDown()) { score += 1; Sound.sfx('softdrop'); } break;
       case 'ArrowUp': case 'w': case 'W': e.preventDefault(); rotate(1); break;
       case 'z': case 'Z': e.preventDefault(); rotate(-1); break;
       case ' ': e.preventDefault(); hardDrop(); break;
@@ -574,25 +682,12 @@
   });
 
   // ── Mode button click handlers ──
-  const MODE_STYLES = {
-    classic: { selectedBorder: '#00d4ff', selectedColor: '#00d4ff' },
-    arcade:  { selectedBorder: '#e040fb', selectedColor: '#e040fb' },
-    sprint:  { selectedBorder: '#00e676', selectedColor: '#00e676' },
-  };
-
   modeBtns.forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation(); // Don't start the game when clicking mode buttons
-      modeBtns.forEach(b => {
-        b.classList.remove('selected');
-        b.style.borderColor = '#333';
-        b.style.color = '#666';
-      });
+      modeBtns.forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
       const mode = btn.dataset.mode;
-      const s = MODE_STYLES[mode];
-      btn.style.borderColor = s.selectedBorder;
-      btn.style.color = s.selectedColor;
       tetrisMode = mode;
       var modeLabel = mode === 'sprint' ? 'Sprint 40L' : mode.charAt(0).toUpperCase() + mode.slice(1);
       overlaySub.textContent = modeLabel + ' — Click or press any key to start';
@@ -632,7 +727,7 @@
     switch (action) {
       case 'left': moveLeft(); break;
       case 'right': moveRight(); break;
-      case 'down': if (moveDown()) score += 1; break;
+      case 'down': if (moveDown()) { score += 1; Sound.sfx('softdrop'); } break;
       case 'rotate': rotate(1); break;
       case 'drop': hardDrop(); break;
       case 'hold': hold(); break;
@@ -648,14 +743,48 @@
     btn.addEventListener('pointercancel', () => { btn.classList.remove('pressed'); stopAction(); });
   });
 
-  // Canvas tap to rotate (touch devices)
-  canvas.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
-  canvas.addEventListener('touchend', e => {
+  // Canvas gestures (touch devices)
+  let gesture = null;
+  const touchOf = e => gesture && [...e.changedTouches].find(t => t.identifier === gesture.id);
+  canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-    if (!gameRunning) return;
-    rotate(1);
+    if (!gameRunning || gesture) return;
+    const t = e.changedTouches[0];
+    gesture = { id: t.identifier, x0: t.clientX, y0: t.clientY, x: t.clientX, y: t.clientY, t0: performance.now(), moved: false };
+  }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const t = touchOf(e);
+    if (!t || !gameRunning) return;
+    const step = canvas.getBoundingClientRect().width / COLS * 0.9;
+    while (Math.abs(t.clientX - gesture.x) >= step) {
+      const dir = Math.sign(t.clientX - gesture.x);
+      if (dir > 0) moveRight(); else moveLeft();
+      gesture.x += dir * step;
+      gesture.moved = true;
+    }
+    while (t.clientY - gesture.y >= step) {
+      if (moveDown()) { score += 1; Sound.sfx('softdrop'); }
+      gesture.y += step;
+      gesture.moved = true;
+    }
+    if (Math.abs(t.clientX - gesture.x0) > 10 || Math.abs(t.clientY - gesture.y0) > 10) gesture.moved = true;
     updateHUD();
   }, { passive: false });
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    const t = touchOf(e);
+    if (!t) return;
+    const g = gesture;
+    gesture = null;
+    if (!gameRunning) return;
+    const dt = Math.max(1, performance.now() - g.t0), dx = t.clientX - g.x0, dy = t.clientY - g.y0;
+    if (dy > 50 && dy / dt > 0.5 && dy > Math.abs(dx) * 1.5) hardDrop();
+    else if (dy < -40 && -dy / dt > 0.4 && -dy > Math.abs(dx) * 1.5) hold();
+    else if (!g.moved && dt < 350) rotate(1);
+    updateHUD();
+  }, { passive: false });
+  canvas.addEventListener('touchcancel', () => { gesture = null; });
 
   // ── Power-up UI ──
   function renderPowerupBar() {
@@ -825,11 +954,7 @@
   }
 
   // ── Game Loop ──
-  function loop(now) {
-    if (!gameRunning) return;
-    const dt = Math.min(now - lastTime, 100);
-    lastTime = now;
-
+  function step(dt) {
     dropTimer += dt;
     const baseSpeed = tetrisMode === 'sprint' ? 500 : SPEED(level);
     const speed = slowActive ? baseSpeed * 2 : baseSpeed;
@@ -856,102 +981,272 @@
     } else {
       current.y--;
     }
+  }
 
-    updateParticles();
-    render();
-    if (gameRunning) animId = requestAnimationFrame(loop);
+  function frame(now) {
+    const dt = Math.min(now - lastTime, 100);
+    lastTime = now;
+    if (gameRunning) step(dt);
+    updateFx(dt);
+    render(now);
+    Sound.update();
+    animId = requestAnimationFrame(frame);
   }
 
   // ── Rendering ──
-  function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const spriteCache = new Map();
+  const BOARD_W = COLS * CELL, BOARD_H = ROWS * CELL;
 
-    // Grid lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-    ctx.lineWidth = 0.5;
-    for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x * CELL, 0); ctx.lineTo(x * CELL, ROWS * CELL); ctx.stroke(); }
-    for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(COLS * CELL, y * CELL); ctx.stroke(); }
+  function rr(cx, x, y, w, h, r) {
+    cx.beginPath();
+    cx.moveTo(x + r, y);
+    cx.arcTo(x + w, y, x + w, y + h, r);
+    cx.arcTo(x + w, y + h, x, y + h, r);
+    cx.arcTo(x, y + h, x, y, r);
+    cx.arcTo(x, y, x + w, y, r);
+    cx.closePath();
+  }
 
-    // Board
-    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-      if (board[y][x]) drawCell(ctx, x, y, board[y][x]);
-    }
+  function rgba(hex, a) {
+    return 'rgba(' + parseInt(hex.slice(1, 3), 16) + ',' + parseInt(hex.slice(3, 5), 16) + ',' + parseInt(hex.slice(5, 7), 16) + ',' + a + ')';
+  }
 
-    if (current && gameRunning) {
-      // Ghost piece
-      const gy = ghostY(current);
-      for (const c of current.cells) {
-        const gx = current.x + c.x, ry = gy + c.y;
-        if (ry >= 0) drawGhostCell(ctx, gx, ry, current.color);
-      }
+  function blockSprite(color, size, k) {
+    const key = color + '|' + size + '|' + k;
+    let sp = spriteCache.get(key);
+    if (sp) return sp;
+    const pad = Math.ceil(size * 0.4);
+    const c = document.createElement('canvas');
+    c.width = c.height = Math.ceil((size + pad * 2) * k);
+    const g = c.getContext('2d');
+    g.scale(k, k);
+    const x = pad + 1, y = pad + 1, s = size - 2, r = Math.max(2, size * 0.18);
+    g.shadowColor = rgba(color, 0.6);
+    g.shadowBlur = size * 0.45 * k;
+    g.fillStyle = color;
+    rr(g, x, y, s, s, r);
+    g.fill();
+    g.shadowBlur = 0;
+    const body = g.createLinearGradient(x, y, x + s, y + s);
+    body.addColorStop(0, lighten(color, 70));
+    body.addColorStop(0.45, color);
+    body.addColorStop(1, darken(color, 60));
+    g.fillStyle = body;
+    rr(g, x, y, s, s, r);
+    g.fill();
+    g.lineWidth = Math.max(1, size * 0.07);
+    g.strokeStyle = 'rgba(255,255,255,0.5)';
+    g.beginPath();
+    g.moveTo(x + r, y + g.lineWidth / 2);
+    g.lineTo(x + s - r, y + g.lineWidth / 2);
+    g.moveTo(x + g.lineWidth / 2, y + r);
+    g.lineTo(x + g.lineWidth / 2, y + s - r);
+    g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.35)';
+    g.beginPath();
+    g.moveTo(x + r, y + s - g.lineWidth / 2);
+    g.lineTo(x + s - r, y + s - g.lineWidth / 2);
+    g.moveTo(x + s - g.lineWidth / 2, y + r);
+    g.lineTo(x + s - g.lineWidth / 2, y + s - r);
+    g.stroke();
+    const gloss = g.createLinearGradient(x, y, x, y + s * 0.55);
+    gloss.addColorStop(0, 'rgba(255,255,255,0.6)');
+    gloss.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gloss;
+    rr(g, x + s * 0.12, y + s * 0.1, s * 0.76, s * 0.38, r * 0.7);
+    g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.1)';
+    rr(g, x + s * 0.3, y + s * 0.3, s * 0.4, s * 0.4, r * 0.5);
+    g.fill();
+    sp = { canvas: c, pad };
+    spriteCache.set(key, sp);
+    return sp;
+  }
 
-      // Current piece
-      for (const c of piecePositions(current)) {
-        if (c.y >= 0) drawCell(ctx, c.x, c.y, current.color);
-      }
-    }
-
-    drawParticles();
-    drawFlash();
-
-    // Slow-motion border indicator
-    if (slowActive) {
-      ctx.save(); ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 3; ctx.globalAlpha = 0.4 + 0.2 * Math.sin(Date.now() * 0.005);
-      ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
-      ctx.restore();
-    }
-
-    // Draw combo texts
-    for (var i = activeComboTexts.length - 1; i >= 0; i--) {
-      var ct = activeComboTexts[i];
-      ct.alpha -= 0.02;
-      ct.y -= 0.5;
-      ct.scale *= 0.995;
-      if (ct.alpha <= 0) { activeComboTexts.splice(i, 1); continue; }
-      ctx.save();
-      ctx.globalAlpha = Math.min(1, ct.alpha);
-      ctx.font = 'bold ' + Math.round(20 * ct.scale) + 'px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ffd700';
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 3;
-      ctx.strokeText(ct.text, canvas.width / 2, ct.y);
-      ctx.fillText(ct.text, canvas.width / 2, ct.y);
-      ctx.restore();
-    }
-
-    // Sprint mode: draw elapsed time on canvas
-    if (tetrisMode === 'sprint' && gameRunning) {
-      sprintElapsed = (performance.now() - sprintStartTime) / 1000;
-      ctx.save();
-      ctx.font = 'bold 14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#00e676';
-      ctx.globalAlpha = 0.8;
-      ctx.fillText('TIME ' + formatSprintTime(sprintElapsed), canvas.width / 2, 18);
-      ctx.restore();
-    }
+  function drawBlock(cx, px, py, size, color, k) {
+    const sp = blockSprite(color, size, k);
+    cx.drawImage(sp.canvas, px - sp.pad, py - sp.pad, size + sp.pad * 2, size + sp.pad * 2);
   }
 
   function drawCell(cx, x, y, color) {
-    const px = x * CELL, py = y * CELL;
-    // Main fill
-    const grad = cx.createLinearGradient(px, py, px, py + CELL);
-    grad.addColorStop(0, lighten(color, 25));
-    grad.addColorStop(1, darken(color, 25));
-    cx.fillStyle = grad;
-    cx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
-    // Shine
-    cx.save(); cx.globalAlpha = 0.2; cx.fillStyle = '#fff';
-    cx.fillRect(px + 2, py + 2, CELL - 4, (CELL - 4) * 0.35);
-    cx.restore();
+    drawBlock(cx, x * CELL, y * CELL, CELL, color, cx.getTransform().a || 1);
   }
 
   function drawGhostCell(cx, x, y, color) {
-    cx.save(); cx.globalAlpha = 0.2;
-    cx.strokeStyle = color; cx.lineWidth = 1.5;
-    cx.strokeRect(x * CELL + 2, y * CELL + 2, CELL - 4, CELL - 4);
-    cx.restore();
+    const px = x * CELL + 3, py = y * CELL + 3, s = CELL - 6;
+    rr(cx, px, py, s, s, 5);
+    cx.fillStyle = rgba(color, 0.1);
+    cx.fill();
+    cx.lineWidth = 1.5;
+    cx.strokeStyle = rgba(color, 0.65);
+    cx.stroke();
+  }
+
+  function hue() {
+    return (220 + ((level || 1) - 1) * 28) % 360;
+  }
+
+  function drawBoardBg() {
+    const bg = ctx.createLinearGradient(0, 0, 0, BOARD_H);
+    bg.addColorStop(0, '#0d1428');
+    bg.addColorStop(1, '#070a16');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, BOARD_W, BOARD_H);
+    const glow = ctx.createRadialGradient(BOARD_W / 2, BOARD_H, 20, BOARD_W / 2, BOARD_H, BOARD_H * 0.7);
+    glow.addColorStop(0, 'hsla(' + hue() + ', 90%, 60%, 0.14)');
+    glow.addColorStop(1, 'hsla(' + hue() + ', 90%, 60%, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, BOARD_W, BOARD_H);
+    ctx.strokeStyle = 'rgba(255,255,255,0.045)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 1; x < COLS; x++) { ctx.moveTo(x * CELL + 0.5, 0); ctx.lineTo(x * CELL + 0.5, BOARD_H); }
+    for (let y = 1; y < ROWS; y++) { ctx.moveTo(0, y * CELL + 0.5); ctx.lineTo(BOARD_W, y * CELL + 0.5); }
+    ctx.stroke();
+  }
+
+  function drawFx(now) {
+    for (const f of fx) {
+      const a = Math.max(0, f.life / f.max);
+      if (f.k === 'trail') {
+        for (const col of f.cols) {
+          const top = col.top * CELL, bottom = (col.bottom + 1) * CELL;
+          if (bottom <= top) continue;
+          const g = ctx.createLinearGradient(0, top, 0, bottom);
+          g.addColorStop(0, rgba(f.color, 0));
+          g.addColorStop(1, rgba(f.color, 0.45 * a));
+          ctx.fillStyle = g;
+          ctx.fillRect(col.x * CELL + 4, top, CELL - 8, bottom - top);
+        }
+      }
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const f of fx) {
+      const a = Math.max(0, f.life / f.max);
+      if (f.k === 'lock') {
+        ctx.fillStyle = 'rgba(255,255,255,' + 0.55 * a + ')';
+        for (const c of f.cells) if (c.y >= 0) { rr(ctx, c.x * CELL + 2, c.y * CELL + 2, CELL - 4, CELL - 4, 5); ctx.fill(); }
+      } else if (f.k === 'rows') {
+        for (const r of f.rows) {
+          const h = CELL * (0.25 + 0.75 * a);
+          const y = r * CELL + (CELL - h) / 2;
+          const g = ctx.createLinearGradient(0, 0, BOARD_W, 0);
+          g.addColorStop(0, 'rgba(255,255,255,0)');
+          g.addColorStop(0.5, 'rgba(255,255,255,' + 0.95 * a + ')');
+          g.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, y, BOARD_W, h);
+          ctx.fillStyle = 'hsla(' + hue() + ', 100%, 70%, ' + 0.35 * a + ')';
+          ctx.fillRect(0, y - 6, BOARD_W, h + 12);
+        }
+      } else if (f.k === 'spark') {
+        ctx.fillStyle = f.color;
+        ctx.globalAlpha = Math.min(1, a * 1.4);
+        ctx.fillRect(f.x - f.size / 2, f.y - f.size / 2, f.size, f.size);
+        ctx.globalAlpha = 1;
+      }
+    }
+    ctx.restore();
+    for (const f of fx) {
+      const a = Math.max(0, f.life / f.max);
+      if (f.k === 'banner') {
+        const age = f.max - f.life;
+        const scale = age < 120 ? 0.6 + 0.55 * (age / 120) : age < 200 ? 1.15 - 0.15 * ((age - 120) / 80) : 1;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, f.life / 300);
+        ctx.translate(BOARD_W / 2, BOARD_H * 0.38 + f.slot * 38 - Math.min(age, 400) * 0.03);
+        ctx.scale(scale, scale);
+        ctx.font = '900 ' + f.size + 'px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = f.color;
+        ctx.shadowBlur = 18;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(5,8,20,0.85)';
+        ctx.strokeText(f.text, 0, 0);
+        ctx.fillStyle = f.color;
+        ctx.fillText(f.text, 0, 0);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillText(f.text, 0, -1);
+        ctx.restore();
+      } else if (f.k === 'popup') {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, a * 1.6);
+        ctx.font = '800 18px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = f.color;
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = f.color;
+        ctx.fillText(f.text, f.x, f.y);
+        ctx.restore();
+      } else if (f.k === 'flash') {
+        ctx.fillStyle = rgba(f.color, 0.35 * a);
+        ctx.fillRect(0, 0, BOARD_W, BOARD_H);
+      }
+    }
+  }
+
+  function render(now) {
+    const k = ctx.getTransform().a || 1;
+    ctx.save();
+    if (shakeTime > 0) {
+      const m = shakeAmp * (shakeTime / shakeMax);
+      ctx.translate((Math.random() - 0.5) * 2 * m, (Math.random() - 0.5) * 2 * m);
+    }
+    drawBoardBg();
+    if (board) {
+      const ease = collapse ? 1 - Math.pow(1 - collapse.t / collapse.dur, 3) : 1;
+      let danger = false;
+      for (let y = 0; y < ROWS; y++) {
+        const off = collapse ? -collapse.shift[y] * CELL * (1 - ease) : 0;
+        const grey = greyRow >= 0 && y >= greyRow;
+        for (let x = 0; x < COLS; x++) {
+          const color = board[y][x];
+          if (!color) continue;
+          if (y < 4) danger = true;
+          drawBlock(ctx, x * CELL, y * CELL + off, CELL, grey ? '#3b4258' : color, k);
+        }
+      }
+      if (current && gameRunning) {
+        const gy = ghostY(current);
+        for (const c of current.cells) {
+          const ry = gy + c.y;
+          if (ry >= 0 && gy !== current.y) drawGhostCell(ctx, current.x + c.x, ry, current.color);
+        }
+        for (const c of piecePositions(current)) if (c.y >= 0) drawCell(ctx, c.x, c.y, current.color);
+      }
+      if (danger && gameRunning) {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(255,70,100,' + (0.35 + 0.25 * Math.sin(now * 0.008)) + ')';
+        ctx.strokeRect(1.5, 1.5, BOARD_W - 3, BOARD_H - 3);
+      }
+    }
+    drawFx(now);
+    if (slowActive) {
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(0,212,255,' + (0.4 + 0.2 * Math.sin(now * 0.005)) + ')';
+      ctx.strokeRect(1.5, 1.5, BOARD_W - 3, BOARD_H - 3);
+    }
+    if (tetrisMode === 'sprint' && gameRunning) {
+      sprintElapsed = (performance.now() - sprintStartTime) / 1000;
+      const label = 'TIME ' + formatSprintTime(sprintElapsed);
+      ctx.font = '800 13px "Segoe UI", system-ui, sans-serif';
+      const w = ctx.measureText(label).width + 22;
+      rr(ctx, BOARD_W / 2 - w / 2, 8, w, 22, 11);
+      ctx.fillStyle = 'rgba(8,12,26,0.7)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(124,249,166,0.5)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#7cf9a6';
+      ctx.fillText(label, BOARD_W / 2, 19.5);
+    }
+    ctx.restore();
   }
 
   function drawMiniPiece(cx, name, canvasW, canvasH) {
@@ -964,49 +1259,52 @@
     for (const c of def.shape) { if (c[0] > maxX) maxX = c[0]; if (c[1] > maxY) maxY = c[1]; }
     const pw = (maxX + 1) * miniCell, ph = (maxY + 1) * miniCell;
     const ox = (canvasW - pw) / 2, oy = (canvasH - ph) / 2;
-    for (const c of def.shape) {
-      const px = ox + c[0] * miniCell, py = oy + c[1] * miniCell;
-      cx.fillStyle = def.color;
-      cx.fillRect(px + 1, py + 1, miniCell - 2, miniCell - 2);
-      cx.save(); cx.globalAlpha = 0.2; cx.fillStyle = '#fff';
-      cx.fillRect(px + 2, py + 2, miniCell - 4, (miniCell - 4) * 0.35);
-      cx.restore();
-    }
+    const k = cx.getTransform().a || 1;
+    for (const c of def.shape) drawBlock(cx, ox + c[0] * miniCell, oy + c[1] * miniCell, miniCell, def.color, k);
   }
 
   function drawNext() {
     nextCtx.clearRect(0, 0, nextCvs.width, nextCvs.height);
+    const k = nextCtx.getTransform().a || 1;
     for (let i = 0; i < nextQueue.length; i++) {
       const name = nextQueue[i];
       const def = PIECES[name];
-      const miniCell = 16;
+      const miniCell = i === 0 ? 18 : 15;
       let maxX = 0, maxY = 0;
       for (const c of def.shape) { if (c[0] > maxX) maxX = c[0]; if (c[1] > maxY) maxY = c[1]; }
       const pw = (maxX + 1) * miniCell;
       const ox = (nextCvs.width - pw) / 2;
-      const oy = 12 + i * 82;
-      for (const c of def.shape) {
-        const px = ox + c[0] * miniCell, py = oy + c[1] * miniCell;
-        nextCtx.fillStyle = def.color;
-        nextCtx.fillRect(px + 1, py + 1, miniCell - 2, miniCell - 2);
-      }
+      const oy = 14 + i * 82;
+      nextCtx.globalAlpha = i === 0 ? 1 : 0.75;
+      for (const c of def.shape) drawBlock(nextCtx, ox + c[0] * miniCell, oy + c[1] * miniCell, miniCell, def.color, k);
+      nextCtx.globalAlpha = 1;
     }
   }
 
   function drawHold() {
     drawMiniPiece(holdCtx, holdPiece, holdCvs.width, holdCvs.height);
+    if (holdUsed && holdPiece) {
+      holdCtx.fillStyle = 'rgba(8,12,26,0.55)';
+      holdCtx.fillRect(0, 0, holdCvs.width, holdCvs.height);
+    }
   }
 
   // ── HUD ──
   function updateHUD() {
     if (tetrisMode === 'sprint') {
-      scoreEl.textContent = 'Sprint 40L';
-      levelEl.textContent = 'Time: ' + formatSprintTime(sprintElapsed);
-      linesEl.textContent = 'Lines: ' + Math.min(lines, 40) + '/40';
+      scoreLabel.textContent = 'Mode';
+      scoreEl.textContent = '40L';
+      levelLabel.textContent = 'Time';
+      levelEl.textContent = formatSprintTime(sprintElapsed);
+      linesLabel.textContent = 'Lines';
+      linesEl.textContent = Math.min(lines, 40) + '/40';
     } else {
-      scoreEl.textContent = 'Score: ' + score;
-      levelEl.textContent = 'Level: ' + level;
-      linesEl.textContent = 'Lines: ' + lines;
+      scoreLabel.textContent = 'Score';
+      scoreEl.textContent = score.toLocaleString();
+      levelLabel.textContent = 'Level';
+      levelEl.textContent = level;
+      linesLabel.textContent = 'Lines';
+      linesEl.textContent = lines;
     }
     if (window.GamePlatform) GamePlatform.updateScore(score);
   }
@@ -1029,11 +1327,15 @@
   if (window.GamePlatform) {
     GamePlatform.initHeader('Tetris');
   }
+  addMusicButton();
 
   // ── Show start screen ──
   // Hide power-up bar on initial load (Classic is default)
   powerupBar.style.display = 'none';
   overlaySub.textContent = 'Classic — Click or press any key to start';
   renderHS();
+  setHue(1);
+  lastTime = performance.now();
+  animId = requestAnimationFrame(frame);
   GameEngine.pausable({ isActive: () => gameRunning, container: '#game-container' });
 })();
