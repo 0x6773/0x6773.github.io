@@ -58,12 +58,12 @@
           <p id="overlay-message">Click or press any key to start</p>
           <div class="how-to-play">
             <div class="how-title">How to Play</div>
-            Rotate with Left/Right or A/D<br>
-            Thrust with Up Arrow or W<br>
-            Fire with Space or tap Fire<br>
-            Press H or tap Jump to hyperspace<br>
-            Collect upgrades and chain kills<br>
-            Destroy every rock to advance
+            Rotate with Left/Right or A/D, thrust with Up or W<br>
+            Hold Space or Fire to shoot; H or Jump to hyperspace<br>
+            Iron rocks take 3 hits; crystal rocks always drop an upgrade<br>
+            Watch for the small saucer: it aims ahead of you<br>
+            Extra ship every 10,000 points; chain kills for combos<br>
+            M toggles music
           </div>
           <button id="overlay-button" type="button">Play</button>
         </div>
@@ -79,6 +79,8 @@
     </div>
     <ol id="highscores" class="hidden" aria-label="High scores"></ol>
   </main>
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

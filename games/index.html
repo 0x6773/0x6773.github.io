@@ -1229,10 +1229,11 @@
       <div class="game-banner">
         <canvas id="preview-asteroids" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
       </div>
       <div class="game-info">
         <h2>Asteroids</h2>
-        <p>Pilot your ship through drifting rocks, split giant asteroids, and survive increasingly dangerous waves.</p>
+        <p>Glowing neon vector arcade: shatter rocks, crack iron and crystal asteroids, dodge sharpshooting saucers.</p>
       </div>
       <div class="game-tags">
         <span class="tag">Arcade</span>
@@ -2021,13 +2022,21 @@
       var rocks = [];
       var angle = 0;
       var bullet = { x: W / 2, y: H - 28, vx: 0, vy: -2.2 };
+      var colors = ['#c084fc', '#e879f9', '#f472b6', '#67e8f9', '#93c5fd'];
       for (var i = 0; i < 7; i++) {
-        rocks.push({ x: 20 + (i * 47) % (W - 40), y: 22 + (i * 31) % 90, r: 10 + (i % 3) * 4, a: i * 0.7, vx: (i % 2 ? 0.35 : -0.28), vy: 0.12 + (i % 3) * 0.04 });
+        rocks.push({ x: 20 + (i * 47) % (W - 40), y: 22 + (i * 31) % 90, r: 10 + (i % 3) * 4, a: i * 0.7, vx: (i % 2 ? 0.35 : -0.28), vy: 0.12 + (i % 3) * 0.04, c: colors[i % colors.length] });
+      }
+      function glow(color) {
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.18; ctx.lineWidth = 6; ctx.stroke();
+        ctx.globalAlpha = 0.45; ctx.lineWidth = 3; ctx.stroke();
+        ctx.globalAlpha = 1; ctx.lineWidth = 1.4; ctx.stroke();
       }
       function frame() {
-        ctx.fillStyle = '#05030b'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = 'rgba(5,3,11,0.45)'; ctx.fillRect(0, 0, W, H);
         ctx.fillStyle = 'rgba(214,198,255,0.55)';
         for (var s = 0; s < 26; s++) ctx.fillRect((s * 67) % W, (s * 41) % H, 1.5, 1.5);
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
         for (var r = 0; r < rocks.length; r++) {
           var rock = rocks[r];
           rock.x += rock.vx; rock.y += rock.vy;
@@ -2036,22 +2045,23 @@
           if (rock.y > H + rock.r) rock.y = -rock.r;
           rock.a += 0.01;
           ctx.save(); ctx.translate(rock.x, rock.y); ctx.rotate(rock.a);
-          ctx.strokeStyle = '#d5a7ff'; ctx.lineWidth = 1.5; ctx.beginPath();
+          ctx.beginPath();
           for (var p = 0; p < 8; p++) {
             var pa = p / 8 * Math.PI * 2;
             var pr = rock.r * (0.78 + ((p + r) % 3) * 0.1);
             var px = Math.cos(pa) * pr, py = Math.sin(pa) * pr;
             if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
           }
-          ctx.closePath(); ctx.stroke(); ctx.restore();
+          ctx.closePath(); glow(rock.c); ctx.restore();
         }
         angle += 0.02;
         bullet.x += bullet.vx; bullet.y += bullet.vy;
         if (bullet.y < 20) { bullet.y = H - 28; bullet.x = W / 2; }
-        ctx.fillStyle = '#fff'; ctx.fillRect(bullet.x - 2, bullet.y - 2, 4, 4);
-        ctx.save(); ctx.translate(W / 2, H - 24); ctx.rotate(Math.sin(angle) * 0.12);
-        ctx.strokeStyle = '#fff'; ctx.fillStyle = 'rgba(213,167,255,0.2)'; ctx.beginPath();
-        ctx.moveTo(16, 0); ctx.lineTo(-12, -9); ctx.lineTo(-7, 0); ctx.lineTo(-12, 9); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+        ctx.beginPath(); ctx.moveTo(bullet.x, bullet.y + 6); ctx.lineTo(bullet.x, bullet.y); glow('#9ff9ff');
+        ctx.save(); ctx.translate(W / 2, H - 24); ctx.rotate(-Math.PI / 2 + Math.sin(angle) * 0.12);
+        ctx.beginPath(); ctx.moveTo(-9, -4); ctx.lineTo(-16 - Math.random() * 5, 0); ctx.lineTo(-9, 4); glow('#ffd166');
+        ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(-12, -9); ctx.lineTo(-7, 0); ctx.lineTo(-12, 9); ctx.closePath(); glow('#5ff6ff');
+        ctx.restore();
       }
       return frame;
     };

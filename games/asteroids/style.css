@@ -6,7 +6,10 @@
 
 html, body {
   min-height: 100%;
-  background: #090713;
+  background:
+    radial-gradient(circle at 25% 15%, rgba(192, 132, 252, 0.14), transparent 45%),
+    radial-gradient(circle at 80% 75%, rgba(95, 246, 255, 0.1), transparent 45%),
+    #05030b fixed;
   color: #fff;
   font-family: 'Segoe UI', Tahoma, sans-serif;
   touch-action: pan-y;
@@ -31,10 +34,11 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 10px 18px;
-  background: #171029;
-  border: 1px solid #3b2b64;
+  background: rgba(10, 6, 24, 0.85);
+  border: 1px solid rgba(95, 246, 255, 0.35);
   border-bottom: 0;
   border-radius: 12px 12px 0 0;
+  box-shadow: inset 0 0 18px rgba(95, 246, 255, 0.08);
   font-variant-numeric: tabular-nums;
 }
 
@@ -52,8 +56,9 @@ body {
 }
 
 #hud strong {
-  color: #d5a7ff;
+  color: #5ff6ff;
   font-size: 20px;
+  text-shadow: 0 0 8px currentColor, 0 0 18px currentColor;
 }
 
 #hud > div:nth-child(2) strong { color: #ffd166; }
@@ -62,10 +67,11 @@ body {
 #powerup-status {
   min-height: 26px;
   padding: 6px 12px;
-  background: #100b20;
-  border: 1px solid #3b2b64;
+  background: rgba(8, 5, 18, 0.85);
+  border: 1px solid rgba(95, 246, 255, 0.25);
   border-top: 0;
-  color: #b5a9d1;
+  color: #b9f6ff;
+  text-shadow: 0 0 6px rgba(95, 246, 255, 0.5);
   font-size: 10px;
   letter-spacing: 0.8px;
   text-align: center;
@@ -77,10 +83,10 @@ body {
   width: 100%;
   overflow: hidden;
   touch-action: none;
-  border: 1px solid #3b2b64;
+  border: 1px solid rgba(95, 246, 255, 0.35);
   border-top: 0;
   border-radius: 0 0 12px 12px;
-  box-shadow: 0 14px 50px rgba(0, 0, 0, 0.55), 0 0 50px rgba(165, 105, 255, 0.1);
+  box-shadow: 0 14px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(95, 246, 255, 0.12), 0 0 80px rgba(192, 132, 252, 0.12);
 }
 
 #game-canvas {
@@ -99,9 +105,9 @@ body {
   align-items: safe center;
   justify-content: center;
   overflow-y: auto;
-  background: rgba(5, 3, 11, 0.91);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  background: rgba(4, 2, 12, 0.72);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   z-index: 10;
 }
 
@@ -114,11 +120,12 @@ body {
 }
 
 .overlay h1 {
-  color: #d5a7ff;
+  color: transparent;
+  -webkit-text-stroke: 1.5px #5ff6ff;
   font-size: clamp(32px, 9vw, 48px);
-  letter-spacing: 6px;
+  letter-spacing: 8px;
   line-height: 1.1;
-  text-shadow: 0 0 24px rgba(213, 167, 255, 0.6);
+  filter: drop-shadow(0 0 6px rgba(95, 246, 255, 0.9)) drop-shadow(0 0 16px rgba(192, 132, 252, 0.7));
   margin-bottom: 12px;
 }
 
@@ -130,10 +137,11 @@ body {
 
 .how-to-play {
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 6, 24, 0.75);
+  border: 1px solid rgba(192, 132, 252, 0.45);
   border-radius: 8px;
-  color: #b5a9d1;
+  box-shadow: 0 0 16px rgba(192, 132, 252, 0.15), inset 0 0 16px rgba(192, 132, 252, 0.08);
+  color: #d9ccf5;
   font-size: 13px;
   line-height: 1.8;
   text-align: left;
@@ -152,21 +160,22 @@ body {
 #overlay-button {
   min-width: 150px;
   padding: 13px 30px;
-  border: 0;
+  border: 2px solid #5ff6ff;
   border-radius: 999px;
-  background: linear-gradient(135deg, #b66cff, #ff5f9e);
-  color: #12091f;
+  background: rgba(95, 246, 255, 0.08);
+  color: #b9fbff;
+  text-shadow: 0 0 8px rgba(95, 246, 255, 0.9);
   cursor: pointer;
   font: 800 15px 'Segoe UI', sans-serif;
   letter-spacing: 1px;
   text-transform: uppercase;
-  box-shadow: 0 5px 24px rgba(182, 108, 255, 0.35);
+  box-shadow: 0 0 18px rgba(95, 246, 255, 0.45), inset 0 0 12px rgba(95, 246, 255, 0.25);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 #overlay-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(255, 95, 158, 0.5);
+  box-shadow: 0 0 28px rgba(95, 246, 255, 0.7), inset 0 0 16px rgba(95, 246, 255, 0.35);
 }
 
 #wave-banner {
@@ -177,9 +186,12 @@ body {
   color: #ffd166;
   font-size: 28px;
   font-weight: 900;
-  letter-spacing: 4px;
+  letter-spacing: 6px;
+  white-space: nowrap;
   pointer-events: none;
-  text-shadow: 0 0 20px rgba(255, 209, 102, 0.8);
+  color: transparent;
+  -webkit-text-stroke: 1.2px #ffd166;
+  filter: drop-shadow(0 0 6px rgba(255, 209, 102, 0.9)) drop-shadow(0 0 14px rgba(255, 140, 66, 0.6));
   z-index: 5;
 }
 
@@ -193,10 +205,12 @@ body {
 .control-button {
   width: 76px;
   height: 52px;
-  border: 2px solid #513d82;
+  border: 1.5px solid rgba(192, 132, 252, 0.7);
   border-radius: 10px;
-  background: #171029;
-  color: #c6a9f2;
+  background: rgba(10, 6, 24, 0.85);
+  color: #e3d0ff;
+  text-shadow: 0 0 6px currentColor;
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.25), inset 0 0 10px rgba(192, 132, 252, 0.12);
   cursor: pointer;
   font: 800 20px 'Segoe UI', sans-serif;
   touch-action: none;
@@ -238,10 +252,10 @@ body {
   list-style: none;
   margin: 18px 0 0;
   padding: 12px 16px;
-  background: #171029;
-  border: 1px solid #3b2b64;
+  background: rgba(10, 6, 24, 0.85);
+  border: 1px solid rgba(95, 246, 255, 0.3);
   border-radius: 10px;
-  color: #b5a9d1;
+  color: #c9f8ff;
   text-align: center;
   font-size: 13px;
   line-height: 1.8;
@@ -372,10 +386,13 @@ body {
 [data-theme="light"] #powerup-status, [data-theme="light"] #highscores { color: var(--gp-ink-2); }
 [data-theme="light"] #highscores li:first-child { color: var(--gp-ink); }
 [data-theme="light"] .overlay { background: var(--gp-overlay); }
-[data-theme="light"] .overlay h1 { color: #9333ea; text-shadow: none; }
+[data-theme="light"] .overlay h1 { color: #6d28d9; -webkit-text-stroke: 0; filter: none; text-shadow: none; }
+[data-theme="light"] #overlay-button { color: #0e7490; text-shadow: none; border-color: #0891b2; background: rgba(8, 145, 178, 0.08); }
 [data-theme="light"] #overlay-message { color: var(--gp-ink-2); }
 [data-theme="light"] .how-to-play { background: rgba(31, 27, 69, 0.05); border-color: var(--gp-line); color: var(--gp-ink-2); }
 [data-theme="light"] .control-button { background: var(--gp-surface); color: var(--gp-ink-2); border-color: var(--gp-line); box-shadow: 0 3px 10px rgba(31, 27, 69, 0.08); }
 [data-theme="light"] .control-button.jump { color: #15803d; }
 [data-theme="light"] .control-button.thrust { color: #b7791f; }
 [data-theme="light"] .control-button.fire { color: #db2777; }
+
+.gp-btn-music.off { opacity: .4; }
