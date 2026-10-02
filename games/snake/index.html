@@ -45,7 +45,6 @@
   </script>
 </head>
 <body>
-  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
   <div id="game-wrapper">
     <div id="hud">
       <span id="score-label">SCORE: <span id="score">0</span></span>
@@ -60,29 +59,29 @@
         <p class="subtitle">A retro arcade classic</p>
         <div class="how-to">
           <div class="how-to-title">How to Play</div>
-          Arrow keys, WASD, or swipe to steer<br>
-          Eat the red food to grow and score<br>
-          Near-miss your own tail for bonus points<br>
-          Speed increases as you grow<br>
-          <span style="color:#888;font-size:11px;margin-top:4px;display:inline-block">
-            <b style="color:#53d769">Classic</b> – walls kill &nbsp;
-            <b style="color:#e8a030">Obstacle</b> – dodge blocks &nbsp;
-            <b style="color:#60b0ff">Portal</b> – edges wrap
+          Arrow keys, WASD, or swipe to steer; quick turns are queued<br>
+          Eat the red orbs to grow; speed rises as you grow<br>
+          Power-ups: gold +50, slow-mo, ghost (pass through yourself), shrink<br>
+          Skim past your own body for near-miss bonus points<br>
+          <span class="mode-legend">
+            <b class="m-classic">Classic</b> – walls kill &nbsp;
+            <b class="m-obstacle">Obstacle</b> – dodge crystals &nbsp;
+            <b class="m-portal">Portal</b> – edges wrap
           </span>
         </div>
         <div id="snake-modes">
-          <button class="smode-btn active" data-mode="classic" style="padding:8px 16px;font-size:13px;font-weight:700;border:2px solid #53d769;border-radius:6px;background:transparent;color:#53d769;cursor:pointer;transition:all 0.2s">Classic</button>
-          <button class="smode-btn" data-mode="obstacle" style="padding:8px 16px;font-size:13px;font-weight:700;border:2px solid #666;border-radius:6px;background:transparent;color:#666;cursor:pointer;transition:all 0.2s">Obstacle</button>
-          <button class="smode-btn" data-mode="portal" style="padding:8px 16px;font-size:13px;font-weight:700;border:2px solid #666;border-radius:6px;background:transparent;color:#666;cursor:pointer;transition:all 0.2s">Portal</button>
+          <button class="smode-btn active" data-mode="classic">Classic</button>
+          <button class="smode-btn" data-mode="obstacle">Obstacle</button>
+          <button class="smode-btn" data-mode="portal">Portal</button>
         </div>
         <button id="start-btn" class="btn">PLAY</button>
-        <p class="controls-hint">Arrow Keys / WASD / Swipe</p>
+        <p class="controls-hint">Arrow Keys / WASD / Swipe &middot; M: music</p>
       </div>
 
       <!-- Game-over overlay -->
       <div id="gameover-overlay" class="overlay hidden">
         <h1>GAME OVER</h1>
-        <p id="final-mode-text" style="font-size:12px;letter-spacing:2px;color:#888;margin:0 0 4px;text-transform:uppercase"></p>
+        <p id="final-mode-text"></p>
         <p id="final-score-text">Score: 0</p>
         <button id="restart-btn" class="btn">PLAY AGAIN</button>
         <div id="leaderboard">
@@ -93,6 +92,9 @@
     </div>
   </div>
 
+  <script src="core.js"></script>
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

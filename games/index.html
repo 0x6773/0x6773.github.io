@@ -935,10 +935,11 @@
           <div class="game-banner">
             <canvas id="preview-snake" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
           </div>
           <div class="game-info">
             <h2>Snake</h2>
-            <p>Guide a growing snake to eat food without crashing into walls or yourself. Speed increases as you grow.</p>
+            <p>Steer a glossy neon snake that glides smoothly, grab power-ups like ghost and slow-mo, and survive three modes.</p>
           </div>
           <div class="game-tags">
             <span class="tag">Arcade</span>
@@ -1346,7 +1347,8 @@
     PREVIEWS['snake'] = function(c, ctx, W, H) {
       const gs = 10; // grid size
       const cols = Math.floor(W/gs), rows = Math.floor(H/gs);
-      let snake = [{x:14,y:8},{x:13,y:8},{x:12,y:8},{x:11,y:8},{x:10,y:8}];
+      let snake = [{x:14,y:8},{x:13,y:8},{x:12,y:8},{x:11,y:8},{x:10,y:8},{x:9,y:8}];
+      let prev = snake.map(s => ({...s}));
       let dir = {x:1,y:0};
       let food = {x:20,y:8};
       let tick = 0;
@@ -1356,6 +1358,7 @@
       function frame() {
         tick++;
         if (tick % 6 === 0) {
+          prev = snake.map(s => ({...s}));
           const head = {x:snake[0].x+dir.x, y:snake[0].y+dir.y};
           if (head.x<0||head.x>=cols||head.y<0||head.y>=rows) { dir={x:-dir.x,y:-dir.y}; head.x=snake[0].x+dir.x; head.y=snake[0].y+dir.y; }
           // Simple AI: turn toward food
@@ -1368,15 +1371,30 @@
           if (head.x===food.x&&head.y===food.y) spawnFood();
           else snake.pop();
         }
-        ctx.clearRect(0,0,W,H);
-        for (let i=0;i<snake.length;i++) {
-          const s = snake[i];
-          const t = 1-i/snake.length;
-          ctx.fillStyle = `rgb(${Math.round(30+50*t)},${Math.round(180+35*t)},${Math.round(80+20*t)})`;
-          ctx.beginPath(); ctx.roundRect(s.x*gs+1,s.y*gs+1,gs-2,gs-2,3); ctx.fill();
-        }
+        const a = (tick % 6) / 6;
+        const bg = ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#0b1530'); bg.addColorStop(1,'#070c1d');
+        ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+        ctx.fillStyle = 'rgba(140,220,255,0.18)';
+        for (let x = gs; x < W; x += gs) for (let y = gs; y < H; y += gs) ctx.fillRect(x-0.5,y-0.5,1,1);
+        const pts = snake.map((s,i) => { const p = prev[i] || s; const jump = Math.abs(p.x-s.x)+Math.abs(p.y-s.y) > 1; return {x:((jump?s.x:p.x+(s.x-p.x)*a))*gs+gs/2, y:((jump?s.y:p.y+(s.y-p.y)*a))*gs+gs/2}; });
         const pulse = 1+0.15*Math.sin(tick*0.15);
-        ctx.fillStyle='#ff4d6d'; ctx.beginPath(); ctx.arc(food.x*gs+gs/2,food.y*gs+gs/2,gs/2*pulse*0.7,0,Math.PI*2); ctx.fill();
+        ctx.shadowColor = '#ff5f6d'; ctx.shadowBlur = 10;
+        ctx.fillStyle='#ff5f6d'; ctx.beginPath(); ctx.arc(food.x*gs+gs/2,food.y*gs+gs/2,gs/2*pulse*0.75,0,Math.PI*2); ctx.fill();
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.shadowColor = 'rgba(60,255,170,0.8)'; ctx.shadowBlur = 10;
+        ctx.strokeStyle = '#0d6b5c'; ctx.lineWidth = gs*0.8;
+        ctx.beginPath(); pts.forEach((p,i) => i ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y)); ctx.stroke();
+        ctx.shadowBlur = 0;
+        for (let i = pts.length-1; i > 0; i--) {
+          const t = i/(pts.length-1);
+          ctx.strokeStyle = `rgb(${Math.round(125-109*t)},${Math.round(255-105*t)},${Math.round(176-46*t)})`;
+          ctx.lineWidth = gs*0.72*Math.min(1,(pts.length-1-i)/2+0.5);
+          ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[i-1].x,pts[i-1].y); ctx.stroke();
+        }
+        const h = pts[0];
+        ctx.fillStyle = '#7dffb0'; ctx.beginPath(); ctx.arc(h.x,h.y,gs*0.52,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        for (const side of [-1,1]) { ctx.beginPath(); ctx.arc(h.x+dir.x*1.5-dir.y*2.5*side, h.y+dir.y*1.5+dir.x*2.5*side, 1.6, 0, Math.PI*2); ctx.fill(); }
       }
       return frame;
     };
