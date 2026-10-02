@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNZT8PLH08"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-FNZT8PLH08');</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Play Chain Reaction free online. Place orbs, trigger explosive chain reactions and take over the board. Play against up to three computer opponents on three difficulties, or with 2 to 4 players on one device.">
+  <meta name="keywords" content="chain reaction, chain reaction game, orb game, strategy game, play chain reaction online">
+  <link rel="canonical" href="https://mnciitbhu.me/games/chain-reaction/">
+  <meta property="og:title" content="Chain Reaction - Free Online | vs Computer or 2-4 Players">
+  <meta property="og:description" content="Place orbs, trigger explosive chain reactions and take over the board. Play against up to three computer opponents on three difficulties, or with 2 to 4 players on one device.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mnciitbhu.me/games/chain-reaction/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Chain Reaction - Free Online | vs Computer or 2-4 Players">
+  <meta name="twitter:description" content="Place orbs, trigger explosive chain reactions and take over the board. Play against up to three computer opponents on three difficulties, or with 2 to 4 players on one device.">
+  <title>Chain Reaction - Free Online | vs Computer or 2-4 Players</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../platform.css">
+  <script src="../platform.js"></script>
+  <script src="../engine.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Chain Reaction",
+    "description": "Place orbs, trigger explosive chain reactions and take over the board. Play against up to three computer opponents on three difficulties, or with 2 to 4 players on one device.",
+    "url": "https://mnciitbhu.me/games/chain-reaction/",
+    "genre": "Strategy",
+    "gamePlatform": "Web Browser",
+    "applicationCategory": "Game",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Govind Sahai"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="game-wrap">
+    <div id="hud" class="duo">
+      <div id="turn-text">Your turn</div>
+      <div id="players"></div>
+    </div>
+
+    <div id="board-wrap">
+      <canvas id="board" width="384" height="576" aria-label="Chain Reaction board"></canvas>
+    </div>
+
+    <div id="controls">
+      <button id="undo-btn" class="ctrl-btn" type="button" disabled>&#8630; Undo</button>
+      <button id="new-btn" class="ctrl-btn" type="button">&#8635; New Game</button>
+    </div>
+
+    <div id="overlay" class="overlay">
+      <div class="overlay-content">
+        <h1 id="overlay-title">CHAIN REACTION</h1>
+        <p id="overlay-message">Fill a cell to bursting and set off a chain reaction</p>
+        <div id="result-stats" class="hidden"></div>
+        <div class="picker" id="mode-picker" role="group" aria-label="Opponent">
+          <button class="chip" type="button" data-mode="cpu">vs Computer</button>
+          <button class="chip" type="button" data-mode="pvp">Pass &amp; Play</button>
+        </div>
+        <div class="picker" id="count-picker" role="group" aria-label="Number of players">
+          <button class="chip" type="button" data-count="2">2 Players</button>
+          <button class="chip" type="button" data-count="3">3 Players</button>
+          <button class="chip" type="button" data-count="4">4 Players</button>
+        </div>
+        <div class="picker" id="level-picker" role="group" aria-label="Computer difficulty">
+          <button class="chip" type="button" data-level="easy">Easy</button>
+          <button class="chip" type="button" data-level="medium">Medium</button>
+          <button class="chip" type="button" data-level="hard">Hard</button>
+        </div>
+        <div class="picker" id="size-picker" role="group" aria-label="Board size">
+          <button class="chip" type="button" data-size="small">Small 6&times;9</button>
+          <button class="chip" type="button" data-size="large">Large 8&times;12</button>
+        </div>
+        <div class="how-to">
+          <div class="how-to-title">How to Play</div>
+          Take turns adding an orb to an empty cell or one of yours<br>
+          A cell bursts when its orbs match its neighbours: corners 2, edges 3, others 4<br>
+          Bursts capture the cells around them and can set off chains<br>
+          Lose every orb and you're out; the last player standing wins<br>
+          Keys: arrows + Enter to place, U to undo, M for music
+        </div>
+        <button id="start-btn" class="start-btn" type="button">Start Game</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="core.js"></script>
+  <script src="ai.js"></script>
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

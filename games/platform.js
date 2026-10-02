@@ -71,7 +71,8 @@
     'stack-tower': 'Stack Tower',
     'battle-city': 'Battle City',
     'wordle': 'Wordle',
-    'sudoku': 'Sudoku'
+    'sudoku': 'Sudoku',
+    'chain-reaction': 'Chain Reaction'
   };
 
   const GAME_EMOJIS = {
@@ -87,7 +88,8 @@
     'connect4': '\u{1F534}',
     'doodle-jump': '\u{1F438}',
     'wordle': '\u{1F520}',
-    'sudoku': '\u{1F9E9}'
+    'sudoku': '\u{1F9E9}',
+    'chain-reaction': '\u{1F4A5}'
   };
 
   const ACHIEVEMENT_DEFS = [
@@ -112,6 +114,8 @@
     { id: 'stacktower-height', name: 'Skyline', desc: 'Reach height 25 in Stack Tower', icon: 'S' },
     { id: 'stacktower-combo', name: 'Perfect Builder', desc: 'Reach a 10x combo in Stack Tower', icon: 'P' },
     { id: 'battlecity-wave-10', name: 'Tank Commander', desc: 'Reach stage 5 in Battle City', icon: 'T' },
+    { id: 'chain-hard-win', name: 'Critical Mass', desc: 'Beat the Hard CPU in Chain Reaction', icon: '\u{1F4A5}' },
+    { id: 'chain-15', name: 'Domino Effect', desc: 'Set off a 15-burst chain in Chain Reaction', icon: '\u{1F9E8}' },
     { id: 'time-30m',        name: 'Marathon',            desc: 'Play for 30 min total',     icon: '\u{23F1}\uFE0F' },
     { id: 'night-owl',       name: 'Night Owl',           desc: 'Play after midnight',       icon: '\u{1F989}' },
     { id: 'early-bird',      name: 'Early Bird',          desc: 'Play before 7 AM',          icon: '\u{1F305}' },
@@ -126,7 +130,8 @@
     'connect4': 'wins',
     'tron': 'wins',
     'tron-online': 'wins',
-    'ludo': 'wins'
+    'ludo': 'wins',
+    'chain-reaction': 'wins'
   };
 
   function formatClock(ms) {
@@ -212,6 +217,8 @@
     if ((gs['stack-tower']?.maxHeight || 0) >= 25) tryUnlock('stacktower-height');
     if ((gs['stack-tower']?.maxCombo || 0) >= 10) tryUnlock('stacktower-combo');
     if ((gs['battle-city']?.maxWave || 0) >= 5) tryUnlock('battlecity-wave-10');
+    if ((gs['chain-reaction']?.hardWins || 0) >= 1) tryUnlock('chain-hard-win');
+    if ((gs['chain-reaction']?.maxCombo || 0) >= 15) tryUnlock('chain-15');
 
     // Time achievement
     if (stats.totalTime >= 30 * 60 * 1000) tryUnlock('time-30m');
@@ -460,6 +467,7 @@
 
       if (extra) {
         if (extra.win) gs.wins = (gs.wins || 0) + 1;
+        if (extra.win && extra.mode === 'cpu-hard') gs.hardWins = (gs.hardWins || 0) + 1;
         if (extra.linesCleared) gs.linesCleared = (gs.linesCleared || 0) + extra.linesCleared;
         if (extra.maxCombo > (gs.maxCombo || 0)) gs.maxCombo = extra.maxCombo;
         if (extra.maxWave > (gs.maxWave || 0)) gs.maxWave = extra.maxWave;
@@ -773,6 +781,7 @@
         { gameId: 'wordle', desc: 'Win a Wordle game', check: function(s, e) { return e && e.win; } },
         { gameId: 'sudoku', desc: 'Complete a Sudoku puzzle', check: function(s, e) { return e && e.win; } },
         { gameId: 'connect4', desc: 'Win a Connect Four game', check: function(s, e) { return e && e.win; } },
+        { gameId: 'chain-reaction', desc: 'Beat the Medium CPU in Chain Reaction', check: function(s, e) { return e && e.win && (e.mode === 'cpu-medium' || e.mode === 'cpu-hard'); } },
         { gameId: 'doodle-jump', desc: 'Score 500+ in Doodle Jump', check: function(s, e) { return s >= 500; } },
         { gameId: 'snake', desc: 'Score 200+ in Snake', check: function(s, e) { return s >= 200; } },
         { gameId: 'flappy', desc: 'Score 50+ in Flappy Bird', check: function(s, e) { return s >= 50; } },

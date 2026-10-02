@@ -865,7 +865,7 @@
     <section class="games-section" id="games">
       <div class="section-header">
         <h2 class="section-title">&#x1F579;&#xFE0F; Games</h2>
-        <span class="daily-date" id="games-count">17 games</span>
+        <span class="daily-date" id="games-count">18 games</span>
       </div>
       <div class="games-toolbar">
         <div class="search-box">
@@ -885,6 +885,28 @@
         </select>
       </div>
       <div class="games-grid" id="games-grid">
+
+        <a href="chain-reaction/" class="game-card" data-game-id="chain-reaction" style="--c1:#ff3d6e;--c2:#2ee6ff;--c-shadow:rgba(255,61,110,0.35);--c-glow:rgba(46,230,255,0.35)" data-category="puzzle multiplayer">
+          <div class="game-banner">
+            <canvas id="preview-chain-reaction" width="280" height="160"></canvas>
+            <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">New</span>
+          </div>
+          <div class="game-info">
+            <h2>Chain Reaction</h2>
+            <p>Place orbs, overload cells and set off explosive chains to take over the board. Take on up to three computers, or play with 2 to 4 people on one device.</p>
+          </div>
+          <div class="game-tags">
+            <span class="tag">Strategy</span>
+            <span class="tag">vs CPU</span>
+            <span class="tag">2-4 Players</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <div class="game-stats-bar" data-game="chain-reaction">
+            <span>Best: <strong class="gs-best">--</strong></span>
+            <span>Played: <strong class="gs-played">0</strong> times</span>
+          </div>
+        </a>
 
         <!-- Breakout -->
         <a href="breakout/" class="game-card" data-game-id="breakout" style="--c1:#ff6b6b;--c2:#ffb86b;--c-shadow:rgba(255,107,107,0.35);--c-glow:rgba(255,184,107,0.35)" data-category="arcade">
@@ -2015,6 +2037,76 @@
       }
       return frame;
     };
+    PREVIEWS['chain-reaction'] = function(c, ctx, W, H) {
+      const cols = 9, rows = 5, cs = 26;
+      const ox = (W - cols * cs) / 2, oy = (H - rows * cs) / 2;
+      const colors = [['#ff3d6e', '255,61,110'], ['#2ee6ff', '46,230,255']];
+      const owner = new Array(cols * rows).fill(-1), count = new Array(cols * rows).fill(0);
+      const crit = i => 4 - (i % cols === 0 || i % cols === cols - 1) - (i < cols || i >= cols * (rows - 1));
+      const nb = i => { const x = i % cols, y = Math.floor(i / cols), out = []; if (y > 0) out.push(i - cols); if (x < cols - 1) out.push(i + 1); if (y < rows - 1) out.push(i + cols); if (x > 0) out.push(i - 1); return out; };
+      let turn = 0, tick = 0, wave = null, moves = 0;
+      function reset() { owner.fill(-1); count.fill(0); turn = 0; moves = 0; wave = null; }
+      function unstable() { const out = []; for (let i = 0; i < owner.length; i++) if (count[i] >= crit(i)) out.push(i); return out; }
+      function orb(x, y, p, r) {
+        const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
+        g.addColorStop(0, '#fff'); g.addColorStop(0.3, colors[p][0]); g.addColorStop(1, 'rgba(10,10,30,0.9)');
+        ctx.shadowColor = colors[p][0]; ctx.shadowBlur = 6;
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      function frame() {
+        tick++;
+        if (wave) {
+          wave.t++;
+          if (wave.t >= 12) {
+            for (const i of wave.cells) { count[i] -= crit(i); if (!count[i]) owner[i] = -1; }
+            for (const i of wave.cells) for (const j of nb(i)) { owner[j] = wave.p; count[j]++; }
+            const next = unstable();
+            const alive = [0, 0]; owner.forEach((o, i) => { if (o >= 0) alive[o] += count[i]; });
+            if (moves > 2 && (!alive[0] || !alive[1])) { wave = null; tick = -90; }
+            else wave = next.length ? { cells: next, p: wave.p, t: 0 } : null;
+          }
+        } else if (tick > 0 && tick % 22 === 0) {
+          const legal = []; for (let i = 0; i < owner.length; i++) if (owner[i] < 0 || owner[i] === turn) legal.push(i);
+          const prefer = legal.filter(i => owner[i] === turn && count[i] === crit(i) - 1);
+          const pick = prefer.length && Math.random() < 0.6 ? prefer[Math.floor(Math.random() * prefer.length)] : legal[Math.floor(Math.random() * legal.length)];
+          owner[pick] = turn; count[pick]++; moves++;
+          const u = unstable();
+          if (u.length) wave = { cells: u, p: turn, t: 0 };
+          turn = 1 - turn;
+          if (moves > 70) tick = -60;
+        }
+        if (tick === -1) reset();
+        const p = wave ? wave.p : turn;
+        const bg = ctx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0c1024'); bg.addColorStop(1, '#06070f');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = 'rgba(' + colors[p][1] + ',0.6)'; ctx.lineWidth = 1;
+        ctx.shadowColor = colors[p][0]; ctx.shadowBlur = 5;
+        ctx.beginPath();
+        for (let x = 0; x <= cols; x++) { ctx.moveTo(ox + x * cs + 0.5, oy); ctx.lineTo(ox + x * cs + 0.5, oy + rows * cs); }
+        for (let y = 0; y <= rows; y++) { ctx.moveTo(ox, oy + y * cs + 0.5); ctx.lineTo(ox + cols * cs, oy + y * cs + 0.5); }
+        ctx.stroke(); ctx.shadowBlur = 0;
+        const flying = wave ? new Set(wave.cells) : null;
+        for (let i = 0; i < owner.length; i++) {
+          if (owner[i] < 0) continue;
+          const n = Math.min(3, count[i] - (flying && flying.has(i) ? crit(i) : 0));
+          if (n <= 0) continue;
+          const cx = ox + (i % cols) * cs + cs / 2, cy = oy + Math.floor(i / cols) * cs + cs / 2;
+          const a = tick * (count[i] >= crit(i) - 1 ? 0.12 : 0.03) + i;
+          const pts = n === 1 ? [[0, 0]] : n === 2 ? [[-0.6, 0], [0.6, 0]] : [[0, -0.7], [-0.6, 0.35], [0.6, 0.35]];
+          for (const [px, py] of pts) orb(cx + (px * Math.cos(a) - py * Math.sin(a)) * 5, cy + (px * Math.sin(a) + py * Math.cos(a)) * 5, owner[i], 4.6);
+        }
+        if (wave) {
+          const e = 1 - Math.pow(1 - wave.t / 12, 3);
+          for (const i of wave.cells) {
+            const sx = ox + (i % cols) * cs + cs / 2, sy = oy + Math.floor(i / cols) * cs + cs / 2;
+            for (const j of nb(i)) orb(sx + (ox + (j % cols) * cs + cs / 2 - sx) * e, sy + (oy + Math.floor(j / cols) * cs + cs / 2 - sy) * e, wave.p, 4.6);
+          }
+        }
+      }
+      return frame;
+    };
+
     var previewMotion = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     var livePreviews = [];
     var previewObserver = 'IntersectionObserver' in window ? new IntersectionObserver(function(entries) {
@@ -2256,6 +2348,7 @@
       }
 
       var SLIDES = [
+        { id: 'chain-reaction', preview: 'chain-reaction', badge: 'New', title: 'Chain Reaction', tagline: 'Overload cells, set off chain reactions and take the whole board, against computers or with 2 to 4 players on one device.', c1: '#ff3d6e', c2: '#7c3aed' },
         { id: 'battle-city', preview: 'battle-city', badge: 'Updated', title: 'Battle City', tagline: 'Defend the eagle in a classic tank battle with a modern look, power-ups and music.', c1: '#f59e0b', c2: '#ef4444' },
         { id: 'doodle-jump', preview: 'doodle', badge: 'Updated', title: 'Doodle Jump', tagline: 'Bounce from the sky into space with jetpacks, monsters and black holes.', c1: '#22c77a', c2: '#1fb9ea' },
         { id: 'tetris', preview: 'tetris', badge: 'Updated', title: 'Tetris', tagline: 'Neon glass blocks, flashy line clears and music that speeds up as you level.', c1: '#8b5cf6', c2: '#ec4899' },
