@@ -250,7 +250,11 @@
     }
     overlayMessage.textContent = (won ? 'Sector cleared' : 'The invasion reached Earth') + ' | Score: ' + score + ' | Wave: ' + wave;
     overlayButton.textContent = 'Play Again';
-    setTimeout(() => { if (!gameRunning) overlay.classList.remove('hidden'); }, 900);
+    setTimeout(() => {
+      if (gameRunning) return;
+      endedAt = performance.now();
+      overlay.classList.remove('hidden');
+    }, 900);
   }
 
   function nextWave() {
@@ -1021,7 +1025,7 @@
   }
 
   function startFromOverlay() {
-    if (performance.now() - endedAt < 700) return;
+    if (overlay.classList.contains('hidden') || performance.now() - endedAt < 700) return;
     ensureAudio();
     beginGame();
   }
