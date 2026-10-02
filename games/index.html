@@ -958,10 +958,11 @@
           <div class="game-banner">
             <canvas id="preview-flappy" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
           </div>
           <div class="game-info">
             <h2>Flappy Bird</h2>
-            <p>Tap to flap and dodge pipes in this addictive one-button game. How far can you fly?</p>
+            <p>Flap through a bright cartoon sky, collect coins to unlock new birds, and earn medals as pipes start to move.</p>
           </div>
           <div class="game-tags">
             <span class="tag">Arcade</span>
@@ -1402,35 +1403,49 @@
     // Flappy Bird preview
     PREVIEWS['flappy'] = function(c, ctx, W, H) {
       let by = H/2, bvy = 0, tick = 0;
-      const pipes = [{x:W,gap:H/2-20},{x:W+120,gap:H/2+10},{x:W+240,gap:H/2-10}];
-      const gapH = 50, pipeW = 30;
+      const pipes = [{x:W,gap:H/2-20,coin:true},{x:W+120,gap:H/2+10,coin:false},{x:W+240,gap:H/2-10,coin:true}];
+      const gapH = 54, pipeW = 30;
       function frame() {
         tick++;
-        ctx.clearRect(0,0,W,H);
         // Sky
         const sky = ctx.createLinearGradient(0,0,0,H);
-        sky.addColorStop(0,'#0a1628'); sky.addColorStop(1,'#16213e');
+        sky.addColorStop(0,'#3eb9ff'); sky.addColorStop(1,'#d3f3ff');
         ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+        ctx.fillStyle = 'rgba(255,247,190,0.8)'; ctx.beginPath(); ctx.arc(W-36,30,14,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        const cx = ((-tick*0.3) % (W+80) + W+80) % (W+80) - 40;
+        ctx.beginPath(); ctx.arc(cx,40,10,0,Math.PI*2); ctx.arc(cx+12,34,12,0,Math.PI*2); ctx.arc(cx+26,40,9,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#7fd3a0';
+        ctx.beginPath(); ctx.moveTo(0,H-10); for (let x = 0; x <= W; x += 8) ctx.lineTo(x, H-26-Math.sin((x+tick*0.6)/30)*7); ctx.lineTo(W,H-10); ctx.fill();
         // Bird physics
         bvy += 0.25; by += bvy;
-        if (by > H-20) { by=H-20; bvy=-4; }
+        if (by > H-22) { by=H-22; bvy=-4; }
         if (by < 10) { by=10; bvy=0; }
         if (tick%60===0) bvy=-4;
         // Pipes
         for (const p of pipes) {
           p.x -= 1.2;
-          if (p.x<-pipeW) { p.x=W+40; p.gap=30+Math.random()*(H-80); }
-          ctx.fillStyle='#00e676';
-          ctx.fillRect(p.x,0,pipeW,p.gap-gapH/2);
-          ctx.fillRect(p.x,p.gap+gapH/2,pipeW,H-p.gap-gapH/2);
+          if (p.x<-pipeW-6) { p.x=W+40; p.gap=30+Math.random()*(H-80); p.coin = Math.random() < 0.5; }
+          const g = ctx.createLinearGradient(p.x,0,p.x+pipeW,0); g.addColorStop(0,'#3fae4f'); g.addColorStop(0.3,'#86e889'); g.addColorStop(1,'#2f8f3d');
+          ctx.fillStyle = g; ctx.strokeStyle = '#1d5e28'; ctx.lineWidth = 1.5;
+          ctx.fillRect(p.x,0,pipeW,p.gap-gapH/2-8); ctx.strokeRect(p.x,-1,pipeW,p.gap-gapH/2-7);
+          ctx.fillRect(p.x,p.gap+gapH/2+8,pipeW,H); ctx.strokeRect(p.x,p.gap+gapH/2+8,pipeW,H);
+          ctx.beginPath(); ctx.roundRect(p.x-3,p.gap-gapH/2-10,pipeW+6,10,3); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); ctx.roundRect(p.x-3,p.gap+gapH/2,pipeW+6,10,3); ctx.fill(); ctx.stroke();
+          if (p.coin) { const s = Math.abs(Math.sin(tick*0.08)); ctx.fillStyle = '#ffd23d'; ctx.beginPath(); ctx.ellipse(p.x+pipeW/2,p.gap,5*Math.max(0.3,s),5,0,0,Math.PI*2); ctx.fill(); }
         }
         // Ground
-        ctx.fillStyle='#2d1b00'; ctx.fillRect(0,H-10,W,10);
-        ctx.fillStyle='#4caf50'; ctx.fillRect(0,H-12,W,3);
+        ctx.fillStyle='#e9c27a'; ctx.fillRect(0,H-10,W,10);
+        ctx.fillStyle='#78d64b'; ctx.fillRect(0,H-12,W,4);
         // Bird
-        ctx.fillStyle='#ffd700'; ctx.beginPath(); ctx.arc(60,by,8,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(63,by-2,3,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(64,by-2,1.5,0,Math.PI*2); ctx.fill();
+        ctx.save(); ctx.translate(60,by); ctx.rotate(Math.max(-0.5,Math.min(0.9,bvy*0.08)));
+        ctx.fillStyle='#ffcf1f'; ctx.strokeStyle = 'rgba(60,30,0,0.4)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.ellipse(0,0,9.5,8.5,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='#f2a900'; ctx.beginPath(); ctx.ellipse(-4,1,5.5,3.2,-0.4+Math.sin(tick*0.5)*0.6,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(4,-3,3.4,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#1c1430'; ctx.beginPath(); ctx.arc(5,-3,1.6,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#ff8a3d'; ctx.beginPath(); ctx.moveTo(7,0); ctx.lineTo(14,1.5); ctx.lineTo(7,3.5); ctx.closePath(); ctx.fill();
+        ctx.restore();
       }
       return frame;
     };

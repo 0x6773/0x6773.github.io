@@ -46,7 +46,6 @@
   </script>
 </head>
 <body>
-  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
   <div id="game-wrapper">
     <div id="hud">
       <div id="hud-score-label">SCORE</div>
@@ -63,9 +62,9 @@
           <div class="how-to">
             <div class="how-to-title">How to Play</div>
             Click, tap, or press Space to flap<br>
-            Navigate through gaps between pipes<br>
-            Each pipe passed = +1 point<br>
-            Gaps get smaller as you score higher<br>
+            Each pipe passed = +1 point; gaps shrink as you go<br>
+            From 20 points some pipes start to move<br>
+            Grab coins to unlock new birds; medals at 10, 20, 30, 50<br>
             Don't hit pipes, ground, or ceiling
           </div>
           <div id="mode-selector">
@@ -74,6 +73,10 @@
               <button class="mode-btn active" data-mode="classic">Classic</button>
               <button class="mode-btn" data-mode="reverse">&#8597; Reverse</button>
               <button class="mode-btn" data-mode="night">&#127769; Night</button>
+            </div>
+            <div class="skin-row">
+              <div id="skin-picker" role="group" aria-label="Choose your bird"></div>
+              <span class="coin-bank" title="Coins collected"><i></i><span id="coin-bank">0</span></span>
             </div>
             <label class="ghost-toggle">
               <input type="checkbox" id="ghost-checkbox" checked>
@@ -89,8 +92,12 @@
         <div class="overlay-content">
           <h2 class="gameover-title">Game Over</h2>
           <div id="final-score-box">
-            <div class="final-score-label">SCORE</div>
-            <div id="final-score">0</div>
+            <div id="final-medal" class="medal none"><span>No medal</span></div>
+            <div class="final-score-main">
+              <div class="final-score-label">SCORE</div>
+              <div id="final-score">0</div>
+              <div class="final-meta">Best <strong id="final-best">0</strong> &middot; Coins <strong id="final-coins">0</strong></div>
+            </div>
           </div>
           <div id="highscore-board">
             <h3>Top Scores</h3>
@@ -101,6 +108,8 @@
       </div>
     </div>
   </div>
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
