@@ -58,10 +58,11 @@
           <p id="overlay-message">Click or press any key to start</p>
           <div class="how-to-play">
             <div class="how-title">How to Play</div>
-            Tap, click, or press Space to drop the bar<br>
-            Overlap the previous bar to keep stacking<br>
-            Perfect placement builds your combo<br>
-            The tower speeds up as it grows
+            Tap, click, or press Space to drop the slab<br>
+            Slabs slide in from alternating sides; overhang gets sliced off<br>
+            Perfect drops build your combo; 3 in a row grow the slab back<br>
+            Gold slabs give a bonus, striped ones shrink as they move<br>
+            The tower speeds up as it grows &middot; M toggles music
           </div>
           <button id="overlay-button" type="button">Play</button>
         </div>
@@ -69,10 +70,12 @@
       <div id="perfect-banner" class="hidden">PERFECT</div>
     </div>
     <div id="touch-controls" aria-label="Touch controls">
-      <button id="drop-button" type="button">DROP BAR</button>
+      <button id="drop-button" type="button">DROP</button>
     </div>
     <ol id="highscores" class="hidden" aria-label="High scores"></ol>
   </main>
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

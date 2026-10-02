@@ -1251,10 +1251,11 @@
       <div class="game-banner">
         <canvas id="preview-stack-tower" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
       </div>
       <div class="game-info">
         <h2>Stack Tower</h2>
-        <p>Drop moving bars, build the tallest tower, and chase perfect placement combos.</p>
+        <p>Stack sliding 3D slabs into a tower, slice off the overhang, and chain perfect drops to grow it back.</p>
       </div>
       <div class="game-tags">
         <span class="tag">Arcade</span>
@@ -2067,25 +2068,30 @@
     };
 
     PREVIEWS['stack-tower'] = function(c, ctx, W, H) {
-      var bars = [];
-      var moving = { x: 10, y: H - 38, w: 110, dir: 1 };
-      var tick = 0;
-      for (var i = 0; i < 6; i++) bars.push({ x: 85 + Math.sin(i * 1.3) * 18, y: H - 22 - i * 15, w: 110 - i * 5, color: ['#5ee7f2', '#7dff9b', '#ffcf5c', '#ff8fa3'][i % 4] });
+      var tick = 0, hue = 330;
+      var C = Math.cos(Math.PI / 6) * 0.55, S = 0.5 * 0.55, T = 12;
+      var slabs = [];
+      for (var i = 0; i < 7; i++) slabs.push({ x: Math.sin(i * 1.7) * 6, z: Math.cos(i * 1.3) * 6, w: 92 - i * 4, d: 92 - i * 3 });
+      function iso(x, y, z) { return [W / 2 + (x - z) * C, H * 0.78 + (x + z) * S - y]; }
+      function box(b, y0, h) {
+        var x0 = b.x - b.w / 2, x1 = b.x + b.w / 2, z0 = b.z - b.d / 2, z1 = b.z + b.d / 2, y1 = y0 + T;
+        var t00 = iso(x0, y1, z0), t10 = iso(x1, y1, z0), t11 = iso(x1, y1, z1), t01 = iso(x0, y1, z1), b10 = iso(x1, y0, z0), b11 = iso(x1, y0, z1), b01 = iso(x0, y0, z1);
+        ctx.fillStyle = 'hsl(' + h + ',62%,56%)'; ctx.beginPath(); ctx.moveTo(t10[0], t10[1]); ctx.lineTo(t11[0], t11[1]); ctx.lineTo(b11[0], b11[1]); ctx.lineTo(b10[0], b10[1]); ctx.fill();
+        ctx.fillStyle = 'hsl(' + h + ',55%,44%)'; ctx.beginPath(); ctx.moveTo(t01[0], t01[1]); ctx.lineTo(t11[0], t11[1]); ctx.lineTo(b11[0], b11[1]); ctx.lineTo(b01[0], b01[1]); ctx.fill();
+        ctx.fillStyle = 'hsl(' + h + ',75%,76%)'; ctx.beginPath(); ctx.moveTo(t00[0], t00[1]); ctx.lineTo(t10[0], t10[1]); ctx.lineTo(t11[0], t11[1]); ctx.lineTo(t01[0], t01[1]); ctx.fill();
+      }
       function frame() {
         tick++;
-        ctx.fillStyle = '#071017'; ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = 'rgba(183,247,255,0.45)';
-        for (var s = 0; s < 24; s++) ctx.fillRect((s * 61) % W, (s * 37) % H, 1.5, 1.5);
-        moving.x += moving.dir * 1.5;
-        if (moving.x < 10 || moving.x + moving.w > W - 10) moving.dir *= -1;
-        for (var i2 = 0; i2 < bars.length; i2++) {
-          var b = bars[i2];
-          ctx.fillStyle = b.color; ctx.shadowColor = b.color; ctx.shadowBlur = 5;
-          ctx.fillRect(b.x, b.y, b.w, 12); ctx.shadowBlur = 0;
-        }
-        ctx.fillStyle = '#b4ff7a'; ctx.shadowColor = '#b4ff7a'; ctx.shadowBlur = 10;
-        ctx.fillRect(moving.x, moving.y - Math.sin(tick * 0.08) * 2, moving.w, 12); ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(94,231,242,0.18)'; ctx.beginPath(); ctx.moveTo(0, H - 10); ctx.lineTo(W, H - 10); ctx.stroke();
+        var bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, 'hsl(' + ((hue + 180) % 360) + ',45%,32%)'); bg.addColorStop(1, 'hsl(' + ((hue + 220) % 360) + ',50%,12%)');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+        for (var k = 0; k < slabs.length; k++) box(slabs[k], k * T, (hue + k * 8) % 360);
+        var top = slabs[slabs.length - 1];
+        var ax = slabs.length % 2 ? 'x' : 'z';
+        var m = { x: top.x, z: top.z, w: top.w, d: top.d };
+        m[ax] = top[ax] + Math.sin(tick * 0.035) * 70;
+        box(m, slabs.length * T, (hue + slabs.length * 8) % 360);
+        if (tick % 160 === 0) { hue = (hue + 40) % 360; }
       }
       return frame;
     };
