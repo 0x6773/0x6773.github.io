@@ -1206,10 +1206,11 @@
       <div class="game-banner">
         <canvas id="preview-space-invaders" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
       </div>
       <div class="game-info">
         <h2>Space Invaders</h2>
-        <p>Defend Earth against alien waves, protect your shields, and chase a higher score with every round.</p>
+        <p>Defend Earth from shaded alien waves that speed up as they shrink, shoot the mothership, and beat the bosses.</p>
       </div>
       <div class="game-tags">
         <span class="tag">Arcade</span>
@@ -1920,36 +1921,64 @@
     };
 
     PREVIEWS['space-invaders'] = function(c, ctx, W, H) {
-      var tick = 0, bulletY = H - 28, direction = 1, offset = 0;
+      var tick = 0, bulletY = H - 28, direction = 1, offset = 0, ufoX = -60;
+      var colors = ['#00e5ff', '#7c4dff', '#ff4d8d', '#ffca28'];
       function frame() {
         tick++;
-        ctx.fillStyle = '#050816'; ctx.fillRect(0, 0, W, H);
-        for (var i = 0; i < 28; i++) {
-          ctx.fillStyle = 'rgba(185,215,255,' + (0.2 + (i % 4) * 0.12) + ')';
-          ctx.fillRect((i * 71) % W, (i * 43) % H, 1.5, 1.5);
+        var bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, '#04050f'); bg.addColorStop(1, '#0d1638');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+        var neb = ctx.createRadialGradient(W * 0.3, H * 0.4, 5, W * 0.3, H * 0.4, 120);
+        neb.addColorStop(0, 'rgba(124,77,255,0.22)'); neb.addColorStop(1, 'rgba(124,77,255,0)');
+        ctx.fillStyle = neb; ctx.fillRect(0, 0, W, H);
+        for (var i = 0; i < 34; i++) {
+          ctx.fillStyle = 'rgba(185,215,255,' + (0.25 + (i % 4) * 0.15) + ')';
+          ctx.fillRect((i * 71) % W, ((i * 43) + tick * (0.2 + (i % 3) * 0.2)) % H, 1.5, 1.5);
         }
+        ctx.fillStyle = 'rgba(80,190,255,0.45)';
+        ctx.beginPath(); ctx.arc(W / 2, H + 230, 250, 0, Math.PI * 2); ctx.fill();
         offset += direction * 0.45;
         if (offset > 24 || offset < -24) direction *= -1;
+        var frameLeg = Math.floor(tick / 12) % 2;
         for (var row = 0; row < 4; row++) {
           for (var col = 0; col < 8; col++) {
-            var x = 32 + col * 30 + offset, y = 20 + row * 22;
-            ctx.fillStyle = ['#00e5ff', '#7c4dff', '#ff4d8d', '#ffca28'][row];
-            ctx.fillRect(x + 4, y + 3, 16, 10);
-            ctx.fillRect(x, y + 6, 4, 5);
-            ctx.fillRect(x + 20, y + 6, 4, 5);
-            ctx.fillStyle = '#050816';
-            ctx.fillRect(x + 7, y + 6, 3, 3);
-            ctx.fillRect(x + 14, y + 6, 3, 3);
+            var x = 32 + col * 30 + offset, y = 22 + row * 21;
+            var g = ctx.createLinearGradient(0, y, 0, y + 12);
+            g.addColorStop(0, '#ffffff'); g.addColorStop(0.3, colors[row]); g.addColorStop(1, '#14082e');
+            ctx.shadowColor = colors[row]; ctx.shadowBlur = 6;
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.ellipse(x + 12, y + 7, 10, 6.5, 0, Math.PI, 0); ctx.lineTo(x + 22, y + 11); ctx.lineTo(x + 2, y + 11); ctx.closePath(); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = colors[row]; ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (var l = 0; l < 3; l++) { var lx = x + 5 + l * 7; ctx.moveTo(lx, y + 11); ctx.lineTo(lx + (frameLeg ? -2 : 2), y + 15); }
+            ctx.stroke();
+            ctx.fillStyle = '#0a0a1e';
+            ctx.beginPath(); ctx.arc(x + 8.5, y + 6.5, 1.7, 0, Math.PI * 2); ctx.arc(x + 15.5, y + 6.5, 1.7, 0, Math.PI * 2); ctx.fill();
           }
         }
-        bulletY -= 1.8;
+        ufoX += 1.1;
+        if (ufoX > W + 400) ufoX = -60;
+        if (ufoX < W + 20) {
+          ctx.shadowColor = '#ff6bff'; ctx.shadowBlur = 10;
+          ctx.fillStyle = '#e040fb'; ctx.beginPath(); ctx.ellipse(ufoX, 10, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = 'rgba(150,230,255,0.9)'; ctx.beginPath(); ctx.ellipse(ufoX, 8, 5, 4, 0, Math.PI, 0); ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+        bulletY -= 2.2;
         if (bulletY < 30) bulletY = H - 28;
-        ctx.fillStyle = '#fff'; ctx.fillRect(W / 2 - 1, bulletY, 2, 8);
-        ctx.fillStyle = '#00e5ff';
-        ctx.fillRect(W / 2 - 15, H - 18, 30, 8);
-        ctx.fillRect(W / 2 - 7, H - 24, 14, 7);
-        ctx.strokeStyle = 'rgba(0,229,255,0.18)';
-        ctx.beginPath(); ctx.moveTo(0, H - 8); ctx.lineTo(W, H - 8); ctx.stroke();
+        var bg2 = ctx.createLinearGradient(0, bulletY, 0, bulletY + 12);
+        bg2.addColorStop(0, '#ffffff'); bg2.addColorStop(1, 'rgba(120,240,255,0)');
+        ctx.fillStyle = bg2; ctx.fillRect(W / 2 - 1.5, bulletY, 3, 12);
+        var flame = 4 + Math.random() * 3;
+        ctx.fillStyle = 'rgba(0,229,255,0.8)';
+        ctx.beginPath(); ctx.moveTo(W / 2 - 3, H - 12); ctx.lineTo(W / 2, H - 12 + flame + 4); ctx.lineTo(W / 2 + 3, H - 12); ctx.fill();
+        ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 10;
+        var hull = ctx.createLinearGradient(W / 2 - 14, 0, W / 2 + 14, 0);
+        hull.addColorStop(0, '#0b5f7a'); hull.addColorStop(0.5, '#bff6ff'); hull.addColorStop(1, '#0b5f7a');
+        ctx.fillStyle = hull;
+        ctx.beginPath(); ctx.moveTo(W / 2, H - 28); ctx.lineTo(W / 2 + 4, H - 21); ctx.lineTo(W / 2 + 14, H - 14); ctx.lineTo(W / 2 - 14, H - 14); ctx.lineTo(W / 2 - 4, H - 21); ctx.closePath(); ctx.fill();
+        ctx.shadowBlur = 0;
       }
       return frame;
     };
