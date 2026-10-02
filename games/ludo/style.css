@@ -961,3 +961,23 @@ body {
   #overlay-title { font-size: 32px; }
   #overlay-msg { font-size: 14px; }
 }
+
+.how-to { max-width: 370px; text-align: left; margin: 0 auto 32px; padding: 14px 18px; background: rgba(255,255,255,0.04); border-radius: 8px; font-size: 13px; line-height: 1.7; color: #aaa; }
+.how-to-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #666; margin-bottom: 8px; text-transform: uppercase; }
+
+[data-theme="light"] html,
+[data-theme="light"] body { background: var(--gp-page-grad) fixed; color: var(--gp-ink); }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #c9c5dd; }
+[data-theme="light"] .btn { color: var(--gp-ink); }
+[data-theme="light"] .btn-small, [data-theme="light"] .btn-icon, [data-theme="light"] .status-msg, [data-theme="light"] .setting-name, [data-theme="light"] .btn-kick, [data-theme="light"] #game-log, [data-theme="light"] .chat-msg, [data-theme="light"] #overlay-msg { color: var(--gp-ink-2); }
+[data-theme="light"] #join-code, [data-theme="light"] #player-name, [data-theme="light"] #chat-input { background: var(--gp-surface); color: var(--gp-ink); border-color: var(--gp-line); }
+[data-theme="light"] .player-slot-name, [data-theme="light"] .hud-name, [data-theme="light"] #timer-text { color: var(--gp-ink); }
+[data-theme="light"] .player-host-badge { color: #b7791f; }
+[data-theme="light"] .btn-group, [data-theme="light"] #panel-tabs { background: var(--gp-surface-2); }
+[data-theme="light"] .btn-opt:hover, [data-theme="light"] .panel-tab:hover { color: var(--gp-ink); }
+[data-theme="light"] #dice-display { background: var(--gp-surface); box-shadow: inset 0 0 0 1px var(--gp-line); }
+[data-theme="light"] #dice-face { color: var(--gp-ink); }
+[data-theme="light"] #game-overlay { background: var(--gp-overlay); color: var(--gp-ink); }
+[data-theme="light"] .chat-name, [data-theme="light"] #overlay-title { filter: brightness(0.72) saturate(1.3); }
+[data-theme="light"] .how-to { background: rgba(31, 27, 69, 0.05); color: var(--gp-ink-2); }
+[data-theme="light"] .how-to-title { color: var(--gp-ink-3); }

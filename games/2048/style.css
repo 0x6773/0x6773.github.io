@@ -608,13 +608,13 @@ body {
 @media (orientation: landscape) and (max-height: 500px) {
   #start-overlay > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: center; align-content: center; justify-items: center; width: min(780px, calc(100% - 24px)); max-width: none; }
   #start-overlay > div > * { grid-column: 2; }
-  #start-overlay > div > div:not([class]) { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
+  #start-overlay .how-to { grid-column: 1; grid-row: 1 / span 6; margin: 0; max-width: 340px; width: 100%; }
 }
 
 @media (max-height: 700px) {
   #start-overlay > div { padding: 14px !important; }
   #start-overlay h1 { font-size: 38px !important; margin-bottom: 4px !important; }
-  #start-overlay > div > div:not([class]) { line-height: 1.5 !important; padding: 10px 14px !important; margin-bottom: 10px !important; }
+  #start-overlay .how-to { line-height: 1.5 !important; padding: 10px 14px !important; margin-bottom: 10px !important; }
 }
 
 @media (pointer: coarse) {
@@ -633,3 +633,33 @@ body {
     max-width: min(620px, max(220px, calc(100dvh - var(--gp-header-h, 80px) - 154px)));
   }
 }
+
+.start-box { text-align: center; padding: 30px; }
+.start-title { font-size: 48px; margin-bottom: 8px; color: #edc22e; }
+.start-sub { color: #888; margin-bottom: 16px; }
+.how-to { max-width: 340px; text-align: left; margin: 0 auto 16px; padding: 14px 18px; background: rgba(255,255,255,0.04); border-radius: 8px; font-size: 13px; line-height: 1.7; color: #aaa; }
+.how-to-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #666; margin-bottom: 8px; text-transform: uppercase; }
+.start-btn { padding: 12px 36px; font-size: 16px; font-weight: 700; border: 2px solid #edc22e; border-radius: 6px; background: transparent; color: #edc22e; cursor: pointer; letter-spacing: 1px; }
+.section-label { margin-bottom: 10px; }
+
+[data-theme="light"] html,
+[data-theme="light"] body { background: var(--gp-page-grad) fixed; color: var(--gp-ink); }
+[data-theme="light"] .stats-bar, [data-theme="light"] .score-box, [data-theme="light"] .undo-btn { background: var(--gp-surface); box-shadow: inset 0 0 0 1px var(--gp-line); }
+[data-theme="light"] .stats-bar-secondary { background: rgba(255, 255, 255, 0.7); }
+[data-theme="light"] .stat-label, [data-theme="light"] .score-label, [data-theme="light"] .instructions strong { color: var(--gp-ink-3); }
+[data-theme="light"] .stat-value, [data-theme="light"] .score-value { color: var(--gp-ink); }
+[data-theme="light"] .undo-btn { color: var(--gp-ink-2); }
+[data-theme="light"] .undo-btn:hover:not(:disabled) { color: #0a84b8; }
+[data-theme="light"] .mode-btn { color: var(--gp-ink-2); }
+[data-theme="light"] .mode-btn:hover, [data-theme="light"] .mode-btn.selected { color: var(--gp-ink); }
+[data-theme="light"] .mode-btn.selected .mode-sub { color: #0a84b8; }
+[data-theme="light"] .timer-bar-track { background: #e5e2f3; }
+[data-theme="light"] .overlay { background: var(--gp-overlay); color: var(--gp-ink); }
+[data-theme="light"] .overlay-content p { color: var(--gp-ink-2); }
+[data-theme="light"] .overlay-btn.secondary { background: #e5e2f3; color: var(--gp-ink); }
+[data-theme="light"] #start-overlay { background: var(--gp-overlay); }
+[data-theme="light"] .start-title { color: #b7791f; }
+[data-theme="light"] .start-sub { color: var(--gp-ink-2); }
+[data-theme="light"] .how-to { background: rgba(31, 27, 69, 0.05); color: var(--gp-ink-2); }
+[data-theme="light"] .how-to-title { color: var(--gp-ink-3); }
+[data-theme="light"] .start-btn { color: #b7791f; border-color: #b7791f; }

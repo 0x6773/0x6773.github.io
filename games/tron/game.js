@@ -410,7 +410,7 @@
   // ── Overlays ──
   function showRoundOverlay(title, msg, color) {
     roundTitle.textContent = title;
-    roundTitle.style.color = color || '#fff';
+    roundTitle.style.color = color || '';
     roundMsg.textContent = msg || '';
     roundOverlay.classList.remove('hidden');
   }

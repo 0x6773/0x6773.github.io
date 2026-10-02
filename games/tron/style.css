@@ -263,3 +263,15 @@ canvas {
     width: min(760px, 100vw, max(200px, calc(100dvh - var(--gp-header-h, 80px) - 58px)));
   }
 }
+
+[data-theme="light"] html,
+[data-theme="light"] body { background: var(--gp-page-grad) fixed; color: var(--gp-ink); }
+[data-theme="light"] #hud { background: var(--gp-surface); color: var(--gp-ink); box-shadow: inset 0 0 0 1px var(--gp-line), var(--gp-shadow); }
+[data-theme="light"] .score-cyan, [data-theme="light"] .label-cyan, [data-theme="light"] .btn-cyan, [data-theme="light"] .mode-chip.selected { color: #0a84b8; }
+[data-theme="light"] #overlay, [data-theme="light"] #round-overlay { background: var(--gp-overlay); color: var(--gp-ink); }
+[data-theme="light"] .player-controls, [data-theme="light"] #round-overlay p { color: var(--gp-ink-2); }
+[data-theme="light"] .mode-chip { color: var(--gp-ink-2); }
+[data-theme="light"] .mode-chip:hover { color: var(--gp-ink); }
+[data-theme="light"] .how-to { background: rgba(31, 27, 69, 0.05); border-color: var(--gp-line); color: var(--gp-ink-2); }
+[data-theme="light"] #overlay h1 { background: linear-gradient(90deg, #0891b2, #c026d3); -webkit-background-clip: text; background-clip: text; }
+[data-theme="light"] #round-title { filter: brightness(0.72) saturate(1.3); }

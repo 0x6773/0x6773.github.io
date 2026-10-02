@@ -697,3 +697,21 @@ body {
 @media (orientation: landscape) and (max-height: 500px) {
   .sudoku-cell { font-size: 1rem; }
 }
+
+[data-theme="light"] html,
+[data-theme="light"] body { background: var(--gp-page-grad) fixed; color: var(--gp-ink); }
+[data-theme="light"] #hud { background: var(--gp-surface); color: var(--gp-ink); box-shadow: inset 0 0 0 1px var(--gp-line), var(--gp-shadow); }
+[data-theme="light"] .diff-btn { background: var(--gp-surface-2); color: var(--gp-ink-2); }
+[data-theme="light"] .diff-btn:hover { background: #e9e6f7; color: var(--gp-ink); }
+[data-theme="light"] #best-time-display { color: var(--gp-ink-2); }
+[data-theme="light"] #best-time-display span, [data-theme="light"] #best-times-section h3, [data-theme="light"] #best-times-list li::before { color: #c2410c; }
+[data-theme="light"] #start-overlay, [data-theme="light"] #win-overlay { background: var(--gp-overlay); }
+[data-theme="light"] .overlay-box h1 { color: var(--gp-ink); }
+[data-theme="light"] .overlay-subtitle { color: var(--gp-ink-2); }
+[data-theme="light"] .how-to-play { background: rgba(31, 27, 69, 0.05); border-color: var(--gp-line); color: var(--gp-ink-2); }
+[data-theme="light"] .overlay-btn { color: #0a84b8; }
+[data-theme="light"] #win-overlay .overlay-box { background: var(--gp-surface); color: var(--gp-ink); box-shadow: var(--gp-shadow); }
+[data-theme="light"] #win-title, [data-theme="light"] #best-times-list li.new-score { color: #15803d; }
+[data-theme="light"] #win-stats, [data-theme="light"] #best-times-list li { color: var(--gp-ink-2); }
+[data-theme="light"] #win-stats span { color: var(--gp-ink); }
+[data-theme="light"] #win-overlay .overlay-btn { color: #fff; }

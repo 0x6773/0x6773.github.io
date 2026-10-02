@@ -5,6 +5,54 @@
   'use strict';
 
   const STORAGE_KEY = 'gamePlatformData';
+  const THEME_KEY = 'gp_theme';
+  const THEME_ICONS = { auto: '\uD83C\uDF13', light: '\u2600\uFE0F', dark: '\uD83C\uDF19' };
+  var themeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+  function themeSetting() {
+    try {
+      var v = localStorage.getItem(THEME_KEY);
+      return v === 'light' || v === 'dark' ? v : 'auto';
+    } catch (e) { return 'auto'; }
+  }
+
+  function deviceTheme() {
+    return themeQuery && themeQuery.matches ? 'dark' : 'light';
+  }
+
+  function effectiveTheme() {
+    var s = themeSetting();
+    return s === 'auto' ? deviceTheme() : s;
+  }
+
+  function decorateThemeButton(btn) {
+    var s = themeSetting();
+    var label = 'Theme: ' + (s === 'auto' ? 'follows device (' + deviceTheme() + ')' : s);
+    btn.textContent = THEME_ICONS[s];
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+  }
+
+  function syncThemeButtons() {
+    document.querySelectorAll('.gp-btn-theme').forEach(decorateThemeButton);
+  }
+
+  function applyTheme() {
+    var t = effectiveTheme();
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.style.colorScheme = t;
+    syncThemeButtons();
+    try { window.dispatchEvent(new CustomEvent('gp-themechange', { detail: { theme: t, setting: themeSetting() } })); } catch (e) { }
+  }
+
+  applyTheme();
+  if (themeQuery) {
+    var onDeviceTheme = function() { if (themeSetting() === 'auto') applyTheme(); };
+    if (themeQuery.addEventListener) themeQuery.addEventListener('change', onDeviceTheme);
+    else if (themeQuery.addListener) themeQuery.addListener(onDeviceTheme);
+  }
+  window.addEventListener('storage', function(e) { if (e.key === THEME_KEY) applyTheme(); });
+  document.addEventListener('DOMContentLoaded', syncThemeButtons);
 
   const GAME_NAMES = {
     'breakout': 'Breakout',
@@ -272,6 +320,10 @@
         '<span class="gp-stat">' + GamePlatform.bestLabel(gameId) + ': <strong id="gp-best">' + bestScore + '</strong></span>' +
         '<span class="gp-stat">\u23F1 <strong id="gp-timer">00:00</strong></span>' +
       '</div>';
+
+    var actions = header.querySelector('.gp-header-actions');
+    actions.insertBefore(GamePlatform.themeButton(), actions.firstChild);
+    syncThemeButtons();
 
     // Sound toggle click handler
     setTimeout(function() {
@@ -595,6 +647,44 @@
         try { localStorage.removeItem(gameKeys[i]); }
         catch (e) { /* storage unavailable */ }
       }
+    },
+
+    getTheme: function() {
+      return effectiveTheme();
+    },
+
+    getThemeSetting: function() {
+      return themeSetting();
+    },
+
+    setThemeSetting: function(setting) {
+      try {
+        if (setting === 'light' || setting === 'dark') localStorage.setItem(THEME_KEY, setting);
+        else localStorage.removeItem(THEME_KEY);
+      } catch (e) { }
+      applyTheme();
+    },
+
+    cycleTheme: function() {
+      var s = themeSetting(), device = deviceTheme();
+      var opposite = device === 'dark' ? 'light' : 'dark';
+      var next = s === 'auto' ? opposite : s === opposite ? device : 'auto';
+      this.setThemeSetting(next);
+      this.toast(next === 'auto' ? 'Theme follows your device' : next === 'dark' ? 'Dark mode' : 'Light mode', 'info');
+      return next;
+    },
+
+    themeButton: function() {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'gp-btn-theme';
+      decorateThemeButton(btn);
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        btn.blur();
+        GamePlatform.cycleTheme();
+      });
+      return btn;
     },
 
     toggleMute: function() {

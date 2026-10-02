@@ -457,7 +457,7 @@
   }
 
   function showOverlay(title, msg, color) {
-    overlayTitle.textContent = title; overlayTitle.style.color = color || '#fff';
+    overlayTitle.textContent = title; overlayTitle.style.color = color || '';
     overlayMsg.textContent = msg || '';
     gameOverlay.classList.remove('hidden');
   }

@@ -256,3 +256,18 @@ body {
     width: min(540px, 100%, max(140px, calc((100dvh - var(--gp-header-h, 80px) - 147px) * 2 / 3)));
   }
 }
+
+[data-theme="light"] html,
+[data-theme="light"] body { background: var(--gp-page-grad) fixed; color: var(--gp-ink); }
+[data-theme="light"] #hud, [data-theme="light"] #mission-status, [data-theme="light"] #highscores { background: var(--gp-surface); color: var(--gp-ink); box-shadow: inset 0 0 0 1px var(--gp-line), var(--gp-shadow); }
+[data-theme="light"] .hud-label, [data-theme="light"] .how-title { color: var(--gp-ink-3); }
+[data-theme="light"] #hud strong { color: #0a84b8; }
+[data-theme="light"] #hud > div:nth-child(2) strong, [data-theme="light"] #highscores::before { color: #b7791f; }
+[data-theme="light"] #hud > div:nth-child(3) strong { color: #15803d; }
+[data-theme="light"] #mission-status, [data-theme="light"] #highscores { color: var(--gp-ink-2); }
+[data-theme="light"] #highscores li:first-child { color: var(--gp-ink); }
+[data-theme="light"] .overlay { background: var(--gp-overlay); }
+[data-theme="light"] .overlay h1 { color: #0a84b8; text-shadow: none; }
+[data-theme="light"] #overlay-message { color: var(--gp-ink-2); }
+[data-theme="light"] .how-to-play { background: rgba(31, 27, 69, 0.05); border-color: var(--gp-line); color: var(--gp-ink-2); }
+[data-theme="light"] #drop-button { background: var(--gp-surface); color: var(--gp-ink-2); border-color: var(--gp-line); box-shadow: 0 3px 10px rgba(31, 27, 69, 0.08); color: #0a84b8; }

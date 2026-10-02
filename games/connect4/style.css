@@ -570,3 +570,17 @@ body {
     max-width: min(640px, max(240px, calc((100dvh - var(--gp-header-h, 80px) - 170px) * 7 / 6)));
   }
 }
+
+[data-theme="light"] html,
+[data-theme="light"] body { background: var(--gp-page-grad) fixed; color: var(--gp-ink); }
+[data-theme="light"] .hud-name, [data-theme="light"] #turn-indicator { color: var(--gp-ink-2); }
+[data-theme="light"] .hud-score { color: var(--gp-ink); }
+[data-theme="light"] #hud-buttons button { color: var(--gp-ink-2); }
+[data-theme="light"] #hud-buttons button:hover { color: #0a84b8; }
+[data-theme="light"] #start-overlay, [data-theme="light"] #gameover-overlay { background: var(--gp-overlay); color: var(--gp-ink); }
+[data-theme="light"] .overlay-box .subtitle, [data-theme="light"] #gameover-msg, [data-theme="light"] #btn-change-mode { color: var(--gp-ink-2); }
+[data-theme="light"] .how-to-play { background: rgba(31, 27, 69, 0.05); border-color: var(--gp-line); color: var(--gp-ink-2); }
+[data-theme="light"] .mode-btn, [data-theme="light"] #btn-play-again { color: #0a84b8; }
+[data-theme="light"] #btn-change-mode:hover { color: var(--gp-ink); }
+[data-theme="light"] #gameover-overlay .overlay-box h2.win-yellow { color: #b7791f; }
+[data-theme="light"] #gameover-overlay .overlay-box h2.draw { color: var(--gp-ink-2); }

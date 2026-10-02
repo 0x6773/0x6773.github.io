@@ -7,6 +7,20 @@
   --gp-header-h: 80px;
 }
 
+[data-theme="light"] {
+  --gp-page: #f4f2fb;
+  --gp-page-grad: linear-gradient(160deg, #fdf8ff 0%, #f1f3ff 50%, #eaf7ff 100%);
+  --gp-surface: #ffffff;
+  --gp-surface-2: #f4f2fb;
+  --gp-ink: #1f1b45;
+  --gp-ink-2: #57537e;
+  --gp-ink-3: #8b87ad;
+  --gp-line: rgba(31, 27, 69, 0.1);
+  --gp-shadow: 0 10px 30px rgba(31, 27, 69, 0.1);
+  --gp-overlay: rgba(250, 248, 255, 0.95);
+  --gp-accent: #7c3aed;
+}
+
 /* Header */
 #gp-header {
   position: fixed;
@@ -249,4 +263,32 @@ canvas#boardCanvas {
 @media (max-width: 500px) {
   .gp-header-stats { gap: 12px; font-size: 12px; }
   .gp-game-name { font-size: 14px; }
+}
+
+[data-theme="light"] #gp-header {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 14px rgba(31, 27, 69, 0.08);
+}
+[data-theme="light"] .gp-header-top,
+[data-theme="light"] #gp-header { border-bottom-color: var(--gp-line); }
+[data-theme="light"] .gp-back { color: var(--gp-ink-2); }
+[data-theme="light"] .gp-back:hover { color: var(--gp-accent); }
+[data-theme="light"] .gp-game-name { color: var(--gp-ink); }
+[data-theme="light"] .gp-header-actions button:hover { background: rgba(31, 27, 69, 0.07); }
+[data-theme="light"] .gp-header-stats { color: var(--gp-ink-2); background: rgba(31, 27, 69, 0.04); }
+[data-theme="light"] .gp-stat strong { color: var(--gp-accent); }
+[data-theme="light"] .gp-pause { background: rgba(250, 248, 255, 0.84); color: var(--gp-ink); }
+[data-theme="light"] .gp-pause-resume { border-color: var(--gp-accent); background: rgba(124, 58, 237, 0.1); color: var(--gp-accent); }
+[data-theme="light"] .gp-pause-resume:hover { background: rgba(124, 58, 237, 0.2); }
+[data-theme="light"] .gp-pause-hint { color: var(--gp-ink-3); }
+[data-theme="light"] .gp-toast { background: #ffffff; color: var(--gp-ink); border-color: var(--gp-line); box-shadow: 0 10px 30px rgba(31, 27, 69, 0.16); }
+[data-theme="light"] .gp-toast.gp-toast-achievement { background: linear-gradient(135deg, #ffffff, #fff8e1); border-color: #f5c400; }
+[data-theme="light"] .gp-toast .gp-toast-title { color: #a37800; }
+[data-theme="light"] .gp-toast .gp-toast-desc { color: var(--gp-ink-2); }
+
+@media (max-width: 420px) {
+  .gp-header-actions button { min-width: 34px; padding: 0 3px; }
+  .gp-header-stats { gap: 8px; }
 }
