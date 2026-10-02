@@ -913,10 +913,11 @@
           <div class="game-banner">
             <canvas id="preview-breakout" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
           </div>
           <div class="game-info">
             <h2>Breakout</h2>
-            <p>Classic brick breaker with power-ups, sound effects, particles, and 5 levels of increasing difficulty.</p>
+            <p>Neon brick breaker across 3 worlds and boss fights, with armored, explosive and gold bricks, combo power-ups and music.</p>
           </div>
           <div class="game-tags">
             <span class="tag">Arcade</span>
@@ -1323,24 +1324,57 @@
     // Breakout preview
     PREVIEWS['breakout'] = function(c, ctx, W, H) {
       const colors = ['#ff4d6d','#ff8c42','#ffd700','#00e676','#00d4ff'];
-      const rows = 4, cols = 9, bw = 26, bh = 8, bp = 3;
-      const ox = (W - cols*(bw+bp))/2, oy = 18;
-      let bx = W/2, by = H-30, bdx = 1.5, bdy = -1.5;
-      const bricks = [];
-      for (let r = 0; r < rows; r++)
-        for (let ci = 0; ci < cols; ci++)
-          bricks.push({x:ox+ci*(bw+bp), y:oy+r*(bh+bp), alive:true, color:colors[r]});
+      const rows = 4, cols = 9, bw = 26, bh = 9, bp = 3;
+      const ox = (W - cols*(bw+bp))/2, oy = 16;
+      let bx = W/2, by = H-30, bdx = 1.5, bdy = -1.5, px = W/2;
+      const bricks = [], bits = [], trail = [];
+      function build() {
+        bricks.length = 0;
+        for (let r = 0; r < rows; r++)
+          for (let ci = 0; ci < cols; ci++) {
+            const special = r === 0 ? 'steel' : (r === 2 && (ci === 1 || ci === 7)) ? 'gold' : (r === 1 && ci === 4) ? 'boom' : '';
+            bricks.push({x:ox+ci*(bw+bp), y:oy+r*(bh+bp), alive:true, color: special === 'steel' ? '#9aa7c7' : special === 'gold' ? '#ffc93c' : special === 'boom' ? '#ff5a36' : colors[r], hp: special === 'steel' ? 2 : 1});
+          }
+      }
+      build();
       function frame() {
-        ctx.clearRect(0,0,W,H);
-        for (const b of bricks) { if (!b.alive) continue; ctx.fillStyle=b.color; ctx.beginPath(); ctx.roundRect(b.x,b.y,bw,bh,2); ctx.fill(); }
+        const bg = ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#070b22'); bg.addColorStop(1,'#141c46');
+        ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+        ctx.strokeStyle = 'rgba(120,180,255,0.07)'; ctx.lineWidth = 1; ctx.beginPath();
+        for (let x = 0; x <= W; x += 20) { ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,H); }
+        ctx.stroke();
+        for (const b of bricks) {
+          if (!b.alive) continue;
+          const g = ctx.createLinearGradient(0,b.y,0,b.y+bh); g.addColorStop(0,'#fff'); g.addColorStop(0.35,b.color); g.addColorStop(1,'#1a1030');
+          ctx.shadowColor = b.color; ctx.shadowBlur = 6;
+          ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(b.x,b.y,bw,bh,3); ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(b.x+2,b.y+1.5,bw-4,2);
+        }
         bx+=bdx; by+=bdy;
         if (bx<=4||bx>=W-4) bdx*=-1;
         if (by<=4) bdy*=-1;
-        if (by>=H-12) { bdy*=-1; by=H-12; }
-        for (const b of bricks) { if (!b.alive) continue; if (bx>b.x&&bx<b.x+bw&&by>b.y&&by<b.y+bh) { b.alive=false; bdy*=-1; break; } }
-        if (bricks.every(b=>!b.alive)) bricks.forEach(b=>b.alive=true);
+        px += (bx - px) * 0.12;
+        if (by>=H-14) { bdy=-Math.abs(bdy); by=H-14; }
+        for (const b of bricks) {
+          if (!b.alive) continue;
+          if (bx>b.x&&bx<b.x+bw&&by>b.y&&by<b.y+bh) {
+            if (--b.hp <= 0) { b.alive=false; for (let i=0;i<6;i++) bits.push({x:b.x+bw/2,y:b.y+bh/2,vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3,l:1,c:b.color}); }
+            bdy*=-1; break;
+          }
+        }
+        if (bricks.every(b=>!b.alive)) build();
+        ctx.globalCompositeOperation = 'lighter';
+        for (const t of bits) { t.x+=t.vx; t.y+=t.vy; t.vy+=0.1; t.l-=0.04; ctx.globalAlpha=Math.max(0,t.l); ctx.fillStyle=t.c; ctx.fillRect(t.x,t.y,2.5,2.5); }
+        for (let i = bits.length-1; i >= 0; i--) if (bits[i].l <= 0) bits.splice(i,1);
+        trail.push({x:bx,y:by}); if (trail.length > 7) trail.shift();
+        trail.forEach((t,i) => { ctx.globalAlpha = i/trail.length*0.35; ctx.fillStyle = '#00d4ff'; ctx.beginPath(); ctx.arc(t.x,t.y,3.5*i/trail.length+1,0,Math.PI*2); ctx.fill(); });
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+        ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 10;
         ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(bx,by,4,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle='#00d4ff'; ctx.beginPath(); ctx.roundRect(bx-20,H-8,40,6,3); ctx.fill();
+        const pg = ctx.createLinearGradient(0,H-9,0,H-3); pg.addColorStop(0,'#c7f6ff'); pg.addColorStop(1,'#0077b6');
+        ctx.fillStyle = pg; ctx.beginPath(); ctx.roundRect(px-22,H-9,44,6,3); ctx.fill();
+        ctx.shadowBlur = 0;
       }
       return frame;
     };
