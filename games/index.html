@@ -1142,10 +1142,11 @@
       <div class="game-banner">
         <canvas id="preview-wordle" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
       </div>
       <div class="game-info">
         <h2>Wordle</h2>
-        <p>Guess the 5-letter word in 6 tries. Daily challenge and unlimited random mode. Share your results!</p>
+        <p>Guess the 5-letter word in 6 tries on soft flipping tiles. Daily and random modes, hard mode, high contrast and sharing.</p>
       </div>
       <div class="game-tags">
         <span class="tag">Word Game</span>
@@ -1884,23 +1885,27 @@
 
     // Wordle preview
     PREVIEWS['wordle'] = function(c, ctx, W, H) {
-      var colors = ['#3a3a3c','#538d4e','#b59f3b','#538d4e','#538d4e'];
+      var colors = ['#3e4156','#5fb96b','#e2b93b','#5fb96b','#5fb96b'];
       var tick = 0;
       function frame() {
         tick++;
-        ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0,0,W,H);
+        var bg = ctx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#1a1c2c'); bg.addColorStop(1, '#0f1018');
+        ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
         var cs = 22, gap = 4, rows = 4, cols = 5;
         var ox = (W - cols*(cs+gap))/2, oy = (H - rows*(cs+gap))/2;
         for (var r = 0; r < rows; r++) {
           for (var c2 = 0; c2 < cols; c2++) {
             var ci = (r * cols + c2 + Math.floor(tick/30)) % colors.length;
             var revealed = r < 2 || (r === 2 && c2 < (Math.floor(tick/15) % 6));
-            ctx.fillStyle = revealed ? colors[ci] : '#1a1a2e';
-            ctx.fillRect(ox + c2*(cs+gap), oy + r*(cs+gap), cs, cs);
+            var x = ox + c2*(cs+gap), y = oy + r*(cs+gap);
+            ctx.fillStyle = revealed ? colors[ci] : 'rgba(255,255,255,0.04)';
+            ctx.beginPath(); ctx.roundRect(x, y, cs, cs, 6); ctx.fill();
+            if (!revealed) { ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+            else { ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.roundRect(x + 2, y + 2, cs - 4, 4, 2); ctx.fill(); }
             if (revealed) {
-              ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif';
+              ctx.fillStyle = '#fff'; ctx.font = '900 13px sans-serif';
               ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-              ctx.fillText('WORDL'[c2], ox + c2*(cs+gap) + cs/2, oy + r*(cs+gap) + cs/2);
+              ctx.fillText('WORDL'[c2], x + cs/2, y + cs/2 + 1);
             }
           }
         }

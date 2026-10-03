@@ -54,7 +54,6 @@
     <link rel="stylesheet" href="../platform.css">
 </head>
 <body>
-    <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
 
     <!-- How To Play Overlay -->
     <div id="how-to-play-overlay" class="overlay">
@@ -125,6 +124,29 @@
         </div>
     </div>
 
+    <div id="settings-overlay" class="overlay hidden">
+        <div class="overlay-content settings-content">
+            <button id="settings-close" class="close-btn">&times;</button>
+            <h2>Settings</h2>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-name">Hard Mode</div>
+                    <div class="setting-desc">Any revealed hints must be used in later guesses</div>
+                </div>
+                <button id="toggle-hard" class="switch" role="switch" aria-checked="false" aria-label="Hard Mode"><span></span></button>
+            </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-name">High Contrast</div>
+                    <div class="setting-desc">Orange and blue tiles for better color vision support</div>
+                </div>
+                <button id="toggle-contrast" class="switch" role="switch" aria-checked="false" aria-label="High Contrast"><span></span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="fx-layer"></div>
+
     <!-- Main Game -->
     <div id="game-container">
         <header>
@@ -133,6 +155,9 @@
             </div>
             <h1>Wordle</h1>
             <div class="header-right">
+                <button id="settings-btn" class="icon-btn" title="Settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
                 <button id="stats-btn" class="icon-btn" title="Statistics">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="13" width="4" height="9" rx="1"/><rect x="10" y="8" width="4" height="14" rx="1"/><rect x="18" y="3" width="4" height="19" rx="1"/></svg>
                 </button>
@@ -194,6 +219,8 @@
 
     <script src="../platform.js"></script>
     <script src="../engine.js"></script>
+    <script src="../synth.js"></script>
+    <script src="audio.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

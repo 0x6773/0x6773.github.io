@@ -304,57 +304,15 @@ const VALID_GUESSES_EXTRA = [
 const ALL_VALID = new Set([...ANSWER_WORDS, ...VALID_GUESSES_EXTRA].map(w => w.toLowerCase()));
 
 // ===== Audio System =====
+const Sound = window.WordleAudio;
+
 function getAudioCtx() {
     return GameEngine.audio();
 }
 
-function playSound(type) {
-    if (window.GamePlatform && GamePlatform.isMuted()) return;
-    try {
-        const ctx = getAudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        gain.gain.value = 0.08;
-
-        switch (type) {
-            case 'key':
-                osc.type = 'sine';
-                osc.frequency.value = 600;
-                gain.gain.setValueAtTime(0.06, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.08);
-                break;
-            case 'flip':
-                osc.type = 'triangle';
-                osc.frequency.value = 400;
-                gain.gain.setValueAtTime(0.05, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.15);
-                break;
-            case 'correct':
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523, ctx.currentTime);
-                osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
-                osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.5);
-                break;
-            case 'wrong':
-                osc.type = 'sawtooth';
-                osc.frequency.value = 200;
-                gain.gain.setValueAtTime(0.06, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.3);
-                break;
-        }
-    } catch (e) { /* audio not supported */ }
+function playSound(type, arg) {
+    getAudioCtx();
+    Sound.sfx(type, arg);
 }
 
 // ===== Game State =====
@@ -367,6 +325,17 @@ let targetWord = '';
 let guesses = [];
 let letterStates = {}; // letter -> 'correct' | 'present' | 'absent'
 let gameMode = 'daily'; // 'daily' | 'random'
+let hardThisGame = false;
+
+function loadSettings() {
+    try {
+        const raw = JSON.parse(localStorage.getItem('wordle_settings'));
+        if (raw) return { hard: !!raw.hard, contrast: !!raw.contrast };
+    } catch (e) {}
+    return { hard: false, contrast: false };
+}
+
+let settings = loadSettings();
 
 // ===== Stats =====
 function loadStats() {
@@ -433,7 +402,8 @@ function saveDaily(recorded) {
         localStorage.setItem(DAILY_KEY, JSON.stringify({
             day: getDayIndex(),
             guesses: guesses.map(g => g.word),
-            recorded: !!recorded
+            recorded: !!recorded,
+            hard: hardThisGame
         }));
     } catch (e) {}
 }
@@ -441,6 +411,7 @@ function saveDaily(recorded) {
 function restoreDaily() {
     const saved = loadDaily();
     if (!saved) return;
+    hardThisGame = !!saved.hard;
     saved.guesses.slice(0, NUM_ROWS).forEach(word => {
         if (typeof word !== 'string' || word.length !== NUM_COLS) return;
         const result = evaluateGuess(word, targetWord);
@@ -520,6 +491,7 @@ function addLetter(letter) {
     front.textContent = letter;
     tile.classList.add('filled');
     playSound('key');
+    startMusic();
     currentCol++;
 }
 
@@ -530,6 +502,7 @@ function deleteLetter() {
     const front = tile.querySelector('.tile-front');
     front.textContent = '';
     tile.classList.remove('filled');
+    playSound('del');
 }
 
 function getCurrentWord() {
@@ -554,7 +527,16 @@ function submitGuess() {
     if (!ALL_VALID.has(guess)) {
         shakeRow(currentRow);
         showToast('Not in word list');
-        playSound('wrong');
+        playSound('invalid');
+        return;
+    }
+
+    if (guesses.length === 0) hardThisGame = settings.hard;
+    const violation = hardThisGame ? hardModeViolation(guess) : null;
+    if (violation) {
+        shakeRow(currentRow);
+        showToast(violation);
+        playSound('invalid');
         return;
     }
 
@@ -571,7 +553,9 @@ function submitGuess() {
         const attempts = currentRow + 1;
         if (won) {
             gameOver = true;
-            playSound('correct');
+            playSound('win', attempts);
+            Sound.music.stop();
+            confetti();
             const messages = ['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!', 'Phew!'];
             showToast(messages[currentRow] || 'Nice!');
             bounceRow(currentRow);
@@ -579,7 +563,8 @@ function submitGuess() {
             setTimeout(() => showStats(attempts), 2200);
         } else if (currentRow >= NUM_ROWS - 1) {
             gameOver = true;
-            playSound('wrong');
+            playSound('lose');
+            Sound.music.stop();
             showToast(targetWord.toUpperCase(), 3000);
             recordResult(false, 0);
             setTimeout(() => showStats(null), 2200);
@@ -620,6 +605,46 @@ function evaluateGuess(guess, target) {
     return result;
 }
 
+function ordinal(n) {
+    return n + (['th', 'st', 'nd', 'rd'][n] || 'th');
+}
+
+function hardModeViolation(guess) {
+    const need = {};
+    for (const g of guesses) {
+        const counts = {};
+        for (let i = 0; i < NUM_COLS; i++) {
+            const letter = g.word[i];
+            if (g.result[i] === 'correct' && guess[i] !== letter) {
+                return ordinal(i + 1) + ' letter must be ' + letter.toUpperCase();
+            }
+            if (g.result[i] !== 'absent') counts[letter] = (counts[letter] || 0) + 1;
+        }
+        for (const letter in counts) need[letter] = Math.max(need[letter] || 0, counts[letter]);
+    }
+    for (const letter in need) {
+        const have = guess.split('').filter(ch => ch === letter).length;
+        if (have < need[letter]) return 'Guess must contain ' + letter.toUpperCase();
+    }
+    return null;
+}
+
+function confetti() {
+    const layer = document.getElementById('fx-layer');
+    const colors = ['#6aaa64', '#c9b458', '#7aa7ff', '#ff8fa3', '#c3a6ff', '#ffd166'];
+    for (let i = 0; i < 80; i++) {
+        const p = document.createElement('div');
+        p.className = 'fx-confetti';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.background = colors[i % colors.length];
+        p.style.setProperty('--dx', (Math.random() - 0.5) * 160 + 'px');
+        p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+        p.style.animationDelay = (1.4 + Math.random() * 0.6) + 's';
+        layer.appendChild(p);
+        p.addEventListener('animationend', () => p.remove());
+    }
+}
+
 function revealRow(row, result, callback) {
     const tiles = [];
     for (let c = 0; c < NUM_COLS; c++) {
@@ -631,7 +656,7 @@ function revealRow(row, result, callback) {
             const back = tile.querySelector('.tile-back');
             back.textContent = tile.querySelector('.tile-front').textContent;
             tile.classList.add('revealed', result[i]);
-            playSound('flip');
+            playSound('flip', result[i]);
         }, i * 300);
     });
 
@@ -657,9 +682,14 @@ function updateKeyboard(guess, result) {
     buttons.forEach(btn => {
         const key = btn.getAttribute('data-key');
         if (letterStates[key]) {
-            btn.className = btn.className.replace(/\b(correct|present|absent)\b/g, '').trim();
+            const changed = !btn.classList.contains(letterStates[key]);
+            btn.className = btn.className.replace(/\b(correct|present|absent|pulse)\b/g, '').trim();
             btn.classList.add(letterStates[key]);
             if (btn.classList.contains('kb-wide')) btn.classList.add('kb-wide');
+            if (changed) {
+                void btn.offsetWidth;
+                btn.classList.add('pulse');
+            }
         }
     });
 }
@@ -745,7 +775,7 @@ function generateShareText() {
     const dayStr = gameMode === 'daily' ? getDayIndex() : '?';
     const won = guesses.length <= NUM_ROWS && guesses[guesses.length - 1].result.every(r => r === 'correct');
     const attempts = won ? guesses.length : 'X';
-    let text = `Wordle ${dayStr} ${attempts}/${NUM_ROWS}\n\n`;
+    let text = `Wordle ${dayStr} ${attempts}/${NUM_ROWS}${hardThisGame ? '*' : ''}\n\n`;
 
     guesses.forEach(g => {
         const line = g.result.map(r => {
@@ -773,8 +803,9 @@ function initGame() {
     // Reset keyboard colors
     const buttons = kbEl.querySelectorAll('button[data-key]');
     buttons.forEach(btn => {
-        btn.classList.remove('correct', 'present', 'absent');
+        btn.classList.remove('correct', 'present', 'absent', 'pulse');
     });
+    hardThisGame = false;
 
     if (gameMode === 'daily') {
         targetWord = getDailyWord();
@@ -872,6 +903,87 @@ document.getElementById('share-btn').addEventListener('click', () => {
     });
 });
 
+function saveSettings() {
+    try { localStorage.setItem('wordle_settings', JSON.stringify(settings)); } catch (e) {}
+}
+
+function applySettings() {
+    document.body.classList.toggle('hc', settings.contrast);
+    document.getElementById('toggle-hard').setAttribute('aria-checked', String(settings.hard));
+    document.getElementById('toggle-contrast').setAttribute('aria-checked', String(settings.contrast));
+}
+
+document.getElementById('settings-btn').addEventListener('click', () => {
+    applySettings();
+    document.getElementById('settings-overlay').classList.remove('hidden');
+});
+
+document.getElementById('settings-close').addEventListener('click', () => {
+    document.getElementById('settings-overlay').classList.add('hidden');
+});
+
+document.getElementById('settings-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+        document.getElementById('settings-overlay').classList.add('hidden');
+    }
+});
+
+document.getElementById('toggle-hard').addEventListener('click', () => {
+    if (!settings.hard && guesses.length > 0 && !gameOver) {
+        showToast('Hard mode can only be enabled at the start of a round', 2200);
+        return;
+    }
+    settings.hard = !settings.hard;
+    if (!settings.hard) hardThisGame = false;
+    saveSettings();
+    applySettings();
+    playSound('toggle', settings.hard);
+});
+
+document.getElementById('toggle-contrast').addEventListener('click', () => {
+    settings.contrast = !settings.contrast;
+    saveSettings();
+    applySettings();
+    playSound('toggle', settings.contrast);
+});
+
+function startMusic() {
+    if (!gameOver && !Sound.music.isPlaying()) Sound.music.start();
+}
+
+function syncMusicButton() {
+    const btn = document.querySelector('#gp-header .gp-btn-music');
+    if (!btn) return;
+    const on = Sound.music.isEnabled();
+    btn.classList.toggle('off', !on);
+    btn.title = on ? 'Music on' : 'Music off';
+    btn.setAttribute('aria-pressed', String(on));
+}
+
+function addMusicButton() {
+    const actions = document.querySelector('#gp-header .gp-header-actions');
+    if (!actions || actions.querySelector('.gp-btn-music')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-btn-music';
+    btn.textContent = '\u{1F3B5}';
+    btn.addEventListener('click', event => {
+        event.preventDefault();
+        btn.blur();
+        getAudioCtx();
+        Sound.music.setEnabled(!Sound.music.isEnabled());
+        if (Sound.music.isEnabled() && guesses.length > 0) startMusic();
+        syncMusicButton();
+    });
+    actions.insertBefore(btn, actions.querySelector('.gp-btn-sound'));
+    syncMusicButton();
+}
+
+function audioLoop() {
+    Sound.update();
+    requestAnimationFrame(audioLoop);
+}
+
 // Check if user already played daily today
 function checkDailyPlayed() {
     if (gameMode === 'daily' && gameOver) {
@@ -898,3 +1010,6 @@ if (!localStorage.getItem('wordle_visited')) {
 if (window.GamePlatform) {
     GamePlatform.initHeader('Wordle');
 }
+applySettings();
+addMusicButton();
+requestAnimationFrame(audioLoop);
