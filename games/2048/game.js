@@ -5,6 +5,8 @@
 (function () {
   'use strict';
 
+  const Sound = window.Audio2048;
+
   // ---- Mode definitions ------------------------------------
   const MODES = {
     classic:    { name: 'Classic',     size: 4, winTile: 2048, timed: false },
@@ -16,10 +18,13 @@
   // ---- Constants ------------------------------------------
   const MAX_UNDO = 5;
   const STORAGE_PREFIX = '2048_';
+  const SLIDE_MS = 120;
+  const CONFETTI = ['#ff5f8f', '#ffb84d', '#ffe066', '#5ce1a0', '#4dc3ff', '#b28dff'];
 
   // ---- DOM refs -------------------------------------------
   const gridBg          = document.getElementById('grid-background');
   const tileContainer   = document.getElementById('tile-container');
+  const boardEl         = document.getElementById('board-container');
   const scoreEl         = document.getElementById('score');
   const bestScoreEl     = document.getElementById('best-score');
   const movesEl         = document.getElementById('moves-count');
@@ -29,6 +34,7 @@
   const modeLabelEl     = document.getElementById('mode-label');
   const newGameBtn      = document.getElementById('new-game-btn');
   const undoBtn         = document.getElementById('undo-btn');
+  const hintBtn         = document.getElementById('hint-btn');
   const gameOverOvl     = document.getElementById('game-over-overlay');
   const gameOverBtn     = document.getElementById('game-over-btn');
   const gameOverMsg     = document.getElementById('game-over-msg');
@@ -38,6 +44,7 @@
   const timerBarTrack   = document.getElementById('timer-bar-track');
   const timerBarFill    = document.getElementById('timer-bar-fill');
   const startOverlayEl  = document.getElementById('start-overlay');
+  const fxLayer         = document.getElementById('fx-layer');
 
   // ---- State ----------------------------------------------
   let currentMode = 'classic';
@@ -47,10 +54,13 @@
   let tiles       = [];   // flat list of tile objects { id, row, col, value, el }
   let score       = 0;
   let bestScore   = 0;
+  let bestAtStart = 0;
+  let celebratedBest = false;
   let moving      = false;
   let hasWon      = false; // shown the win dialog once?
   let tileIdSeq   = 0;
   let gameActive  = false;
+  let queuedMove  = null;
 
   // Statistics
   let moveCount       = 0;
@@ -101,19 +111,6 @@
     return GameEngine.audio();
   }
 
-  function playTone(freq, duration, type, volume) {
-    GameEngine.tone(freq, duration, { type: type || 'sine', volume: volume || 0.08 });
-  }
-
-  function sfxSlide()   { playTone(300, 0.10, 'sine', 0.06); }
-  function sfxMerge()   { playTone(520, 0.15, 'triangle', 0.10); }
-  function sfxGameOver(){ playTone(180, 0.45, 'sawtooth', 0.06); }
-  function sfxWin()     {
-    playTone(523, 0.15, 'sine', 0.10);
-    setTimeout(() => playTone(659, 0.15, 'sine', 0.10), 120);
-    setTimeout(() => playTone(784, 0.25, 'sine', 0.12), 240);
-  }
-
   // ---- Build static grid cells ----------------------------
   function buildGrid() {
     gridBg.innerHTML = '';
@@ -146,33 +143,35 @@
   function createTileEl(tile) {
     const el = document.createElement('div');
     el.className = 'tile';
+    const inner = document.createElement('div');
+    inner.className = 'tile-inner';
+    el.appendChild(inner);
     updateTileEl(el, tile);
     return el;
   }
 
-  function updateTileEl(el, tile) {
+  function placeTile(el, tile) {
     const pos = tilePosition(tile.row, tile.col);
+    el.style.transform = 'translate(' + pos.left + 'px,' + pos.top + 'px)';
+    return pos;
+  }
+
+  function updateTileEl(el, tile) {
+    const pos = placeTile(el, tile);
     el.style.width  = pos.size + 'px';
     el.style.height = pos.size + 'px';
-    el.style.left   = pos.left + 'px';
-    el.style.top    = pos.top  + 'px';
+    const inner = el.firstChild;
 
     // Font size scaling
     const base = pos.size * 0.45;
     const digits = String(tile.value).length;
-    const fontSize = digits <= 2 ? base : base * (2 / digits);
-    el.style.fontSize = fontSize + 'px';
-    el.style.lineHeight = pos.size + 'px';
+    const fontSize = digits <= 2 ? base : base * (2 / digits) * 1.1;
+    inner.style.fontSize = fontSize + 'px';
 
-    el.textContent = tile.value;
+    inner.textContent = tile.value;
 
     // Color class
-    el.className = 'tile';
-    if (tile.value <= 2048) {
-      el.classList.add('tile-' + tile.value);
-    } else {
-      el.classList.add('tile-super');
-    }
+    inner.className = 'tile-inner ' + (tile.value <= 2048 ? 'tile-' + tile.value : 'tile-super');
   }
 
   // ---- Grid logic -----------------------------------------
@@ -197,25 +196,39 @@
     return cells;
   }
 
-  function spawnTile() {
-    const empty = emptyCells();
-    if (empty.length === 0) return null;
-    const { r, c } = empty[Math.floor(Math.random() * empty.length)];
-    const value = Math.random() < 0.9 ? 2 : 4;
-    grid[r][c] = value;
-
+  function addTile(r, c, value, cls) {
     const tile = { id: tileIdSeq++, row: r, col: c, value };
     const el = createTileEl(tile);
-    el.classList.add('tile-new');
+    if (cls) el.firstChild.classList.add(cls);
     tile.el = el;
     tileContainer.appendChild(el);
     tiles.push(tile);
     return tile;
   }
 
+  function spawnTile() {
+    const empty = emptyCells();
+    if (empty.length === 0) return null;
+    const { r, c } = empty[Math.floor(Math.random() * empty.length)];
+    const value = Math.random() < 0.9 ? 2 : 4;
+    grid[r][c] = value;
+    return addTile(r, c, value, 'tile-new');
+  }
+
+  // Rebuild tile elements from the grid state
+  function rebuildTiles() {
+    tileContainer.innerHTML = '';
+    tiles = [];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (grid[r][c] !== 0) addTile(r, c, grid[r][c], 'tile-new');
+      }
+    }
+  }
+
   // ---- Undo system ----------------------------------------
   function performUndo() {
-    if (undoStack.length === 0 || !gameActive) return;
+    if (undoStack.length === 0 || !gameActive || moving) return;
     // Don't allow undo if game over overlay is visible
     if (!gameOverOvl.classList.contains('hidden')) return;
 
@@ -226,18 +239,8 @@
     highestTile = state.highestTile;
 
     // Rebuild tile DOM from grid
-    tileContainer.innerHTML = '';
-    tiles = [];
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        if (grid[r][c] === 0) continue;
-        const tile = { id: tileIdSeq++, row: r, col: c, value: grid[r][c] };
-        const el = createTileEl(tile);
-        tile.el = el;
-        tileContainer.appendChild(el);
-        tiles.push(tile);
-      }
-    }
+    rebuildTiles();
+    Sound.sfx('undo');
 
     updateScoreDisplay();
     updateStatsDisplay();
@@ -251,76 +254,73 @@
   }
 
   // ---- Movement -------------------------------------------
-  function move(dir) {
-    if (moving || !gameActive) return;
-    if (startOverlayEl && !startOverlayEl.classList.contains('hidden')) return;
-
+  function slide(g, dir) {
     const { dr, dc } = dir;
+    const cells = g.map(row => row.slice());
+    const moves = [];
     let moved = false;
-    let mergeScore = 0;
-    const mergedPositions = [];
-
-    // Save undo state BEFORE moving
-    const preGrid = deepCopyGrid(grid);
-    const preScore = score;
-    const preMoveCount = moveCount;
-    const preHighestTile = highestTile;
-
+    let gained = 0;
     // Build traversal order
     const rows = [...Array(SIZE).keys()];
     const cols = [...Array(SIZE).keys()];
     if (dr === 1) rows.reverse();
     if (dc === 1) cols.reverse();
-
     const merged = emptyGrid();
-
     for (const r of rows) {
       for (const c of cols) {
-        if (grid[r][c] === 0) continue;
-
-        let cr = r, cc = c;
+        if (cells[r][c] === 0) continue;
+        let cr = r, cc = c, mergedInto = false;
         while (true) {
           const nr = cr + dr, nc = cc + dc;
           if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
-          if (grid[nr][nc] === 0) {
-            grid[nr][nc] = grid[cr][cc];
-            grid[cr][cc] = 0;
+          if (cells[nr][nc] === 0) {
+            cells[nr][nc] = cells[cr][cc];
+            cells[cr][cc] = 0;
             cr = nr;
             cc = nc;
-            moved = true;
-          } else if (grid[nr][nc] === grid[cr][cc] && !merged[nr][nc]) {
-            const newVal = grid[cr][cc] * 2;
-            grid[nr][nc] = newVal;
-            grid[cr][cc] = 0;
+          } else if (cells[nr][nc] === cells[cr][cc] && !merged[nr][nc]) {
+            const newVal = cells[cr][cc] * 2;
+            cells[nr][nc] = newVal;
+            cells[cr][cc] = 0;
             merged[nr][nc] = 1;
-            mergeScore += newVal;
+            gained += newVal;
             cr = nr;
             cc = nc;
-            moved = true;
-            mergedPositions.push({ row: cr, col: cc, value: newVal });
+            mergedInto = true;
             break;
           } else {
             break;
           }
         }
-
-        const tile = tiles.find(t => t.row === r && t.col === c);
-        if (tile && (cr !== r || cc !== c)) {
-          tile.row = cr;
-          tile.col = cc;
-          tile.value = grid[cr][cc];
-        }
+        if (cr !== r || cc !== c) moved = true;
+        moves.push({ from: [r, c], to: [cr, cc], merge: mergedInto });
       }
     }
+    return { grid: cells, moved, gained, moves };
+  }
 
-    if (!moved) return;
+  function move(dir) {
+    if (!gameActive) return;
+    if (startOverlayEl && !startOverlayEl.classList.contains('hidden')) return;
+    if (moving) {
+      queuedMove = dir;
+      return;
+    }
+
+    const result = slide(grid, dir);
+    if (!result.moved) {
+      boardEl.classList.remove('bump');
+      void boardEl.offsetWidth;
+      boardEl.classList.add('bump');
+      return;
+    }
 
     // Push undo state (the state BEFORE this move)
     undoStack.push({
-      grid: preGrid,
-      score: preScore,
-      moveCount: preMoveCount,
-      highestTile: preHighestTile,
+      grid: deepCopyGrid(grid),
+      score: score,
+      moveCount: moveCount,
+      highestTile: highestTile,
     });
     if (undoStack.length > MAX_UNDO) {
       undoStack.shift();
@@ -328,7 +328,8 @@
     updateUndoButton();
 
     moving = true;
-    sfxSlide();
+    Sound.sfx('slide');
+    clearHint();
 
     // Increment move counter
     moveCount++;
@@ -336,21 +337,44 @@
     savePersistentStats();
 
     // Animate tile positions
-    tiles.forEach(t => {
-      const pos = tilePosition(t.row, t.col);
-      t.el.style.left = pos.left + 'px';
-      t.el.style.top  = pos.top  + 'px';
-    });
+    const byCell = new Map(tiles.map(t => [t.row + ',' + t.col, t]));
+    const removed = [];
+    const mergedTargets = [];
+    for (const m of result.moves) {
+      const t = byCell.get(m.from[0] + ',' + m.from[1]);
+      if (!t) continue;
+      t.row = m.to[0];
+      t.col = m.to[1];
+      placeTile(t.el, t);
+      if (m.merge) {
+        removed.push(t);
+        mergedTargets.push({ row: m.to[0], col: m.to[1], value: result.grid[m.to[0]][m.to[1]] });
+      }
+    }
+    grid = result.grid;
 
     // After transition finishes, reconcile DOM
     setTimeout(() => {
-      reconcileTiles(mergedPositions);
+      for (const t of removed) t.el.remove();
+      tiles = tiles.filter(t => removed.indexOf(t) < 0);
+      for (const m of mergedTargets) {
+        const target = tiles.find(t => t.row === m.row && t.col === m.col);
+        if (!target) continue;
+        target.value = m.value;
+        updateTileEl(target.el, target);
+        target.el.firstChild.classList.add('tile-merged');
+        burst(m.row, m.col, m.value);
+      }
 
       // Update score
-      if (mergeScore > 0) {
-        score += mergeScore;
-        sfxMerge();
-        showScorePop(mergeScore);
+      if (result.gained > 0) {
+        score += result.gained;
+        mergedTargets.forEach((m, i) => setTimeout(() => Sound.sfx('merge', m.value), i * 35));
+        if (mergedTargets.length >= 3) {
+          Sound.sfx('combo', mergedTargets.length);
+          floatText(boardEl.offsetWidth / 2, boardEl.offsetHeight * 0.18, 'COMBO x' + mergedTargets.length, 'combo');
+        }
+        showScorePop(result.gained);
       }
       updateScoreDisplay();
       updateHighestTile();
@@ -358,13 +382,15 @@
 
       // Spawn new tile
       spawnTile();
+      Sound.sfx('spawn');
 
       // Check win (only for modes with a winTile)
       const mode = MODES[currentMode];
       if (mode.winTile > 0 && !hasWon && tiles.some(t => t.value === mode.winTile)) {
         hasWon = true;
-        sfxWin();
-        winOvl.classList.remove('hidden');
+        Sound.sfx('win');
+        confetti(90);
+        setTimeout(() => winOvl.classList.remove('hidden'), 500);
         moving = false;
         return;
       }
@@ -375,29 +401,12 @@
       }
 
       moving = false;
-    }, 160);
-  }
-
-  // Rebuild tile elements from the grid state
-  function reconcileTiles(mergedPositions) {
-    tileContainer.innerHTML = '';
-    tiles = [];
-
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        if (grid[r][c] === 0) continue;
-        const tile = { id: tileIdSeq++, row: r, col: c, value: grid[r][c] };
-        const el = createTileEl(tile);
-
-        if (mergedPositions.some(m => m.row === r && m.col === c && m.value === tile.value)) {
-          el.classList.add('tile-merged');
-        }
-
-        tile.el = el;
-        tileContainer.appendChild(el);
-        tiles.push(tile);
+      if (queuedMove) {
+        const next = queuedMove;
+        queuedMove = null;
+        move(next);
       }
-    }
+    }, SLIDE_MS + 10);
   }
 
   // ---- Game state checks ----------------------------------
@@ -413,14 +422,17 @@
 
   function triggerGameOver(msg) {
     gameActive = false;
-    sfxGameOver();
+    queuedMove = null;
+    Sound.sfx('gameover');
+    Sound.music.stop();
     stopTimers();
+    boardEl.classList.add('is-over');
     if (gameOverMsg) gameOverMsg.textContent = msg;
     if (window.GamePlatform) {
       GamePlatform.recordGame('2048', score, 0, { maxTile: highestTile, win: hasWon });
       GamePlatform.updateScore(score);
     }
-    gameOverOvl.classList.remove('hidden');
+    setTimeout(() => gameOverOvl.classList.remove('hidden'), 650);
   }
 
   // ---- Highest tile tracking ------------------------------
@@ -442,6 +454,12 @@
     if (score > bestScore) {
       bestScore = score;
       saveBestScore();
+      if (!celebratedBest && bestAtStart > 0 && score > bestAtStart) {
+        celebratedBest = true;
+        Sound.sfx('best');
+        floatText(boardEl.offsetWidth / 2, boardEl.offsetHeight * 0.4, 'NEW BEST!', 'best');
+        confetti(30);
+      }
     }
     bestScoreEl.textContent = bestScore.toLocaleString();
     if (window.GamePlatform) GamePlatform.updateScore(score);
@@ -461,6 +479,143 @@
     scoreBox.style.position = 'relative';
     scoreBox.appendChild(pop);
     pop.addEventListener('animationend', () => pop.remove());
+  }
+
+  function tileColor(value) {
+    const style = getComputedStyle(document.documentElement);
+    return style.getPropertyValue('--c-' + (value <= 2048 ? value : 'super')).trim() || '#ffd166';
+  }
+
+  function burst(row, col, value) {
+    const pos = tilePosition(row, col);
+    const cx = pos.left + pos.size / 2, cy = pos.top + pos.size / 2;
+    const color = tileColor(value);
+    const ring = document.createElement('div');
+    ring.className = 'fx-ring';
+    ring.style.left = cx + 'px';
+    ring.style.top = cy + 'px';
+    ring.style.setProperty('--size', pos.size + 'px');
+    ring.style.borderColor = color;
+    fxLayer.appendChild(ring);
+    ring.addEventListener('animationend', () => ring.remove());
+    const n = value >= 128 ? 14 : 8;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('div');
+      p.className = 'fx-spark';
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+      const d = pos.size * (0.55 + Math.random() * 0.45);
+      p.style.left = cx + 'px';
+      p.style.top = cy + 'px';
+      p.style.background = color;
+      p.style.setProperty('--dx', Math.cos(a) * d + 'px');
+      p.style.setProperty('--dy', Math.sin(a) * d + 'px');
+      fxLayer.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+    }
+    floatText(cx, pos.top, '+' + value, 'tile-score');
+  }
+
+  function floatText(x, y, text, kind) {
+    const el = document.createElement('div');
+    el.className = 'fx-text ' + (kind || '');
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    fxLayer.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+
+  function confetti(n) {
+    const w = boardEl.offsetWidth;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('div');
+      p.className = 'fx-confetti';
+      p.style.left = Math.random() * w + 'px';
+      p.style.top = '-12px';
+      p.style.background = CONFETTI[i % CONFETTI.length];
+      p.style.setProperty('--dx', (Math.random() - 0.5) * 120 + 'px');
+      p.style.setProperty('--dy', boardEl.offsetHeight * (0.7 + Math.random() * 0.5) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      p.style.animationDelay = Math.random() * 0.4 + 's';
+      fxLayer.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+    }
+  }
+
+  function scoreGrid(g) {
+    let empty = 0, smooth = 0, mono = 0, max = 0;
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const v = g[r][c];
+        if (!v) { empty++; continue; }
+        const lv = Math.log2(v);
+        max = Math.max(max, v);
+        if (c < SIZE - 1 && g[r][c + 1]) smooth -= Math.abs(lv - Math.log2(g[r][c + 1]));
+        if (r < SIZE - 1 && g[r + 1][c]) smooth -= Math.abs(lv - Math.log2(g[r + 1][c]));
+      }
+    }
+    for (let r = 0; r < SIZE; r++) {
+      let inc = 0, dec = 0;
+      for (let c = 0; c < SIZE - 1; c++) {
+        const a = g[r][c] ? Math.log2(g[r][c]) : 0, b = g[r][c + 1] ? Math.log2(g[r][c + 1]) : 0;
+        if (a > b) dec += a - b; else inc += b - a;
+      }
+      mono -= Math.min(inc, dec);
+    }
+    for (let c = 0; c < SIZE; c++) {
+      let inc = 0, dec = 0;
+      for (let r = 0; r < SIZE - 1; r++) {
+        const a = g[r][c] ? Math.log2(g[r][c]) : 0, b = g[r + 1][c] ? Math.log2(g[r + 1][c]) : 0;
+        if (a > b) dec += a - b; else inc += b - a;
+      }
+      mono -= Math.min(inc, dec);
+    }
+    const corner = [g[0][0], g[0][SIZE - 1], g[SIZE - 1][0], g[SIZE - 1][SIZE - 1]].indexOf(max) >= 0 ? 1 : 0;
+    return empty * 2.7 + smooth * 0.1 + mono * 1.0 + corner * 2;
+  }
+
+  function bestMove() {
+    let best = null, bestScoreValue = -Infinity;
+    for (const name of ['up', 'left', 'right', 'down']) {
+      const res = slide(grid, DIRS[name]);
+      if (!res.moved) continue;
+      const empties = [];
+      for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (!res.grid[r][c]) empties.push([r, c]);
+      let total = 0;
+      const sample = empties.slice(0, 6);
+      for (const [r, c] of sample) {
+        res.grid[r][c] = 2;
+        total += scoreGrid(res.grid) * 0.9;
+        res.grid[r][c] = 4;
+        total += scoreGrid(res.grid) * 0.1;
+        res.grid[r][c] = 0;
+      }
+      const value = (sample.length ? total / sample.length : scoreGrid(res.grid)) + res.gained * 0.004;
+      if (value > bestScoreValue) { bestScoreValue = value; best = name; }
+    }
+    return best;
+  }
+
+  let hintTimer = null;
+  function showHint() {
+    if (!gameActive || moving) return;
+    const dir = bestMove();
+    if (!dir) return;
+    clearHint();
+    const arrow = document.createElement('div');
+    arrow.className = 'hint-arrow hint-' + dir;
+    arrow.textContent = { up: '\u2191', down: '\u2193', left: '\u2190', right: '\u2192' }[dir];
+    arrow.id = 'hint-arrow';
+    fxLayer.appendChild(arrow);
+    Sound.sfx('hint');
+    hintTimer = setTimeout(clearHint, 1600);
+    return dir;
+  }
+
+  function clearHint() {
+    clearTimeout(hintTimer);
+    const old = document.getElementById('hint-arrow');
+    if (old) old.remove();
   }
 
   // ---- Timer system ---------------------------------------
@@ -502,6 +657,7 @@
         timerDisplayEl.textContent = formatTime(countdownSeconds);
         const pct = (countdownSeconds / MODES[currentMode].duration) * 100;
         timerBarFill.style.width = pct + '%';
+        timerBarTrack.classList.toggle('urgent', countdownSeconds <= 10);
       }
     }, 1000);
   }
@@ -531,16 +687,22 @@
     score = 0;
     hasWon = false;
     moving = false;
+    queuedMove = null;
     moveCount = 0;
     highestTile = 0;
     undoStack = [];
     gameActive = true;
+    celebratedBest = false;
     tileContainer.innerHTML = '';
+    fxLayer.innerHTML = '';
+    boardEl.classList.remove('is-over');
+    timerBarTrack.classList.remove('urgent');
     gameOverOvl.classList.add('hidden');
     winOvl.classList.add('hidden');
 
     // Load best score for current mode
     loadBestScore();
+    bestAtStart = bestScore;
 
     // Rebuild grid for the correct size
     buildGrid();
@@ -568,6 +730,10 @@
     spawnTile();
     updateHighestTile();
     updateStatsDisplay();
+    if (startOverlayEl && startOverlayEl.classList.contains('hidden')) {
+      Sound.sfx('start');
+      Sound.music.start();
+    }
   }
 
   // ---- Mode switching (called from start overlay) ---------
@@ -575,6 +741,7 @@
     if (MODES[mode]) {
       currentMode = mode;
     }
+    ensureAudio();
     newGame();
   }
 
@@ -589,12 +756,51 @@
     right: { dr:  0, dc:  1 },
   };
 
+  function syncMusicButton() {
+    const btn = document.querySelector('#gp-header .gp-btn-music');
+    if (!btn) return;
+    const on = Sound.music.isEnabled();
+    btn.classList.toggle('off', !on);
+    btn.title = on ? 'Music on (M)' : 'Music off (M)';
+    btn.setAttribute('aria-pressed', String(on));
+  }
+
+  function toggleMusic() {
+    Sound.music.setEnabled(!Sound.music.isEnabled());
+    syncMusicButton();
+  }
+
+  function addMusicButton() {
+    const actions = document.querySelector('#gp-header .gp-header-actions');
+    if (!actions || actions.querySelector('.gp-btn-music')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-btn-music';
+    btn.textContent = '\u{1F3B5}';
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      btn.blur();
+      toggleMusic();
+    });
+    actions.insertBefore(btn, actions.querySelector('.gp-btn-sound'));
+    syncMusicButton();
+  }
+
   document.addEventListener('keydown', (e) => {
     // Undo: Ctrl+Z / Cmd+Z or U key
     if (((e.ctrlKey || e.metaKey) && e.key === 'z') ||
         ((e.key === 'u' || e.key === 'U') && !e.ctrlKey && !e.altKey && !e.metaKey)) {
       e.preventDefault();
       performUndo();
+      return;
+    }
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === 'm' || e.key === 'M') {
+      if (!e.repeat) toggleMusic();
+      return;
+    }
+    if (e.key === 'h' || e.key === 'H') {
+      if (!e.repeat) showHint();
       return;
     }
 
@@ -648,22 +854,31 @@
   }, { passive: false });
 
   // ---- Buttons --------------------------------------------
-  newGameBtn.addEventListener('click', newGame);
+  newGameBtn.addEventListener('click', () => { ensureAudio(); newGame(); });
   gameOverBtn.addEventListener('click', newGame);
   winNewBtn.addEventListener('click', newGame);
   keepPlayBtn.addEventListener('click', () => {
     winOvl.classList.add('hidden');
   });
   undoBtn.addEventListener('click', performUndo);
+  hintBtn.addEventListener('click', () => { ensureAudio(); showHint(); });
 
   // ---- Resize handler (reposition tiles) ------------------
   let resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
+      tileContainer.classList.add('no-anim');
       tiles.forEach(t => updateTileEl(t.el, t));
+      void tileContainer.offsetWidth;
+      tileContainer.classList.remove('no-anim');
     }, 100);
   });
+
+  function audioLoop() {
+    Sound.update();
+    requestAnimationFrame(audioLoop);
+  }
 
   // ---- Boot -----------------------------------------------
   loadBestScore();
@@ -674,4 +889,6 @@
   if (window.GamePlatform) {
     GamePlatform.initHeader('2048');
   }
+  addMusicButton();
+  requestAnimationFrame(audioLoop);
 })();

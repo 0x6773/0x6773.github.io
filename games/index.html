@@ -1004,10 +1004,11 @@
           <div class="game-banner">
             <canvas id="preview-2048" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
           </div>
           <div class="game-info">
             <h2>2048</h2>
-            <p>Slide and merge numbered tiles to reach 2048. Simple to learn, hard to master.</p>
+            <p>Glossy candy tiles that slide and pop as they merge. Undo, hints, four modes and new-best celebrations.</p>
           </div>
           <div class="game-tags">
             <span class="tag">Puzzle</span>
@@ -1540,8 +1541,8 @@
     PREVIEWS['2048'] = function(c, ctx, W, H) {
       const gs = 4, cs = 32, pad = 4;
       const ox = (W-gs*(cs+pad)+pad)/2, oy = (H-gs*(cs+pad)+pad)/2;
-      const tileColors = {2:'#eee4da',4:'#ede0c8',8:'#f2b179',16:'#f59563',32:'#f67c5f',64:'#f65e3b',128:'#edcf72',256:'#edcc61',512:'#edc850',1024:'#edc53f',2048:'#edc22e'};
-      const darkText = new Set([2,4]);
+      const tileColors = {2:['#d6fbe7','#7ee8b0'],4:['#d9f1ff','#7fd0ff'],8:['#e7dcff','#b796ff'],16:['#ffd0e4','#ff7eb3'],32:['#ffd0c2','#ff8a6b'],64:['#ffe0b0','#ffa53d'],128:['#fff6c2','#ffd84d'],256:['#e8ffc6','#9be35a'],512:['#c8fff6','#3fd8c4'],1024:['#e4d0ff','#8f5cff'],2048:['#fff4b8','#ffc21a']};
+      const darkText = new Set([2,4,128,256,512,2048]);
       let grid = [[0,2,0,4],[0,0,8,2],[2,0,0,16],[4,2,0,0]];
       let tick = 0;
       function randomMove() {
@@ -1568,18 +1569,24 @@
       function frame() {
         tick++;
         if (tick%40===0) randomMove();
-        ctx.clearRect(0,0,W,H);
+        const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#221a44'); bg.addColorStop(1, '#120f26');
+        ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
         // Board bg
-        ctx.fillStyle='#1a1a2e';
-        ctx.beginPath(); ctx.roundRect(ox-pad,oy-pad,gs*(cs+pad)+pad,gs*(cs+pad)+pad,6); ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.08)';
+        ctx.beginPath(); ctx.roundRect(ox-pad,oy-pad,gs*(cs+pad)+pad,gs*(cs+pad)+pad,9); ctx.fill();
         for (let i=0;i<gs;i++) for (let j=0;j<gs;j++) {
           const x=ox+j*(cs+pad), y=oy+i*(cs+pad);
           const v = grid[i][j];
-          ctx.fillStyle = v>0 ? (tileColors[v]||'#edc22e') : '#16213e';
-          ctx.beginPath(); ctx.roundRect(x,y,cs,cs,4); ctx.fill();
+          if (v > 0) {
+            const col = tileColors[v] || tileColors[2048];
+            const g = ctx.createLinearGradient(x, y, x + cs, y + cs); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]);
+            ctx.fillStyle = g;
+          } else ctx.fillStyle = 'rgba(10,8,30,0.4)';
+          ctx.beginPath(); ctx.roundRect(x,y,cs,cs,7); ctx.fill();
           if (v>0) {
-            ctx.fillStyle = darkText.has(v)?'#776e65':'#f9f6f2';
-            ctx.font = v>=1024?'bold 8px sans-serif':v>=128?'bold 10px sans-serif':'bold 12px sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.roundRect(x+3,y+2,cs-6,cs*0.32,5); ctx.fill();
+            ctx.fillStyle = darkText.has(v)?'#3b2f55':'#ffffff';
+            ctx.font = v>=1024?'900 9px sans-serif':v>=128?'900 11px sans-serif':'900 13px sans-serif';
             ctx.textAlign='center'; ctx.textBaseline='middle';
             ctx.fillText(v,x+cs/2,y+cs/2+1);
           }
