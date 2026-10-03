@@ -51,51 +51,16 @@
   function ensureAudio() {
     return GameEngine.audio();
   }
-  function playTone(freq, dur, type = 'square', vol = 0.1) {
-    GameEngine.tone(freq, dur, { type, volume: vol });
-  }
-  function sfxCountdown() { playTone(440, 0.15, 'triangle', 0.12); }
-  function sfxGo()        { playTone(880, 0.2, 'triangle', 0.15); }
-  function sfxCrash()     { playTone(120, 0.4, 'sawtooth', 0.15); setTimeout(() => playTone(80, 0.3, 'sawtooth', 0.1), 100); }
-  function sfxWinRound()  { [660,880,1100].forEach((f,i) => setTimeout(() => playTone(f, 0.15, 'triangle', 0.12), i*80)); }
-  function sfxMatchWin()  { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.2, 'triangle', 0.14), i*100)); }
-  function sfxMatchLose() { [523,440,349,262].forEach((f,i) => setTimeout(() => playTone(f, 0.22, 'triangle', 0.12), i*120)); }
+  const Sound = window.TronAudio;
+  function sfxCountdown() { Sound.sfx('countdown'); }
+  function sfxGo()        { Sound.sfx('go'); }
+  function sfxCrash()     { Sound.sfx('crash'); }
+  function sfxWinRound(lost) { Sound.sfx(lost ? 'roundLose' : 'roundWin'); }
+  function sfxMatchWin()  { Sound.sfx('matchWin'); }
+  function sfxMatchLose() { Sound.sfx('matchLose'); }
 
   // ── Particles ──
-  let particles = [];
-  function spawnExplosion(x, y, color, count = 30) {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const sp = 1 + Math.random() * 5;
-      particles.push({
-        x: x * CELL + CELL / 2, y: y * CELL + CELL / 2,
-        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        r: 2 + Math.random() * 3, color, life: 1, decay: 0.015 + Math.random() * 0.02
-      });
-    }
-  }
-  function updateParticles() {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx; p.y += p.vy;
-      p.vx *= 0.97; p.vy *= 0.97;
-      p.life -= p.decay;
-      if (p.life <= 0) particles.splice(i, 1);
-    }
-  }
-  function drawParticles() {
-    for (const p of particles) {
-      ctx.save();
-      ctx.globalAlpha = p.life;
-      ctx.fillStyle = p.color;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
+  const fx = TronFX.create(canvas, ctx, { cell: CELL, tickMs: TICK_MS, colors: [P1_COLOR, P2_COLOR], now: () => performance.now() });
 
   // ── Game State ──
   let grid, players, scores, round, tickInterval, gameRunning, animId;
@@ -137,6 +102,7 @@
     updateHUD();
     overlay.classList.add('hidden');
     document.getElementById('controls-info').style.display = '';
+    Sound.music.start();
     startRound();
   });
 
@@ -222,7 +188,7 @@
   function startRound() {
     initGrid();
     initPlayers();
-    particles = [];
+    fx.reset(players);
     gameRunning = false;
     updateHUD();
     render();
@@ -240,6 +206,7 @@
       } else {
         clearInterval(cdInterval);
         sfxGo();
+        Sound.engine(true);
         hideRoundOverlay();
         gameRunning = true;
         startGameLoop();
@@ -256,6 +223,7 @@
 
   function stopGame() {
     gameRunning = false;
+    Sound.engine(false);
     if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
   }
 
@@ -309,6 +277,7 @@
     for (let i = 0; i < 2; i++) {
       if (players[i].alive) grid[players[i].y][players[i].x] = i + 1;
     }
+    fx.step(players);
 
     const p1Dead = !players[0].alive;
     const p2Dead = !players[1].alive;
@@ -326,7 +295,7 @@
 
       // Explosions
       for (const cp of crashPositions) {
-        spawnExplosion(cp.x, cp.y, cp.player === 0 ? P1_COLOR : P2_COLOR, 35);
+        fx.explode(cp.x, cp.y, cp.player);
       }
       sfxCrash();
 
@@ -345,7 +314,7 @@
       const color = roundWinner === -1 ? '#ffd700' : (roundWinner === 0 ? P1_COLOR : P2_COLOR);
 
       setTimeout(() => {
-        if (roundWinner >= 0) sfxWinRound();
+        if (roundWinner >= 0) sfxWinRound(vsCpu && roundWinner === 1);
         showRoundOverlay(msg, 'Next round in 2s...', color);
         setTimeout(() => {
           round++;
@@ -358,6 +327,7 @@
 
   function handleMatchEnd(winner) {
     if (vsCpu && winner === 1) sfxMatchLose(); else sfxMatchWin();
+    Sound.music.stop();
     if (window.GamePlatform) {
       GamePlatform.recordGame('tron', scores[0], 0, { win: winner === 0, mode: vsCpu ? 'cpu-' + cpuLevel : 'pvp' });
     }
@@ -418,71 +388,53 @@
 
   // ── Rendering ──
   function renderLoop() {
-    updateParticles();
     render();
-    if (gameRunning || particles.length > 0) {
+    if (gameRunning || fx.busy()) {
       requestAnimationFrame(renderLoop);
     }
   }
 
   function render() {
-    ctx.clearRect(0, 0, W, H);
+    fx.draw(performance.now(), gameRunning);
+  }
 
-    // Background
-    ctx.fillStyle = '#0a0a14';
-    ctx.fillRect(0, 0, W, H);
+  function syncMusicButton() {
+    const btn = document.querySelector('#gp-header .gp-btn-music');
+    if (!btn) return;
+    const on = Sound.music.isEnabled();
+    btn.classList.toggle('off', !on);
+    btn.title = on ? 'Music on (M)' : 'Music off (M)';
+    btn.setAttribute('aria-pressed', String(on));
+  }
 
-    // Grid lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.025)';
-    ctx.lineWidth = 0.5;
-    for (let x = 0; x <= W; x += CELL * 5) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-    }
-    for (let y = 0; y <= H; y += CELL * 5) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-    }
+  function toggleMusic() {
+    Sound.music.setEnabled(!Sound.music.isEnabled());
+    syncMusicButton();
+  }
 
-    // Trails
-    if (grid) {
-      for (let y = 0; y < ROWS; y++) {
-        for (let x = 0; x < COLS; x++) {
-          const v = grid[y][x];
-          if (v === 0) continue;
-          ctx.fillStyle = v === 1 ? P1_TRAIL : P2_TRAIL;
-          ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
-        }
-      }
-    }
+  function addMusicButton() {
+    const actions = document.querySelector('#gp-header .gp-header-actions');
+    if (!actions || actions.querySelector('.gp-btn-music')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-btn-music';
+    btn.textContent = '\u{1F3B5}';
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      btn.blur();
+      toggleMusic();
+    });
+    actions.insertBefore(btn, actions.querySelector('.gp-btn-sound'));
+    syncMusicButton();
+  }
 
-    // Player heads
-    if (players) {
-      for (let i = 0; i < 2; i++) {
-        const p = players[i];
-        if (!p.alive) continue;
-        const px = p.x * CELL;
-        const py = p.y * CELL;
-        const color = i === 0 ? P1_COLOR : P2_COLOR;
+  document.addEventListener('keydown', e => {
+    if (e.code === 'KeyM' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) toggleMusic();
+  });
 
-        ctx.save();
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 16;
-        ctx.fillStyle = color;
-        ctx.fillRect(px, py, CELL, CELL);
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
-        ctx.restore();
-      }
-    }
-
-    // Particles
-    drawParticles();
-
-    // Border glow
-    ctx.save();
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.12)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, W - 2, H - 2);
-    ctx.restore();
+  function audioLoop() {
+    Sound.update();
+    requestAnimationFrame(audioLoop);
   }
 
   // Initial render
@@ -492,5 +444,7 @@
   if (window.GamePlatform) {
     GamePlatform.initHeader('Tron');
   }
+  addMusicButton();
+  requestAnimationFrame(audioLoop);
   GameEngine.pausable({ isActive: () => overlay.classList.contains('hidden'), container: '#game-container' });
 })();

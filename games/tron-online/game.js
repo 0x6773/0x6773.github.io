@@ -51,35 +51,16 @@
   function ensureAudio() {
     return GameEngine.audio();
   }
-  function playTone(f, d, t = 'square', v = 0.1) {
-    GameEngine.tone(f, d, { type: t, volume: v });
-  }
-  function sfxCountdown() { playTone(440, 0.15, 'triangle', 0.12); }
-  function sfxGo() { playTone(880, 0.2, 'triangle', 0.15); }
-  function sfxCrash() { playTone(120, 0.4, 'sawtooth', 0.15); setTimeout(() => playTone(80, 0.3, 'sawtooth', 0.1), 100); }
-  function sfxWinRound() { [660, 880, 1100].forEach((f, i) => setTimeout(() => playTone(f, 0.15, 'triangle', 0.12), i * 80)); }
-  function sfxMatchWin() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.2, 'triangle', 0.14), i * 100)); }
+  const Sound = window.TronAudio;
+  function sfxCountdown() { Sound.sfx('countdown'); }
+  function sfxGo() { Sound.sfx('go'); }
+  function sfxCrash() { Sound.sfx('crash'); }
+  function sfxWinRound(lost) { Sound.sfx(lost ? 'roundLose' : 'roundWin'); }
+  function sfxMatchWin() { Sound.sfx('matchWin'); }
 
   // ── Particles ──
-  let particles = [];
-  function spawnExplosion(x, y, color, count = 30) {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 5;
-      particles.push({ x: x * CELL + CELL / 2, y: y * CELL + CELL / 2, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 2 + Math.random() * 3, color, life: 1, decay: 0.015 + Math.random() * 0.02 });
-    }
-  }
-  function updateParticles() {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vx *= 0.97; p.vy *= 0.97; p.life -= p.decay;
-      if (p.life <= 0) particles.splice(i, 1);
-    }
-  }
-  function drawParticles() {
-    for (const p of particles) {
-      ctx.save(); ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 8;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    }
-  }
+  const fx = TronFX.create(canvas, ctx, { cell: CELL, tickMs: TICK_MS, colors: [P1_COLOR, P2_COLOR] });
+  let roundActive = false;
 
   // ── State ──
   let isHost = false, myPlayer = 0, peer, conn;
@@ -188,12 +169,12 @@
     if (!document.getElementById('latency-display')) {
       var latDisplay = document.createElement('span');
       latDisplay.id = 'latency-display';
-      latDisplay.style.cssText = 'font-size:12px;color:#888;margin-left:8px';
       var hint = document.getElementById('controls-hint');
       if (hint) hint.appendChild(latDisplay);
     }
 
     if (isHost) startRound();
+    Sound.music.start();
     requestAnimationFrame(renderLoop);
   }
 
@@ -220,6 +201,7 @@
           players[i].dir = d.p[i].d;
           players[i].alive = d.p[i].a;
         }
+        fx.step(players);
         lastTickTime = performance.now();
       }
       else if (d.t === 'init') {
@@ -231,13 +213,14 @@
         ];
         grid[players[0].y][players[0].x] = 1;
         grid[players[1].y][players[1].x] = 2;
+        fx.reset(players);
         updateHUD();
       }
       else if (d.t === 'd' && isHost) {
         queueDir(1, d.dir);
       }
       else if (d.t === 'cd') showCountdown(d.n);
-      else if (d.t === 'go') hideOverlay();
+      else if (d.t === 'go') { hideOverlay(); sfxGo(); roundActive = true; Sound.engine(true); }
       else if (d.t === 're') {
         // Sync scores from host so joiner HUD stays current
         if (d.sc) { scores = d.sc; updateHUD(); }
@@ -249,12 +232,15 @@
       else if (d.t === 'pong') { latency = Math.round((performance.now() - d.ts) / 2); }
       // ── Rematch ──
       else if (d.t === 'rematch' && isHost) {
-        scores = [0, 0]; round = 1; updateHUD(); startRound();
+        scores = [0, 0]; round = 1; updateHUD(); startRound(); Sound.music.start();
       }
     });
 
     conn.on('close', () => {
       stopGame();
+      roundActive = false;
+      Sound.engine(false);
+      Sound.music.stop();
       clearMatchEndBtns();
       showOverlay('Disconnected', 'Opponent left', '#ff4d6d');
     });
@@ -297,7 +283,7 @@
   }
 
   function startRound() {
-    initGrid(); initPlayers(); particles = [];
+    initGrid(); initPlayers(); fx.reset(players);
     gameRunning = false; inputQueues = [[], []];
     updateHUD(); sendInit();
 
@@ -310,6 +296,7 @@
       else {
         clearInterval(cd);
         hideOverlay(); send({ t: 'go' });
+        sfxGo(); roundActive = true; Sound.engine(true);
         gameRunning = true;
         startGameLoop();
       }
@@ -352,6 +339,7 @@
     }
 
     for (let i = 0; i < 2; i++) if (players[i].alive) grid[players[i].y][players[i].x] = i + 1;
+    fx.step(players);
 
     if (!players[0].alive || !players[1].alive) {
       stopGame();
@@ -372,7 +360,9 @@
   // ── Round / Match End ──
   function handleRoundEnd(w, crashes) {
     stopGame(); sfxCrash();
-    if (crashes) for (const c of crashes) spawnExplosion(c.x, c.y, c.pi === 0 ? P1_COLOR : P2_COLOR, 35);
+    roundActive = false;
+    Sound.engine(false);
+    if (crashes) for (const c of crashes) fx.explode(c.x, c.y, c.pi);
 
     if (scores[0] >= ROUNDS_TO_WIN || scores[1] >= ROUNDS_TO_WIN) {
       const mw = scores[0] >= ROUNDS_TO_WIN ? 0 : 1;
@@ -382,7 +372,7 @@
 
     const isMe = w === myPlayer;
     let msg = w === -1 ? 'Draw!' : (isMe ? 'You won the round!' : 'You lost the round');
-    if (w >= 0) sfxWinRound();
+    if (w >= 0) sfxWinRound(!isMe);
     const color = w === -1 ? '#ffd700' : (w === 0 ? P1_COLOR : P2_COLOR);
 
     setTimeout(() => {
@@ -398,7 +388,8 @@
 
   function handleMatchEnd(w) {
     const isMe = w === myPlayer;
-    if (isMe) sfxMatchWin(); else sfxCrash();
+    if (isMe) sfxMatchWin(); else Sound.sfx('matchLose');
+    Sound.music.stop();
     if (window.GamePlatform) {
       GamePlatform.recordGame('tron-online', scores[myPlayer], 0, { win: isMe });
     }
@@ -414,19 +405,17 @@
 
     var btnContainer = document.createElement('div');
     btnContainer.id = 'match-end-btns';
-    btnContainer.style.cssText = 'display:flex;gap:12px;margin-top:16px;justify-content:center';
 
     var rematchBtn = document.createElement('button');
     rematchBtn.textContent = 'Rematch';
-    rematchBtn.style.cssText = 'padding:10px 28px;font-size:15px;font-weight:700;border:2px solid #00f0ff;border-radius:6px;background:transparent;color:#00f0ff;cursor:pointer;transition:background .15s';
-    rematchBtn.onmouseenter = function () { rematchBtn.style.background = 'rgba(0,240,255,0.12)'; };
-    rematchBtn.onmouseleave = function () { rematchBtn.style.background = 'transparent'; };
+    rematchBtn.className = 'btn btn-cyan';
     rematchBtn.onclick = function () {
       clearMatchEndBtns();
       scores = [0, 0]; round = 1;
       updateHUD();
       if (isHost) {
         startRound();
+        Sound.music.start();
       } else {
         send({ t: 'rematch' });
         showOverlay('Waiting...', 'Waiting for host to start', '#888');
@@ -435,9 +424,7 @@
 
     var leaveBtn = document.createElement('button');
     leaveBtn.textContent = 'Leave';
-    leaveBtn.style.cssText = 'padding:10px 28px;font-size:15px;font-weight:700;border:2px solid #666;border-radius:6px;background:transparent;color:#888;cursor:pointer;transition:background .15s';
-    leaveBtn.onmouseenter = function () { leaveBtn.style.background = 'rgba(255,255,255,0.06)'; };
-    leaveBtn.onmouseleave = function () { leaveBtn.style.background = 'transparent'; };
+    leaveBtn.className = 'btn btn-ghost';
     leaveBtn.onclick = function () {
       if (conn && conn.open) conn.close();
       if (peer) peer.destroy();
@@ -467,6 +454,8 @@
   const keyMap = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
 
   document.addEventListener('keydown', e => {
+    if (e.target && e.target.tagName === 'INPUT') return;
+    if (e.code === 'KeyM' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) { toggleMusic(); return; }
     const dir = keyMap[e.key]; if (!dir) return;
     e.preventDefault();
     if (isHost) queueDir(0, dir);
@@ -487,54 +476,63 @@
 
   // ── Render ──
   function renderLoop() {
-    updateParticles(); render(); updateLatencyDisplay();
+    render(); updateLatencyDisplay();
     if (!gameScreen.classList.contains('hidden')) requestAnimationFrame(renderLoop);
+  }
+
+  function syncMusicButton() {
+    const btn = document.querySelector('#gp-header .gp-btn-music');
+    if (!btn) return;
+    const on = Sound.music.isEnabled();
+    btn.classList.toggle('off', !on);
+    btn.title = on ? 'Music on (M)' : 'Music off (M)';
+    btn.setAttribute('aria-pressed', String(on));
+  }
+
+  function toggleMusic() {
+    Sound.music.setEnabled(!Sound.music.isEnabled());
+    syncMusicButton();
+  }
+
+  function addMusicButton() {
+    const actions = document.querySelector('#gp-header .gp-header-actions');
+    if (!actions || actions.querySelector('.gp-btn-music')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-btn-music';
+    btn.textContent = '\u{1F3B5}';
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      btn.blur();
+      toggleMusic();
+    });
+    actions.insertBefore(btn, actions.querySelector('.gp-btn-sound'));
+    syncMusicButton();
+  }
+
+  function audioLoop() {
+    Sound.update();
+    requestAnimationFrame(audioLoop);
   }
 
   function updateLatencyDisplay() {
     var latEl = document.getElementById('latency-display');
     if (!latEl) return;
     if (latency > 0) {
-      var color = latency < 50 ? '#00e676' : latency < 100 ? '#ffd700' : '#ff4d6d';
-      latEl.innerHTML = '<span style="color:' + color + '">&#9679; ' + latency + 'ms</span>';
+      latEl.className = latency < 50 ? 'lat-good' : latency < 100 ? 'lat-ok' : 'lat-bad';
+      latEl.textContent = '\u25CF ' + latency + 'ms';
     } else {
-      latEl.innerHTML = '';
+      latEl.textContent = '';
     }
   }
 
   function render() {
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, W, H);
-
-    // Grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.025)'; ctx.lineWidth = 0.5;
-    for (let x = 0; x <= W; x += CELL * 5) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-    for (let y = 0; y <= H; y += CELL * 5) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-
-    // Trails
-    if (grid) for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-      const v = grid[y][x]; if (!v) continue;
-      ctx.fillStyle = v === 1 ? P1_TRAIL : P2_TRAIL;
-      ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
-    }
-
-    // Heads
-    if (players) for (let i = 0; i < 2; i++) {
-      const p = players[i]; if (!p.alive) continue;
-      const color = i === 0 ? P1_COLOR : P2_COLOR;
-      ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = 16;
-      ctx.fillStyle = color; ctx.fillRect(p.x * CELL, p.y * CELL, CELL, CELL);
-      ctx.fillStyle = '#fff'; ctx.fillRect(p.x * CELL + 1, p.y * CELL + 1, CELL - 2, CELL - 2);
-      ctx.restore();
-    }
-
-    drawParticles();
-
-    ctx.save(); ctx.strokeStyle = 'rgba(0,240,255,0.12)'; ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, W - 2, H - 2); ctx.restore();
+    fx.draw(performance.now(), roundActive);
   }
 
   if (window.GamePlatform) {
     GamePlatform.initHeader('Tron Online');
   }
+  addMusicButton();
+  requestAnimationFrame(audioLoop);
 })();
