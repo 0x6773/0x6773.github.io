@@ -22,6 +22,9 @@
   var winningCells = [];
   var aiTimeoutId = null;
   var gameOverTimeoutId = null;
+  var startingPlayer = P1;
+  var kbCol = 3;
+  var Sound = window.Connect4Audio;
 
   // ── Audio Context ──
 
@@ -29,60 +32,16 @@
     return GameEngine.audio();
   }
 
-  function isMuted() {
-    return typeof GamePlatform !== 'undefined' && GamePlatform.isMuted();
+  function playDropSound(row) {
+    Sound.sfx('drop', row);
   }
 
-  function playDropSound() {
-    if (isMuted()) return;
-    var ctx = getAudioCtx(); if (!ctx) return;
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(400, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.2);
-  }
-
-  function playWinSound() {
-    if (isMuted()) return;
-    var ctx = getAudioCtx(); if (!ctx) return;
-    var notes = [523, 659, 784, 1047];
-    for (var i = 0; i < notes.length; i++) {
-      (function(freq, delay) {
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
-        gain.gain.setValueAtTime(0.12, ctx.currentTime + delay);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
-        osc.start(ctx.currentTime + delay);
-        osc.stop(ctx.currentTime + delay + 0.3);
-      })(notes[i], i * 0.12);
-    }
+  function playWinSound(player) {
+    Sound.sfx(isAIMode() && player === P2 ? 'lose' : 'win');
   }
 
   function playDrawSound() {
-    if (isMuted()) return;
-    var ctx = getAudioCtx(); if (!ctx) return;
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(300, ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(200, ctx.currentTime + 0.4);
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.5);
+    Sound.sfx('draw');
   }
 
   // ── DOM Elements ──
@@ -101,11 +60,14 @@
   var gameoverMsg = document.getElementById('gameover-msg');
   var btnPlayAgain = document.getElementById('btn-play-again');
   var btnChangeMode = document.getElementById('btn-change-mode');
+  var winLineEl = document.getElementById('win-line');
+  var fxLayer = document.getElementById('fx-layer');
 
   // ── Platform Init ──
   if (typeof GamePlatform !== 'undefined') {
     GamePlatform.initHeader('Connect Four');
   }
+  addMusicButton();
 
   // ── Board Setup ──
 
@@ -219,6 +181,8 @@
     var cell = boardEl.children[cellIndex];
     var disc = cell.querySelector('.disc');
     disc.className = 'disc ' + (player === P1 ? 'red' : 'yellow');
+    disc.style.setProperty('--row', row);
+    disc.style.animationDuration = (0.34 + row * 0.055) + 's';
     if (animate !== false) {
       disc.classList.add('dropped');
     } else {
@@ -286,17 +250,24 @@
     var row = dropDisc(col, player, true);
     if (row === -1) return;
 
-    playDropSound();
+    setTimeout(function() { playDropSound(row); }, (0.34 + row * 0.055) * 700);
 
     // Check win
     var win = checkWin(row, col, player);
     if (win) {
       gameOver = true;
       winningCells = win;
-      highlightWin(win);
       scores[player]++;
       updateScores();
-      playWinSound();
+      Sound.music.stop();
+      var landMs = (0.34 + row * 0.055) * 1000;
+      setTimeout(function() {
+        if (!gameOver) return;
+        highlightWin(win);
+        drawWinLine(win);
+        playWinSound(player);
+        if (!(isAIMode() && player === P2)) confetti();
+      }, landMs);
 
       var playerWon = player === P1;
       if (typeof GamePlatform !== 'undefined') {
@@ -306,14 +277,16 @@
       gameOverTimeoutId = setTimeout(function() {
         gameOverTimeoutId = null;
         showGameOver(player);
-      }, 800);
+      }, landMs + 1300);
       return;
     }
 
     // Check draw
     if (isBoardFull()) {
       gameOver = true;
+      Sound.music.stop();
       playDrawSound();
+      boardEl.classList.add('draw-shake');
       gameOverTimeoutId = setTimeout(function() {
         gameOverTimeoutId = null;
         showGameOver(0);
@@ -328,10 +301,15 @@
     updateUndoButton();
 
     // AI move
+    maybeAIMove();
+  }
+
+  function maybeAIMove() {
     if (isAIMode() && currentPlayer === P2 && !gameOver) {
       aiThinking = true;
+      updateUndoButton();
       showThinking();
-      var delay = 300 + Math.random() * 200;
+      var delay = 450 + Math.random() * 250;
       aiTimeoutId = setTimeout(function() {
         aiTimeoutId = null;
         hideThinking();
@@ -350,6 +328,57 @@
       var disc = boardEl.children[idx].querySelector('.disc');
       disc.classList.remove('dropped');
       disc.classList.add('winner');
+      disc.style.animationDelay = (i * 0.08) + 's';
+    }
+  }
+
+  function overlayBoard(el) {
+    el.style.left = boardEl.offsetLeft + 'px';
+    el.style.top = boardEl.offsetTop + 'px';
+    el.style.width = boardEl.offsetWidth + 'px';
+    el.style.height = boardEl.offsetHeight + 'px';
+  }
+
+  function drawWinLine(cells) {
+    overlayBoard(winLineEl);
+    var sorted = cells.slice().sort(function(a, b) { return a.c - b.c || a.r - b.r; });
+    var first = boardEl.children[sorted[0].r * COLS + sorted[0].c].getBoundingClientRect();
+    var last = boardEl.children[sorted[sorted.length - 1].r * COLS + sorted[sorted.length - 1].c].getBoundingClientRect();
+    var host = boardEl.getBoundingClientRect();
+    var line = winLineEl.querySelector('line');
+    winLineEl.setAttribute('viewBox', '0 0 ' + host.width + ' ' + host.height);
+    line.setAttribute('x1', first.left + first.width / 2 - host.left);
+    line.setAttribute('y1', first.top + first.height / 2 - host.top);
+    line.setAttribute('x2', last.left + last.width / 2 - host.left);
+    line.setAttribute('y2', last.top + last.height / 2 - host.top);
+    line.setAttribute('stroke-width', Math.max(6, first.width * 0.22));
+    var len = Math.hypot(last.left - first.left, last.top - first.top) + 1;
+    line.style.strokeDasharray = len;
+    line.style.strokeDashoffset = len;
+    winLineEl.classList.remove('show');
+    void winLineEl.getBoundingClientRect();
+    winLineEl.classList.add('show');
+  }
+
+  function clearWinLine() {
+    winLineEl.classList.remove('show');
+  }
+
+  function confetti() {
+    var colors = ['#ff4d5e', '#ffd23f', '#4dc3ff', '#7ee8b0', '#c3a6ff'];
+    overlayBoard(fxLayer);
+    var w = fxLayer.offsetWidth, h = fxLayer.offsetHeight;
+    for (var i = 0; i < 70; i++) {
+      var p = document.createElement('div');
+      p.className = 'fx-confetti';
+      p.style.left = Math.random() * w + 'px';
+      p.style.background = colors[i % colors.length];
+      p.style.setProperty('--dx', (Math.random() - 0.5) * 160 + 'px');
+      p.style.setProperty('--dy', h * (0.8 + Math.random() * 0.4) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      p.style.animationDelay = Math.random() * 0.4 + 's';
+      fxLayer.appendChild(p);
+      p.addEventListener('animationend', function(e) { e.target.remove(); });
     }
   }
 
@@ -372,7 +401,7 @@
   function updateUndoButton() {
     if (isAIMode()) {
       // In AI mode, need at least 2 moves (player + AI) or 1 if it's player's turn
-      btnUndo.disabled = moveHistory.length === 0 || aiThinking;
+      btnUndo.disabled = moveHistory.length < 2 || aiThinking;
     } else {
       btnUndo.disabled = moveHistory.length === 0;
     }
@@ -438,6 +467,7 @@
     updateTurnIndicator();
     updateGhostDiscs();
     updateUndoButton();
+    Sound.sfx('undo');
   }
 
   function undoSingleMove() {
@@ -449,7 +479,11 @@
 
     var idx = last.row * COLS + last.col;
     var disc = boardEl.children[idx].querySelector('.disc');
-    disc.className = 'disc';
+    disc.classList.remove('dropped', 'no-anim');
+    disc.classList.add('lifted');
+    setTimeout(function() {
+      if (board[last.row][last.col] === EMPTY) disc.className = 'disc';
+    }, 260);
   }
 
   // ── AI Logic ──
@@ -676,9 +710,12 @@
     gameMode = mode;
     gameOver = false;
     aiThinking = false;
+    startingPlayer = P1;
     currentPlayer = P1;
     moveHistory = [];
     winningCells = [];
+    clearWinLine();
+    boardEl.classList.remove('draw-shake');
 
     if (isAIMode()) {
       p2NameEl.textContent = 'AI';
@@ -698,6 +735,9 @@
     if (typeof GamePlatform !== 'undefined') {
       GamePlatform.startTimer();
     }
+    getAudioCtx();
+    Sound.sfx('start');
+    Sound.music.start();
   }
 
   function newGame() {
@@ -705,9 +745,12 @@
     clearPendingTimeouts();
     gameOver = false;
     aiThinking = false;
-    currentPlayer = P1;
+    startingPlayer = startingPlayer === P1 ? P2 : P1;
+    currentPlayer = startingPlayer;
     moveHistory = [];
     winningCells = [];
+    clearWinLine();
+    boardEl.classList.remove('draw-shake');
 
     createBoard();
     renderBoard();
@@ -719,7 +762,83 @@
       GamePlatform.resetTimer();
       GamePlatform.startTimer();
     }
+    Sound.sfx('start');
+    Sound.music.start();
+    maybeAIMove();
   }
+
+  function syncMusicButton() {
+    var btn = document.querySelector('#gp-header .gp-btn-music');
+    if (!btn) return;
+    var on = Sound.music.isEnabled();
+    btn.classList.toggle('off', !on);
+    btn.title = on ? 'Music on (M)' : 'Music off (M)';
+    btn.setAttribute('aria-pressed', String(on));
+  }
+
+  function toggleMusic() {
+    Sound.music.setEnabled(!Sound.music.isEnabled());
+    syncMusicButton();
+  }
+
+  function addMusicButton() {
+    var actions = document.querySelector('#gp-header .gp-header-actions');
+    if (!actions || actions.querySelector('.gp-btn-music')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-btn-music';
+    btn.textContent = '\u{1F3B5}';
+    btn.addEventListener('click', function(event) {
+      event.preventDefault();
+      btn.blur();
+      toggleMusic();
+    });
+    actions.insertBefore(btn, actions.querySelector('.gp-btn-sound'));
+    syncMusicButton();
+  }
+
+  function showKbColumn() {
+    var cells = ghostRowEl.querySelectorAll('.ghost-cell');
+    for (var i = 0; i < cells.length; i++) cells[i].classList.toggle('kb-hover', i === kbCol);
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var key = e.key;
+    if (key === 'm' || key === 'M') {
+      if (!e.repeat) toggleMusic();
+      return;
+    }
+    if (!gameMode || !startOverlay.classList.contains('hidden') || !gameoverOverlay.classList.contains('hidden')) return;
+    if (key === 'u' || key === 'U') { undoMove(); return; }
+    if (key === 'n' || key === 'N') { newGame(); return; }
+    if (gameOver || aiThinking) return;
+    if (key >= '1' && key <= '7') {
+      e.preventDefault();
+      kbCol = parseInt(key, 10) - 1;
+      showKbColumn();
+      if (board[0][kbCol] === EMPTY) makeMove(kbCol);
+      return;
+    }
+    if (key === 'ArrowLeft' || key === 'ArrowRight') {
+      e.preventDefault();
+      kbCol = Math.max(0, Math.min(COLS - 1, kbCol + (key === 'ArrowLeft' ? -1 : 1)));
+      showKbColumn();
+      Sound.sfx('hover');
+      return;
+    }
+    if (key === 'Enter' || key === ' ' || key === 'ArrowDown') {
+      e.preventDefault();
+      showKbColumn();
+      if (board[0][kbCol] === EMPTY) makeMove(kbCol);
+    }
+  });
+
+  function audioLoop() {
+    Sound.update();
+    requestAnimationFrame(audioLoop);
+  }
+  requestAnimationFrame(audioLoop);
 
   // ── Event Listeners ──
 
@@ -743,6 +862,7 @@
     clearPendingTimeouts();
     gameOver = false;
     aiThinking = false;
+    Sound.music.stop();
     gameoverOverlay.classList.add('hidden');
     scores = { 1: 0, 2: 0 };
     updateScores();

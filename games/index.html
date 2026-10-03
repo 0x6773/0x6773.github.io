@@ -1120,10 +1120,11 @@
           <div class="game-banner">
             <canvas id="preview-connect4" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
           </div>
           <div class="game-info">
             <h2>Connect Four</h2>
-            <p>Drop discs and connect 4 in a row to win. Play against AI with 3 difficulty levels or challenge a friend locally.</p>
+            <p>Glossy discs drop and bounce behind the frame. Beat the AI on 3 levels or a friend, with keyboard play and alternating starts.</p>
           </div>
           <div class="game-tags">
             <span class="tag">Board Game</span>
@@ -1853,6 +1854,7 @@
       for (let r = 0; r < rows; r++) { grid[r] = []; for (let ci = 0; ci < cols; ci++) grid[r][ci] = 0; }
       let tick = 0;
       let turn = 1;
+      let falling = null;
       function getRow(col) { for (let r = rows - 1; r >= 0; r--) if (grid[r][col] === 0) return r; return -1; }
       function drop() {
         const valid = [];
@@ -1860,25 +1862,44 @@
         if (valid.length === 0) { for (let r = 0; r < rows; r++) for (let ci = 0; ci < cols; ci++) grid[r][ci] = 0; return; }
         const col = valid[Math.floor(Math.random() * valid.length)];
         const row = getRow(col);
-        if (row >= 0) { grid[row][col] = turn; turn = turn === 1 ? 2 : 1; }
+        if (row >= 0) { falling = { col, row, p: turn, t: 0 }; turn = turn === 1 ? 2 : 1; }
+      }
+      function disc(x, y, v) {
+        const g = ctx.createRadialGradient(x - cs * 0.15, y - cs * 0.2, 1, x, y, cs / 2);
+        if (v === 1) { g.addColorStop(0, '#ffb3ba'); g.addColorStop(0.45, '#ff4d5e'); g.addColorStop(1, '#a3162c'); }
+        else { g.addColorStop(0, '#fff6c2'); g.addColorStop(0.45, '#ffd23f'); g.addColorStop(1, '#b38600'); }
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, cs / 2 - 1, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, cs * 0.26, 0, Math.PI * 2); ctx.stroke();
       }
       function frame() {
         tick++;
-        if (tick % 25 === 0) drop();
-        ctx.clearRect(0, 0, W, H);
+        if (!falling && tick % 25 === 0) drop();
+        const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#141a36'); bg.addColorStop(1, '#0a0d1e');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
         // Board
-        ctx.fillStyle = '#1a1a4e';
-        ctx.beginPath(); ctx.roundRect(ox, oy, bw, bh, 6); ctx.fill();
-        for (let r = 0; r < rows; r++) {
-          for (let ci = 0; ci < cols; ci++) {
-            const x = ox + pad + ci * (cs + pad);
-            const y = oy + pad + r * (cs + pad);
-            const v = grid[r][ci];
-            ctx.beginPath(); ctx.arc(x + cs / 2, y + cs / 2, cs / 2 - 1, 0, Math.PI * 2);
-            ctx.fillStyle = v === 1 ? '#e74c3c' : v === 2 ? '#f1c40f' : '#0f0f1a';
-            ctx.fill();
-          }
+        for (let r = 0; r < rows; r++) for (let ci = 0; ci < cols; ci++) {
+          const v = grid[r][ci];
+          const x = ox + pad + ci * (cs + pad) + cs / 2, y = oy + pad + r * (cs + pad) + cs / 2;
+          ctx.fillStyle = '#070914'; ctx.beginPath(); ctx.arc(x, y, cs / 2 - 1, 0, Math.PI * 2); ctx.fill();
+          if (v) disc(x, y, v);
         }
+        if (falling) {
+          falling.t += 0.07;
+          const ty = oy + pad + falling.row * (cs + pad) + cs / 2;
+          const y0 = oy - cs;
+          const k = Math.min(1, falling.t * falling.t * 2);
+          disc(ox + pad + falling.col * (cs + pad) + cs / 2, y0 + (ty - y0) * k, falling.p);
+          if (k >= 1) { grid[falling.row][falling.col] = falling.p; falling = null; }
+        }
+        ctx.save();
+        ctx.beginPath(); ctx.roundRect(ox, oy, bw, bh, 8);
+        for (let r = 0; r < rows; r++) for (let ci = 0; ci < cols; ci++) {
+          const x = ox + pad + ci * (cs + pad) + cs / 2, y = oy + pad + r * (cs + pad) + cs / 2;
+          ctx.moveTo(x + cs / 2 - 1, y); ctx.arc(x, y, cs / 2 - 1, 0, Math.PI * 2, true);
+        }
+        const frameG = ctx.createLinearGradient(0, oy, 0, oy + bh); frameG.addColorStop(0, '#3a6cf0'); frameG.addColorStop(1, '#1f47b8');
+        ctx.fillStyle = frameG; ctx.fill('evenodd');
+        ctx.restore();
       }
       return frame;
     };

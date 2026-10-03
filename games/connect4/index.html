@@ -45,7 +45,6 @@
   </script>
 </head>
 <body>
-  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
 
   <div id="app">
     <!-- HUD -->
@@ -76,6 +75,8 @@
     <div id="board-container">
       <div id="ghost-row"></div>
       <div id="board"></div>
+      <svg id="win-line" aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0"/></svg>
+      <div id="fx-layer"></div>
     </div>
 
     <!-- Start Overlay -->
@@ -88,7 +89,8 @@
           Players take turns dropping colored discs into the grid<br>
           Discs fall to the lowest available row<br>
           Connect 4 discs in a row &mdash; horizontally, vertically, or diagonally &mdash; to win<br>
-          If the board fills up with no winner, it's a draw
+          Keys: 1&ndash;7 or &larr; &rarr; then Enter; U undo, M music<br>
+          The first move alternates each game; a full board is a draw
         </div>
         <div class="mode-buttons">
           <button class="mode-btn" data-mode="local">2 Player Local</button>
@@ -112,6 +114,8 @@
     </div>
   </div>
 
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
