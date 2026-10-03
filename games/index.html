@@ -1164,10 +1164,11 @@
       <div class="game-banner">
         <canvas id="preview-sudoku" width="280" height="160"></canvas>
             <span class="play-hint" aria-hidden="true">&#9654;</span>
+            <span class="card-badge">Updated</span>
       </div>
       <div class="game-info">
         <h2>Sudoku</h2>
-        <p>Classic 9x9 number puzzle. 3 difficulties, pencil notes, hints, undo, and best-time tracking.</p>
+        <p>Calm paper-and-ink sudoku with highlighter sweeps on finished rows. Auto notes, smart hints and a mistakes count.</p>
       </div>
       <div class="game-tags">
         <span class="tag">Puzzle</span>
@@ -1917,19 +1918,28 @@
       var tick = 0;
       function frame() {
         tick++;
-        ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0,0,W,H);
+        var bg = ctx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#221f1a'); bg.addColorStop(1, '#151310');
+        ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+        ctx.fillStyle = '#2a2621'; ctx.fillRect(ox - 2, oy - 2, 9*(cs+gap) + 3, 9*(cs+gap) + 3);
+        var sweepRow = Math.floor(tick / 40) % 9, sweep = (tick % 40) / 40;
+        ctx.fillStyle = 'rgba(246,196,83,0.35)';
+        ctx.fillRect(ox, oy + sweepRow*(cs+gap) + 2, 9*(cs+gap) * sweep, cs - 4);
         for (var r = 0; r < 9; r++) for (var c2 = 0; c2 < 9; c2++) {
           var x = ox + c2*(cs+gap), y = oy + r*(cs+gap);
-          ctx.fillStyle = '#16213e'; ctx.fillRect(x, y, cs, cs);
           var n = nums[r*9+c2];
           if (n > 0) {
-            ctx.fillStyle = (r+c2+Math.floor(tick/40))%7===0 ? '#00d4ff' : '#888';
-            ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = (r+c2+Math.floor(tick/40))%7===0 ? '#9cc0ff' : '#f3ead8';
+            ctx.font = ((r+c2+Math.floor(tick/40))%7===0 ? 'italic ' : '') + '11px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(n, x+cs/2, y+cs/2+1);
           }
         }
+        ctx.strokeStyle = 'rgba(239,230,210,0.12)'; ctx.lineWidth = 0.5;
+        for (var j = 1; j < 9; j++) {
+          ctx.beginPath(); ctx.moveTo(ox+j*(cs+gap)-gap/2, oy); ctx.lineTo(ox+j*(cs+gap)-gap/2, oy+9*(cs+gap)); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(ox, oy+j*(cs+gap)-gap/2); ctx.lineTo(ox+9*(cs+gap), oy+j*(cs+gap)-gap/2); ctx.stroke();
+        }
         // Box borders
-        ctx.strokeStyle = '#5a5a7a'; ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(239,230,210,0.55)'; ctx.lineWidth = 1.5;
         for (var i = 0; i <= 3; i++) {
           ctx.beginPath(); ctx.moveTo(ox+i*3*(cs+gap)-gap/2, oy); ctx.lineTo(ox+i*3*(cs+gap)-gap/2, oy+9*(cs+gap)); ctx.stroke();
           ctx.beginPath(); ctx.moveTo(ox, oy+i*3*(cs+gap)-gap/2); ctx.lineTo(ox+9*(cs+gap), oy+i*3*(cs+gap)-gap/2); ctx.stroke();

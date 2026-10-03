@@ -27,6 +27,8 @@
   let undoStack = [];
   let gameOver = false;
   let gameStarted = false;
+  let mistakes = 0;
+  let doneUnits = new Set();
 
   // Timer state
   let timerStart = 0;
@@ -52,37 +54,20 @@
   const bestTimesList = document.getElementById('best-times-list');
   const playAgainBtn = document.getElementById('play-again-btn');
   const bestTimeDisplay = document.getElementById('best-time-display');
+  const autoNotesBtn = document.getElementById('btn-auto');
+  const mistakesEl = document.getElementById('mistakes');
+  const Synth = window.SudokuAudio;
 
   let cellElements = []; // 9x9 DOM references
 
   // ── Audio Engine (Web Audio API) ──
-
-  function playTone(freq, duration, type, volume) {
-    GameEngine.tone(freq, duration, { type: type || 'sine', volume: volume || 0.1 });
-  }
-
   const Sound = {
-    place() {
-      playTone(520 + Math.random() * 100, 0.1, 'sine', 0.08);
-    },
-    error() {
-      playTone(200, 0.15, 'square', 0.1);
-      setTimeout(() => playTone(160, 0.2, 'square', 0.08), 100);
-    },
-    hint() {
-      playTone(800, 0.08, 'sine', 0.08);
-      setTimeout(() => playTone(1000, 0.1, 'sine', 0.07), 80);
-    },
-    win() {
-      const notes = [523, 659, 784, 1047];
-      notes.forEach((f, i) => {
-        setTimeout(() => playTone(f, 0.3, 'sine', 0.12), i * 150);
-      });
-      setTimeout(() => playTone(1047, 0.5, 'triangle', 0.1), 600);
-    },
-    erase() {
-      playTone(400, 0.06, 'sine', 0.06);
-    }
+    place(num) { Synth.sfx('place', num); },
+    note() { Synth.sfx('note'); },
+    error() { Synth.sfx('error'); },
+    hint() { Synth.sfx('hint'); },
+    win() { Synth.sfx('win'); },
+    erase() { Synth.sfx('erase'); }
   };
 
   // ── Sudoku Generator ──
@@ -328,6 +313,10 @@
     pencilMode = false;
     hintsRemaining = MAX_HINTS;
     undoStack = [];
+    mistakes = 0;
+    doneUnits = new Set();
+    updateMistakes();
+    boardEl.classList.remove('solved');
     selectedRow = -1;
     selectedCol = -1;
 
@@ -365,6 +354,8 @@
     if (!startOverlay || startOverlay.classList.contains('hidden')) {
       gameStarted = true;
       startTimer();
+      Synth.sfx('start');
+      Synth.music.start();
     }
   }
 
@@ -415,7 +406,7 @@
     highlightSelection();
   }
 
-  function renderCell(r, c) {
+  function renderCell(r, c, fresh) {
     const cell = cellElements[r][c];
     const val = board[r][c];
 
@@ -431,7 +422,7 @@
 
     if (val !== 0) {
       const span = document.createElement('span');
-      span.className = 'cell-value';
+      span.className = 'cell-value' + (fresh ? ' ink-in' : '');
       span.textContent = val;
       cell.appendChild(span);
       pencilDiv.style.display = 'none';
@@ -586,7 +577,7 @@
         marks.add(num);
       }
 
-      Sound.place();
+      Sound.note();
       renderCell(selectedRow, selectedCol);
       highlightSelection();
       updateNumberCounts();
@@ -601,15 +592,25 @@
       // Auto-remove pencil marks in same row/col/box
       removePencilMarksForPlacement(selectedRow, selectedCol, num);
 
-      if (num !== solution[selectedRow][selectedCol]) {
+      const wrong = num !== solution[selectedRow][selectedCol];
+      if (wrong) {
         Sound.error();
+        mistakes++;
+        updateMistakes();
       } else {
-        Sound.place();
+        Sound.place(num);
       }
 
-      renderCell(selectedRow, selectedCol);
+      renderCell(selectedRow, selectedCol, true);
+      if (wrong) {
+        const el = cellElements[selectedRow][selectedCol];
+        el.classList.remove('shake');
+        void el.offsetWidth;
+        el.classList.add('shake');
+      }
       highlightSelection();
       updateNumberCounts();
+      if (!wrong) celebrateUnits(selectedRow, selectedCol);
 
       // Check win
       if (checkWin()) {
@@ -690,6 +691,86 @@
     updateNumberCounts();
   }
 
+  function updateMistakes() {
+    if (mistakesEl) mistakesEl.textContent = mistakes;
+  }
+
+  function unitCells(kind, i) {
+    const cells = [];
+    for (let k = 0; k < 9; k++) {
+      if (kind === 'r') cells.push([i, k]);
+      else if (kind === 'c') cells.push([k, i]);
+      else cells.push([Math.floor(i / 3) * 3 + Math.floor(k / 3), (i % 3) * 3 + (k % 3)]);
+    }
+    return cells;
+  }
+
+  function celebrateUnits(row, col) {
+    const units = [['r', row], ['c', col], ['b', Math.floor(row / 3) * 3 + Math.floor(col / 3)]];
+    let count = 0;
+    for (const [kind, i] of units) {
+      const id = kind + i;
+      if (doneUnits.has(id)) continue;
+      const cells = unitCells(kind, i);
+      if (!cells.every(([r, c]) => board[r][c] === solution[r][c])) continue;
+      doneUnits.add(id);
+      count++;
+      cells.forEach(([r, c], k) => {
+        const el = cellElements[r][c];
+        el.classList.remove('unit-done');
+        void el.offsetWidth;
+        el.style.setProperty('--d', (k * 35) + 'ms');
+        el.classList.add('unit-done');
+        setTimeout(() => el.classList.remove('unit-done'), 900 + k * 35);
+      });
+    }
+    const num = board[row][col];
+    let placed = 0;
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (board[r][c] === num && solution[r][c] === num) placed++;
+    if (placed === 9) {
+      const btn = document.querySelector(`.num-btn[data-num="${num}"]`);
+      if (btn) {
+        btn.classList.add('num-done-pop');
+        setTimeout(() => btn.classList.remove('num-done-pop'), 600);
+      }
+      count = Math.max(count, 1);
+    }
+    if (count) Synth.sfx('complete', count);
+  }
+
+  function candidatesFor(r, c) {
+    const used = new Set();
+    for (let k = 0; k < 9; k++) {
+      used.add(board[r][k]);
+      used.add(board[k][c]);
+    }
+    const br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+    for (let rr = br; rr < br + 3; rr++) for (let cc = bc; cc < bc + 3; cc++) used.add(board[rr][cc]);
+    const out = [];
+    for (let n = 1; n <= 9; n++) if (!used.has(n)) out.push(n);
+    return out;
+  }
+
+  function autoNotes() {
+    if (gameOver) return;
+    undoStack.push({ type: 'notes', snapshot: pencilMarks.map(row => row.map(set => new Set(set))) });
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (board[r][c] !== 0) continue;
+        pencilMarks[r][c] = new Set(candidatesFor(r, c));
+        renderCell(r, c);
+        const marks = cellElements[r][c].querySelector('.pencil-marks');
+        marks.classList.remove('notes-in');
+        void marks.offsetWidth;
+        marks.style.setProperty('--d', ((r + c) * 15) + 'ms');
+        marks.classList.add('notes-in');
+      }
+    }
+    Synth.sfx('autonotes');
+    highlightSelection();
+  }
+
   // ── Undo ──
   function pushUndo(r, c, affectedMarks) {
     undoStack.push({
@@ -708,6 +789,12 @@
     if (gameOver || undoStack.length === 0) return;
 
     const action = undoStack.pop();
+    if (action.type === 'notes') {
+      pencilMarks = action.snapshot;
+      renderBoard();
+      Synth.sfx('undo');
+      return;
+    }
     board[action.row][action.col] = action.value;
     pencilMarks[action.row][action.col] = action.marks;
 
@@ -725,7 +812,7 @@
     renderCell(action.row, action.col);
     highlightSelection();
     updateNumberCounts();
-    Sound.erase();
+    Synth.sfx('undo');
   }
 
   // ── Hint ──
@@ -751,7 +838,13 @@
         board[selectedRow][selectedCol] !== solution[selectedRow][selectedCol]) {
       target = { r: selectedRow, c: selectedCol };
     } else {
-      target = candidates[Math.floor(Math.random() * candidates.length)];
+      const wrong = candidates.filter(({ r, c }) => board[r][c] !== 0);
+      const pool = wrong.length ? wrong : candidates;
+      let fewest = 10;
+      for (const cand of pool) cand.n = board[cand.r][cand.c] !== 0 ? 0 : candidatesFor(cand.r, cand.c).length;
+      pool.forEach(cand => { fewest = Math.min(fewest, cand.n); });
+      const best = pool.filter(cand => cand.n === fewest);
+      target = best[Math.floor(Math.random() * best.length)];
     }
 
     hintsRemaining--;
@@ -764,7 +857,7 @@
     selectedCol = target.c;
 
     Sound.hint();
-    renderCell(target.r, target.c);
+    renderCell(target.r, target.c, true);
     cellElements[target.r][target.c].classList.add('hint-reveal');
     setTimeout(() => {
       cellElements[target.r][target.c].classList.remove('hint-reveal');
@@ -772,6 +865,7 @@
 
     highlightSelection();
     updateNumberCounts();
+    celebrateUnits(target.r, target.c);
 
     if (checkWin()) {
       handleWin();
@@ -792,6 +886,14 @@
     gameOver = true;
     stopTimer();
     Sound.win();
+    Synth.music.stop();
+    selectedRow = -1;
+    selectedCol = -1;
+    highlightSelection();
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) cellElements[r][c].style.setProperty('--d', ((Math.abs(r - 4) + Math.abs(c - 4)) * 70) + 'ms');
+    }
+    boardEl.classList.add('solved');
 
     const elapsed = getElapsedSeconds();
     const diffLabel = DIFFICULTY_CONFIG[difficulty].label;
@@ -809,7 +911,8 @@
     winStats.innerHTML =
       `<p>Difficulty: <span>${diffLabel}</span></p>` +
       `<p>Time: <span>${formatTime(elapsed)}</span></p>` +
-      `<p>Hints used: <span>${MAX_HINTS - hintsRemaining}</span></p>`;
+      `<p>Hints used: <span>${MAX_HINTS - hintsRemaining}</span></p>` +
+      `<p>Mistakes: <span>${mistakes}</span></p>`;
 
     // Best times
     if (times.length > 0) {
@@ -826,7 +929,7 @@
     setTimeout(() => {
       winOverlay.classList.remove('hidden');
       startConfetti();
-    }, 400);
+    }, 1300);
   }
 
   // ── Confetti ──
@@ -838,7 +941,7 @@
     canvas.height = window.innerHeight;
 
     const particles = [];
-    const colors = ['#00d4ff', '#e94560', '#2ed573', '#ffa502', '#ff6b81', '#a29bfe', '#fd79a8'];
+    const colors = ['#f6c453', '#7aa7ff', '#ff8fa3', '#8fdcb2', '#c3a6ff', '#ffb26b', '#fff3c4'];
 
     for (let i = 0; i < 120; i++) {
       particles.push({
@@ -934,17 +1037,30 @@
       return;
     }
 
-    // P for pencil mode toggle
-    if (key === 'p' || key === 'P') {
-      e.preventDefault();
-      togglePencilMode();
+    // Z for undo
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      if (key === 'z' || key === 'Z') {
+        e.preventDefault();
+        performUndo();
+      }
       return;
     }
 
-    // Z for undo
-    if ((key === 'z' || key === 'Z') && (e.ctrlKey || e.metaKey)) {
+    if (key === 'm' || key === 'M') {
+      if (!e.repeat) toggleMusic();
+      return;
+    }
+
+    if (key === 'a' || key === 'A') {
       e.preventDefault();
-      performUndo();
+      autoNotes();
+      return;
+    }
+
+    // P for pencil mode toggle
+    if (key === 'p' || key === 'P' || key === 'n' || key === 'N') {
+      e.preventDefault();
+      togglePencilMode();
       return;
     }
 
@@ -969,6 +1085,7 @@
   eraseBtn.addEventListener('click', eraseCell);
   hintBtn.addEventListener('click', giveHint);
   undoBtn.addEventListener('click', performUndo);
+  autoNotesBtn.addEventListener('click', autoNotes);
   newGameBtn.addEventListener('click', initGame);
   playAgainBtn.addEventListener('click', function () {
     winOverlay.classList.add('hidden');
@@ -978,6 +1095,42 @@
   function togglePencilMode() {
     pencilMode = !pencilMode;
     updatePencilBtn();
+    Synth.sfx('note');
+  }
+
+  function syncMusicButton() {
+    const btn = document.querySelector('#gp-header .gp-btn-music');
+    if (!btn) return;
+    const on = Synth.music.isEnabled();
+    btn.classList.toggle('off', !on);
+    btn.title = on ? 'Music on (M)' : 'Music off (M)';
+    btn.setAttribute('aria-pressed', String(on));
+  }
+
+  function toggleMusic() {
+    Synth.music.setEnabled(!Synth.music.isEnabled());
+    syncMusicButton();
+  }
+
+  function addMusicButton() {
+    const actions = document.querySelector('#gp-header .gp-header-actions');
+    if (!actions || actions.querySelector('.gp-btn-music')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-btn-music';
+    btn.textContent = '\u{1F3B5}';
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      btn.blur();
+      toggleMusic();
+    });
+    actions.insertBefore(btn, actions.querySelector('.gp-btn-sound'));
+    syncMusicButton();
+  }
+
+  function audioLoop() {
+    Synth.update();
+    requestAnimationFrame(audioLoop);
   }
 
   function updatePencilBtn() {
@@ -1018,6 +1171,8 @@
       if (!gameStarted && !gameOver) {
         gameStarted = true;
         startTimer();
+        Synth.sfx('start');
+        Synth.music.start();
       }
     });
   }
@@ -1028,4 +1183,6 @@
   if (window.GamePlatform) {
     GamePlatform.initHeader('Sudoku');
   }
+  addMusicButton();
+  requestAnimationFrame(audioLoop);
 })();
