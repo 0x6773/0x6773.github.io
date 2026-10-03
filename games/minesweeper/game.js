@@ -32,6 +32,8 @@
   let finalElapsedMs = 0;
   let longPressTimer = null;
   let gameGeneration = 0;
+  let flagMode = false;
+  let hintsUsed = 0;
 
   // ── DOM ──
   const boardEl       = document.getElementById('board');
@@ -44,44 +46,19 @@
   const highScoreList = document.getElementById('high-scores-list');
   const playAgainBtn  = document.getElementById('play-again-btn');
   const diffBtns      = document.querySelectorAll('.diff-btn');
+  const flagModeBtn   = document.getElementById('flag-mode-btn');
+  const hintBtn       = document.getElementById('hint-btn');
+  const fxLayer       = document.getElementById('fx-layer');
+  const Synth         = window.MinesAudio;
 
   // ── Audio Engine (Web Audio API) ──
-  function playTone(freq, duration, type, volume, ramp) {
-    GameEngine.tone(freq, duration, { type: type || 'sine', volume: volume || 0.15, decay: ramp !== false });
-  }
-
-  function playNoise(duration, volume) {
-    GameEngine.noise(duration, { volume: volume || 0.2, fade: true });
-  }
-
   const Sound = {
-    reveal() {
-      playTone(600 + Math.random() * 200, 0.08, 'sine', 0.08);
-    },
-    flag() {
-      playTone(880, 0.06, 'square', 0.06);
-      setTimeout(() => playTone(1100, 0.08, 'square', 0.05), 60);
-    },
-    unflag() {
-      playTone(1100, 0.06, 'square', 0.05);
-      setTimeout(() => playTone(880, 0.08, 'square', 0.06), 60);
-    },
-    explosion() {
-      playNoise(0.6, 0.35);
-      playTone(80, 0.5, 'sawtooth', 0.2);
-      setTimeout(() => playTone(40, 0.4, 'sawtooth', 0.15), 100);
-    },
-    chord() {
-      playTone(700, 0.06, 'sine', 0.07);
-      setTimeout(() => playTone(900, 0.08, 'sine', 0.06), 40);
-    },
-    win() {
-      const notes = [523, 659, 784, 1047];
-      notes.forEach((f, i) => {
-        setTimeout(() => playTone(f, 0.25, 'sine', 0.12), i * 150);
-      });
-      setTimeout(() => playTone(1047, 0.5, 'triangle', 0.1), 600);
-    },
+    reveal(n) { Synth.sfx('reveal', n || 1); },
+    flag() { Synth.sfx('flag'); },
+    unflag() { Synth.sfx('unflag'); },
+    explosion() { Synth.sfx('boom'); },
+    chord() { Synth.sfx('chord'); },
+    win() { Synth.sfx('win'); },
   };
 
   // ── Timer (performance.now based) ──
@@ -155,6 +132,9 @@
     stopTimer();
     gameGeneration++;
     gameOver = false;
+    hintsUsed = 0;
+    fxLayer.innerHTML = '';
+    boardEl.classList.remove('shake', 'won');
     minesGenerated = false;
     flagCount = 0;
     revealedCount = 0;
@@ -269,6 +249,18 @@
   }
 
   // ── Reveal Logic ──
+  function renderRevealed(r, c, delay) {
+    const cell = grid[r][c];
+    const el = cellElements[r][c];
+    el.className = 'cell cell-revealed';
+    el.textContent = '';
+    if (cell.adjacentMines > 0) {
+      el.textContent = cell.adjacentMines;
+      el.classList.add(NUM_COLORS[cell.adjacentMines]);
+    }
+    el.style.animationDelay = delay ? delay + 'ms' : '';
+  }
+
   function revealCell(r, c) {
     const cell = grid[r][c];
     if (cell.revealed || cell.flagged || gameOver) return;
@@ -276,34 +268,40 @@
     cell.revealed = true;
     revealedCount++;
     const el = cellElements[r][c];
-    el.className = 'cell cell-revealed';
 
     if (cell.mine) {
-      el.classList.add('cell-mine', 'cell-mine-exploded');
-      el.textContent = '\u{1F4A5}';
+      el.className = 'cell cell-revealed cell-mine cell-mine-exploded';
+      el.textContent = '';
       handleLoss(r, c);
       return;
     }
 
-    if (cell.adjacentMines > 0) {
-      el.textContent = cell.adjacentMines;
-      el.classList.add(NUM_COLORS[cell.adjacentMines]);
-    }
-
-    Sound.reveal();
-
     // Flood fill for empty cells
-    if (cell.adjacentMines === 0) {
-      forEachNeighbor(r, c, (nr, nc) => {
-        if (!grid[nr][nc].revealed && !grid[nr][nc].flagged) {
-          revealCell(nr, nc);
+    const order = [[r, c, 0]];
+    for (let i = 0; i < order.length; i++) {
+      const [cr, cc, d] = order[i];
+      if (grid[cr][cc].adjacentMines !== 0) continue;
+      forEachNeighbor(cr, cc, (nr, nc) => {
+        const n = grid[nr][nc];
+        if (!n.revealed && !n.flagged && !n.mine) {
+          n.revealed = true;
+          revealedCount++;
+          order.push([nr, nc, d + 1]);
         }
       });
     }
+    let lastDelay = 0;
+    for (const [cr, cc, d] of order) {
+      const delay = Math.min(d * 24, 700);
+      lastDelay = Math.max(lastDelay, delay);
+      renderRevealed(cr, cc, delay);
+    }
+
+    Sound.reveal(order.length);
 
     // Check win
     if (revealedCount === rows * cols - totalMines) {
-      handleWin();
+      handleWin(lastDelay);
     }
   }
 
@@ -327,15 +325,6 @@
     }
     updateMineCounter();
   }
-
-  // ── Chord Flash Style ──
-  (function injectChordStyle() {
-    const style = document.createElement('style');
-    style.textContent =
-      '.cell-chord-flash{background:rgba(255,255,150,0.6)!important;' +
-      'transform:scale(1.08);transition:background .1s ease,transform .1s ease;}';
-    document.head.appendChild(style);
-  })();
 
   // ── Chording (auto-reveal) ──
   function chordCell(r, c) {
@@ -391,7 +380,12 @@
     if (!coords) return;
     const { r, c } = coords;
 
-    if (gameOver || grid[r][c].flagged) return;
+    if (gameOver) return;
+    if (flagMode && !grid[r][c].revealed) {
+      toggleFlag(r, c);
+      return;
+    }
+    if (grid[r][c].flagged) return;
 
     // Chording: click on an already-revealed number cell
     if (grid[r][c].revealed) {
@@ -402,6 +396,8 @@
     if (!minesGenerated) {
       generateMines(r, c);
       startTimer();
+      Synth.sfx('start');
+      Synth.music.start();
     }
 
     revealCell(r, c);
@@ -453,9 +449,11 @@
     if (touchStartCoords) {
       const { r, c } = touchStartCoords;
       touchStartCoords = null;
-      if (gameOver || grid[r][c].flagged) return;
+      if (gameOver) return;
+      if (flagMode && !grid[r][c].revealed) { toggleFlag(r, c); return; }
+      if (grid[r][c].flagged) return;
       if (grid[r][c].revealed) { chordCell(r, c); return; }
-      if (!minesGenerated) { generateMines(r, c); startTimer(); }
+      if (!minesGenerated) { generateMines(r, c); startTimer(); Synth.sfx('start'); Synth.music.start(); }
       revealCell(r, c);
     }
   }
@@ -471,17 +469,18 @@
     gameOver = true;
     stopTimer();
     Sound.explosion();
+    Synth.music.stop();
+    boardEl.classList.add('shake');
+    flashBoard();
 
     // Reveal all mines, show wrong flags
+    const mines = [];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const cell = grid[r][c];
         const el = cellElements[r][c];
 
-        if (cell.mine && !cell.revealed && !cell.flagged) {
-          el.className = 'cell cell-revealed cell-mine';
-          el.textContent = '\u{1F4A3}';
-        }
+        if (cell.mine && !cell.revealed && !cell.flagged) mines.push([r, c, Math.hypot(r - hitR, c - hitC)]);
 
         if (cell.flagged && !cell.mine) {
           el.className = 'cell cell-revealed cell-wrong-flag';
@@ -489,6 +488,16 @@
         }
       }
     }
+    mines.sort((a, b) => a[2] - b[2]);
+    const step = Math.min(70, 1400 / Math.max(1, mines.length));
+    const gen = gameGeneration;
+    mines.forEach(([r, c], i) => {
+      setTimeout(() => {
+        if (gen !== gameGeneration) return;
+        cellElements[r][c].className = 'cell cell-revealed cell-mine cell-mine-chain';
+        if (i % 3 === 0) Synth.sfx('pop');
+      }, 150 + i * step);
+    });
 
     if (window.GamePlatform) {
       GamePlatform.recordGame('minesweeper', 0, finalElapsedMs, { win: false, difficulty: difficulty });
@@ -496,14 +505,28 @@
 
     // Show overlay after brief delay
     setTimeout(() => {
+      if (gen !== gameGeneration) return;
       showOverlay(false);
-    }, 800);
+    }, 900 + mines.length * step);
   }
 
-  function handleWin() {
+  function handleWin(delay) {
     gameOver = true;
     stopTimer();
-    Sound.win();
+    Synth.music.stop();
+    const gen = gameGeneration;
+    setTimeout(() => {
+      if (gen !== gameGeneration) return;
+      Sound.win();
+      boardEl.classList.add('won');
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const el = cellElements[r][c];
+          if (grid[r][c].revealed) el.style.animationDelay = ((r + c) * 18) + 'ms';
+        }
+      }
+      confetti(70);
+    }, delay || 0);
 
     // Auto-flag remaining mines
     for (let r = 0; r < rows; r++) {
@@ -523,8 +546,95 @@
     }
 
     setTimeout(() => {
+      if (gen !== gameGeneration) return;
       showOverlay(true);
-    }, 600);
+    }, (delay || 0) + 1100);
+  }
+
+  function flashBoard() {
+    const f = document.createElement('div');
+    f.className = 'fx-flash';
+    fxLayer.appendChild(f);
+    f.addEventListener('animationend', () => f.remove());
+  }
+
+  function confetti(n) {
+    const colors = ['#4a9eff', '#2ed573', '#ffa502', '#ff4757', '#a55eea', '#18dcff'];
+    const w = boardEl.offsetWidth, h = boardEl.offsetHeight;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('div');
+      p.className = 'fx-confetti';
+      p.style.left = Math.random() * w + 'px';
+      p.style.top = '-10px';
+      p.style.background = colors[i % colors.length];
+      p.style.setProperty('--dx', (Math.random() - 0.5) * 140 + 'px');
+      p.style.setProperty('--dy', h * (0.8 + Math.random() * 0.4) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      p.style.animationDelay = Math.random() * 0.5 + 's';
+      fxLayer.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+    }
+  }
+
+  function findSafeCell() {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cell = grid[r][c];
+        if (!cell.revealed || cell.adjacentMines === 0) continue;
+        let flags = 0;
+        const hidden = [];
+        forEachNeighbor(r, c, (nr, nc) => {
+          const n = grid[nr][nc];
+          if (n.flagged) flags++;
+          else if (!n.revealed) hidden.push([nr, nc]);
+        });
+        if (hidden.length && flags === cell.adjacentMines) {
+          const safe = hidden.find(([nr, nc]) => !grid[nr][nc].mine);
+          if (safe) return { cell: safe, deduced: true };
+        }
+      }
+    }
+    const frontier = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cell = grid[r][c];
+        if (cell.revealed || cell.flagged || cell.mine) continue;
+        let touches = false;
+        forEachNeighbor(r, c, (nr, nc) => { if (grid[nr][nc].revealed) touches = true; });
+        if (touches) frontier.push([r, c]);
+      }
+    }
+    if (frontier.length) return { cell: frontier[Math.floor(Math.random() * frontier.length)], deduced: false };
+    return null;
+  }
+
+  function useHint() {
+    if (gameOver || !minesGenerated) {
+      Synth.sfx('deny');
+      return;
+    }
+    const found = findSafeCell();
+    if (!found) return;
+    hintsUsed++;
+    const [r, c] = found.cell;
+    if (!found.deduced) timerStart -= 10000;
+    Synth.sfx('hint');
+    const el = cellElements[r][c];
+    el.classList.add('cell-hint');
+    const gen = gameGeneration;
+    setTimeout(() => {
+      if (gen !== gameGeneration) return;
+      el.classList.remove('cell-hint');
+      revealCell(r, c);
+    }, 450);
+  }
+
+  function setFlagMode(on) {
+    flagMode = on;
+    flagModeBtn.classList.toggle('active', flagMode);
+    flagModeBtn.setAttribute('aria-pressed', String(flagMode));
+    flagModeBtn.title = flagMode ? 'Tap places flags (F)' : 'Tap reveals cells (F)';
+    Synth.sfx('mode', flagMode);
   }
 
   // ── Overlay ──
@@ -538,7 +648,8 @@
       overlayStats.innerHTML =
         `<p>Difficulty: <span>${diffLabel}</span></p>` +
         `<p>Time: <span>${formatTime(finalElapsed)}</span></p>` +
-        `<p>Mines: <span>${totalMines}</span></p>`;
+        `<p>Mines: <span>${totalMines}</span></p>` +
+        (hintsUsed ? `<p>Hints used: <span>${hintsUsed}</span></p>` : '');
 
       // Save & show high scores
       const scores = saveHighScore(difficulty, finalElapsed);
@@ -638,6 +749,52 @@
     initGame();
   });
 
+  flagModeBtn.addEventListener('click', () => setFlagMode(!flagMode));
+  hintBtn.addEventListener('click', useHint);
+
+  function syncMusicButton() {
+    const btn = document.querySelector('#gp-header .gp-btn-music');
+    if (!btn) return;
+    const on = Synth.music.isEnabled();
+    btn.classList.toggle('off', !on);
+    btn.title = on ? 'Music on (M)' : 'Music off (M)';
+    btn.setAttribute('aria-pressed', String(on));
+  }
+
+  function toggleMusic() {
+    Synth.music.setEnabled(!Synth.music.isEnabled());
+    syncMusicButton();
+  }
+
+  function addMusicButton() {
+    const actions = document.querySelector('#gp-header .gp-header-actions');
+    if (!actions || actions.querySelector('.gp-btn-music')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-btn-music';
+    btn.textContent = '\u{1F3B5}';
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      btn.blur();
+      toggleMusic();
+    });
+    actions.insertBefore(btn, actions.querySelector('.gp-btn-sound'));
+    syncMusicButton();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    if (e.target && e.target.tagName === 'INPUT') return;
+    if (e.key === 'm' || e.key === 'M') toggleMusic();
+    else if (e.key === 'f' || e.key === 'F') setFlagMode(!flagMode);
+    else if (e.key === 'h' || e.key === 'H') useHint();
+  });
+
+  function audioLoop() {
+    Synth.update();
+    requestAnimationFrame(audioLoop);
+  }
+
   // Prevent context menu on board
   boardEl.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -688,4 +845,6 @@
   if (window.GamePlatform) {
     GamePlatform.initHeader('Minesweeper');
   }
+  addMusicButton();
+  requestAnimationFrame(audioLoop);
 })();

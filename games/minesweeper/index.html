@@ -91,7 +91,6 @@
   </script>
 </head>
 <body>
-  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
   <div id="app">
     <header id="hud">
       <div id="mine-counter" class="hud-display">
@@ -110,6 +109,10 @@
         <label>Mines: <input type="number" id="custom-mines" min="1" max="200" value="40"></label>
         <button id="custom-apply">Apply</button>
       </div>
+      <div id="tool-buttons">
+        <button id="flag-mode-btn" class="tool-btn" type="button" title="Tap reveals cells (F)" aria-pressed="false"><span class="tool-flag"></span></button>
+        <button id="hint-btn" class="tool-btn" type="button" title="Hint (H)">&#128161;</button>
+      </div>
       <div id="timer-display" class="hud-display">
         <span class="hud-icon">&#x23F1;</span>
         <span id="timer">00:00</span>
@@ -117,7 +120,10 @@
     </header>
 
     <div id="board-wrapper">
-      <div id="board"></div>
+      <div id="board-stage">
+        <div id="board"></div>
+        <div id="fx-layer"></div>
+      </div>
     </div>
 
     <div id="start-overlay">
@@ -126,12 +132,12 @@
         <p class="start-sub">Classic mine-clearing puzzle</p>
         <div class="how-to">
           <div class="how-to-title">How to Play</div>
-          Left click to reveal a cell<br>
-          Right click or long-press to flag a mine<br>
-          Numbers show adjacent mine count<br>
-          Clear all non-mine cells to win<br>
-          First click is always safe<br>
-          4 difficulties: Easy, Medium, Hard, Custom
+          Click or tap to reveal; right click or long-press to flag<br>
+          The flag button (or F) makes taps place flags<br>
+          Numbers show adjacent mine count; click a number to chord<br>
+          Clear all non-mine cells to win; first click is always safe<br>
+          Hint (H) reveals a safe cell; a guess costs 10 seconds<br>
+          4 difficulties: Easy, Medium, Hard, Custom &middot; M toggles music
         </div>
         <button id="start-game-btn" class="start-btn">Start Game</button>
       </div>
@@ -150,6 +156,8 @@
     </div>
   </div>
 
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
   <script>
   document.getElementById('start-game-btn').addEventListener('click', function() {
