@@ -6,17 +6,17 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-FNZT8PLH08');</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Play Ludo online with friends. 2-4 players, room codes, chat, emoji reactions, configurable rules. Free, no download needed.">
+  <meta name="description" content="Play Ludo against 1-3 computer players, pass-and-play on one device, or online with friends using room codes and chat. 2-4 players, configurable rules, free.">
   <meta name="keywords" content="ludo online, play ludo, multiplayer ludo, ludo board game, free ludo">
   <link rel="canonical" href="https://mnciitbhu.me/games/ludo/">
-  <meta property="og:title" content="Ludo Online - Free Multiplayer Board Game for 2-4 Players">
-  <meta property="og:description" content="Play Ludo online with friends. 2-4 players, room codes, chat, emoji reactions, configurable rules. Free, no download needed.">
+  <meta property="og:title" content="Ludo - Play vs Computer, Pass &amp; Play or Online | 2-4 Players">
+  <meta property="og:description" content="Play Ludo against 1-3 computer players, pass-and-play on one device, or online with friends using room codes and chat. 2-4 players, configurable rules, free.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://mnciitbhu.me/games/ludo/">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Ludo Online - Free Multiplayer Board Game for 2-4 Players">
-  <meta name="twitter:description" content="Play Ludo online with friends. 2-4 players, room codes, chat, emoji reactions, configurable rules. Free, no download needed.">
-  <title>Ludo Online - Free Multiplayer Board Game for 2-4 Players</title>
+  <meta name="twitter:title" content="Ludo - Play vs Computer, Pass &amp; Play or Online | 2-4 Players">
+  <meta name="twitter:description" content="Play Ludo against 1-3 computer players, pass-and-play on one device, or online with friends using room codes and chat. 2-4 players, configurable rules, free.">
+  <title>Ludo - Play vs Computer, Pass &amp; Play or Online | 2-4 Players</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <link rel="stylesheet" href="../platform.css">
@@ -27,7 +27,7 @@
     "@context": "https://schema.org",
     "@type": "VideoGame",
     "name": "Ludo Online",
-    "description": "Play Ludo online with friends. 2-4 players, room codes, chat, emoji reactions, configurable rules. Free, no download needed.",
+    "description": "Play Ludo against 1-3 computer players, pass-and-play on one device, or online with friends using room codes and chat. 2-4 players, configurable rules, free.",
     "url": "https://mnciitbhu.me/games/ludo/",
     "genre": "Board Game",
     "gamePlatform": "Web Browser",
@@ -46,7 +46,6 @@
   </script>
 </head>
 <body>
-  <a href="/games/" style="position:fixed;top:12px;left:12px;z-index:100;color:#888;text-decoration:none;font:600 14px sans-serif;padding:6px 12px;background:rgba(26,26,46,0.85);border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#888'">&larr; Games</a>
 
   <!-- ===================== LOBBY ===================== -->
   <div id="lobby">
@@ -54,7 +53,7 @@
     <!-- Create / Join Section -->
     <div id="lobby-main">
       <h1 class="ludo-title">LUDO</h1>
-      <p class="subtitle">Online Multiplayer &mdash; 2 to 4 Players</p>
+      <p class="subtitle">vs Computer &middot; Pass &amp; Play &middot; Online &mdash; 2 to 4 Players</p>
 
       <div class="how-to">
         <div class="how-to-title">How to Play</div>
@@ -62,8 +61,14 @@
         Get all 4 tokens from home to the center to win<br>
         Landing on an opponent sends them back home<br>
         Roll a 6 to bring out a new token and get an extra turn<br>
-        Safe zones protect tokens from capture
+        Safe zones protect tokens from capture &middot; M toggles music
       </div>
+
+      <div class="offline-actions">
+        <button id="btn-vs-cpu" class="btn btn-cyan">vs Computer</button>
+        <button id="btn-local" class="btn btn-green">Pass &amp; Play</button>
+      </div>
+      <div class="divider">or play online</div>
 
       <div class="lobby-actions">
         <button id="btn-create" class="btn btn-cyan">Create Game</button>
@@ -75,6 +80,21 @@
       </div>
 
       <p id="lobby-error" class="error hidden"></p>
+    </div>
+
+    <div id="offline-setup" class="hidden">
+      <h2 id="offline-title" class="offline-title">Play vs Computer</h2>
+      <div id="offline-difficulty" class="setting-row offline-difficulty">
+        <span class="setting-name">Computer</span>
+        <div class="btn-group">
+          <button class="btn-opt" data-value="easy">Easy</button>
+          <button class="btn-opt active" data-value="medium">Medium</button>
+          <button class="btn-opt" data-value="hard">Hard</button>
+        </div>
+      </div>
+      <div id="offline-settings-slot"></div>
+      <button id="btn-offline-start" class="btn btn-cyan btn-start">Start Game</button>
+      <button id="btn-offline-back" class="btn-small offline-back">Back</button>
     </div>
 
     <!-- Room Lobby (after create/join) -->
@@ -268,7 +288,7 @@
         </div>
 
         <!-- Dice Section -->
-        <div class="panel-section" id="dice-section" data-tab-content="dice">
+        <div class="panel-section active" id="dice-section" data-tab-content="dice">
           <div id="dice-area">
             <div id="dice-display">
               <div id="dice-face">?</div>
@@ -307,6 +327,8 @@
       </div>
     </div>
 
+    <div id="turn-banner" aria-live="polite"></div>
+
     <!-- Game Overlay (pause, game over, winner) -->
     <div id="game-overlay" class="hidden">
       <h2 id="overlay-title"></h2>
@@ -320,6 +342,8 @@
     <span class="reconnect-spinner"></span> Reconnecting...
   </div>
 
+  <script src="../synth.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

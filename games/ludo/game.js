@@ -172,6 +172,10 @@
     DOM.timerText = document.getElementById('timer-text');
     DOM.reconnectBanner = document.getElementById('reconnect-banner');
     DOM.hudPlayers = document.getElementById('hud-players');
+    DOM.offlineSetup = document.getElementById('offline-setup');
+    DOM.offlineTitle = document.getElementById('offline-title');
+    DOM.offlineDifficulty = document.getElementById('offline-difficulty');
+    DOM.offlineSettingsSlot = document.getElementById('offline-settings-slot');
   }
 
   // =====================================================================
@@ -215,6 +219,11 @@
   // UI
   var showHints = true;
   var gameStarted = false;
+  var offlineMode = null;
+  var botLevel = 'medium';
+  var botTimer = null;
+  var effects = [];
+  var settingsHome = null;
 
   // Animation
   var diceAnim = null;           // { startTime, finalValue, callback }
@@ -256,6 +265,10 @@
   }
 
   function myPlayerIndex() {
+    if (offlineMode === 'local') {
+      var cp = gameState.players[gameState.currentPlayer];
+      return cp ? gameState.currentPlayer : -1;
+    }
     for (var i = 0; i < gameState.players.length; i++) {
       if (gameState.players[i].id === myId) return i;
     }
@@ -297,58 +310,22 @@
     return GameEngine.audio();
   }
 
-  function playTone(freq, dur, type, vol) {
-    GameEngine.tone(freq, dur, { type: type || 'sine', volume: vol || 0.15 });
-  }
-
-  function playNoise(dur, vol) {
-    GameEngine.noise(dur, { volume: vol || 0.08, level: 0.5 });
-  }
+  var Synth = window.LudoAudio;
 
   var SFX = {
-    diceRoll: function () {
-      for (var i = 0; i < 5; i++) {
-        setTimeout(function () { playTone(800 + Math.random() * 400, 0.05, 'square', 0.06); }, i * 60);
-      }
-    },
-    diceResult: function () {
-      playTone(660, 0.15, 'sine', 0.15);
-    },
-    tokenMove: function () {
-      playTone(520, 0.08, 'sine', 0.08);
-    },
-    capture: function () {
-      playTone(150, 0.4, 'sawtooth', 0.15);
-      setTimeout(function () { playTone(100, 0.3, 'sawtooth', 0.1); }, 100);
-    },
-    tokenHome: function () {
-      playTone(523, 0.15, 'sine', 0.12);
-      setTimeout(function () { playTone(659, 0.15, 'sine', 0.12); }, 100);
-      setTimeout(function () { playTone(784, 0.25, 'sine', 0.15); }, 200);
-    },
-    win: function () {
-      var notes = [523, 587, 659, 784, 880, 1047];
-      notes.forEach(function (n, i) {
-        setTimeout(function () { playTone(n, 0.2, 'sine', 0.12); }, i * 120);
-      });
-    },
-    chatMsg: function () {
-      playTone(880, 0.1, 'sine', 0.08);
-    },
-    emojiPop: function () {
-      playTone(1200, 0.08, 'sine', 0.1);
-      playNoise(0.05, 0.05);
-    },
-    turnStart: function () {
-      playTone(440, 0.1, 'triangle', 0.08);
-      setTimeout(function () { playTone(550, 0.1, 'triangle', 0.08); }, 80);
-    },
-    timerTick: function () {
-      playTone(1000, 0.05, 'square', 0.06);
-    },
-    error: function () {
-      playTone(200, 0.2, 'sawtooth', 0.1);
-    }
+    diceRoll: function () { Synth.sfx('diceRoll'); },
+    diceResult: function (value) { Synth.sfx('diceResult', value); },
+    tokenMove: function (n) { Synth.sfx('step', n); },
+    enter: function () { Synth.sfx('enter'); },
+    capture: function () { Synth.sfx('capture'); },
+    tokenHome: function () { Synth.sfx('home'); },
+    win: function () { Synth.sfx('win'); },
+    lose: function () { Synth.sfx('lose'); },
+    chatMsg: function () { Synth.sfx('chat'); },
+    emojiPop: function () { Synth.sfx('emoji'); },
+    turnStart: function () { Synth.sfx('turn'); },
+    timerTick: function () { Synth.sfx('tick'); },
+    error: function () { Synth.sfx('error'); }
   };
 
   // =====================================================================
@@ -357,7 +334,10 @@
 
   function drawBoard(ctx) {
     // Background
-    ctx.fillStyle = BOARD_BG;
+    var bg = ctx.createLinearGradient(0, 0, BOARD, BOARD);
+    bg.addColorStop(0, '#fbf3e8');
+    bg.addColorStop(1, '#f0e0cb');
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, BOARD, BOARD);
 
     // Home bases (4 corners)
@@ -377,13 +357,18 @@
         var y = r * CELL;
 
         if (hcColor) {
-          ctx.fillStyle = COLORS[hcColor].light;
+          var hg = ctx.createLinearGradient(x, y, x, y + CELL);
+          hg.addColorStop(0, COLORS[hcColor].light);
+          hg.addColorStop(1, COLORS[hcColor].main);
+          ctx.fillStyle = hg;
         } else {
           ctx.fillStyle = '#ffffff';
         }
         ctx.fillRect(x, y, CELL, CELL);
-        ctx.strokeStyle = '#bbb';
-        ctx.lineWidth = 0.5;
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillRect(x + 1, y + 1, CELL - 2, 3);
+        ctx.strokeStyle = 'rgba(120, 90, 60, 0.28)';
+        ctx.lineWidth = 0.75;
         ctx.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
       }
     }
@@ -415,7 +400,7 @@
     if (gameState.settings.safeZones) {
       SAFE_CELLS.forEach(function (cell) {
         var gp = gridToPixel(cell.r, cell.c);
-        drawStar(ctx, gp.x, gp.y, 5, 10, 5, 'rgba(0,0,0,0.15)');
+        drawStar(ctx, gp.x, gp.y, 5, 11, 5, 'rgba(214, 160, 30, 0.55)');
       });
     }
   }
@@ -606,17 +591,21 @@
       var now = performance.now();
       var elapsed = now - moveAnim.startTime;
       var progress = Math.min(elapsed / moveAnim.duration, 1);
-      var cellIdx = Math.min(Math.floor(progress * moveAnim.cells.length), moveAnim.cells.length - 1);
-      var cell = moveAnim.cells[cellIdx];
-      var pos = gridToPixel(cell.r, cell.c);
+      var segs = Math.max(1, moveAnim.cells.length - 1);
+      var f = progress * segs;
+      var seg = Math.min(Math.floor(f), segs - 1);
+      var t = moveAnim.cells.length > 1 ? f - seg : 1;
+      var a = gridToPixel(moveAnim.cells[seg].r, moveAnim.cells[seg].c);
+      var b = gridToPixel(moveAnim.cells[Math.min(seg + 1, moveAnim.cells.length - 1)].r, moveAnim.cells[Math.min(seg + 1, moveAnim.cells.length - 1)].c);
       var player = gameState.players[moveAnim.playerIdx];
       if (player) {
-        drawToken(ctx, pos.x, pos.y, player.color, moveAnim.playerIdx, moveAnim.tokenIdx);
+        var hop = Math.sin(Math.min(1, t) * Math.PI) * 12;
+        drawToken(ctx, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t - hop, player.color, moveAnim.playerIdx, moveAnim.tokenIdx, hop);
       }
       if (progress < 1) {
-        if (cellIdx !== moveAnim._lastCell) {
-          moveAnim._lastCell = cellIdx;
-          SFX.tokenMove();
+        if (seg !== moveAnim._lastCell) {
+          moveAnim._lastCell = seg;
+          SFX.tokenMove(seg);
         }
       }
     }
@@ -629,28 +618,33 @@
     return [{ dx: -6, dy: -5 }, { dx: 6, dy: -5 }, { dx: -6, dy: 5 }, { dx: 6, dy: 5 }];
   }
 
-  function drawToken(ctx, x, y, color, pi, ti) {
+  function drawToken(ctx, x, y, color, pi, ti, lift) {
     var colData = COLORS[color];
     var isCurrentPlayer = pi === gameState.currentPlayer && gameState.phase !== 'waiting' && gameState.phase !== 'gameover' && gameState.phase !== 'advancing';
     var radius = TOKEN_RADIUS;
 
     // Shadow
     ctx.beginPath();
-    ctx.arc(x + 1, y + 2, radius, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.ellipse(x + 1, y + radius * 0.75 + (lift || 0), radius * (1 - (lift || 0) / 40), radius * 0.38, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(60, 40, 20, 0.25)';
     ctx.fill();
 
     // Main circle
+    var body = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.4, radius * 0.1, x, y, radius);
+    body.addColorStop(0, '#ffffff');
+    body.addColorStop(0.25, colData.main);
+    body.addColorStop(1, colData.dark);
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = colData.main;
+    ctx.fillStyle = body;
     ctx.fill();
 
     // Highlight
     ctx.beginPath();
-    ctx.arc(x - 3, y - 3, radius * 0.45, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fill();
+    ctx.arc(x, y, radius * 0.48, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
 
     // Border
     ctx.beginPath();
@@ -744,6 +738,49 @@
     });
   }
 
+  function spawnEffect(cell, color, kind) {
+    var gp = gridToPixel(cell.r, cell.c);
+    var n = kind === 'capture' ? 26 : kind === 'home' ? 30 : 12;
+    for (var i = 0; i < n; i++) {
+      var ang = Math.random() * Math.PI * 2, sp = 60 + Math.random() * (kind === 'capture' ? 200 : 140);
+      effects.push({ x: gp.x, y: gp.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - (kind === 'home' ? 60 : 0), life: 0.8, max: 0.8, color: kind === 'home' ? ['#ffd700', '#ffffff', colorHexSafe(color)][i % 3] : colorHexSafe(color), size: kind === 'capture' ? 4 : 3 });
+    }
+    effects.push({ ring: true, x: gp.x, y: gp.y, life: 0.5, max: 0.5, color: kind === 'capture' ? '#ff4d4d' : colorHexSafe(color), r: kind === 'capture' ? 46 : 34 });
+  }
+
+  function colorHexSafe(color) {
+    return COLORS[color] ? COLORS[color].main : '#ffffff';
+  }
+
+  var lastFxTime = 0;
+  function drawEffects(ctx) {
+    var now = performance.now();
+    var dt = Math.min(0.05, (now - (lastFxTime || now)) / 1000);
+    lastFxTime = now;
+    effects = effects.filter(function (e) {
+      e.life -= dt;
+      if (e.life <= 0) return false;
+      var t = e.life / e.max;
+      if (e.ring) {
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r * (1 - t) + 6, 0, Math.PI * 2);
+        ctx.strokeStyle = e.color;
+        ctx.globalAlpha = t;
+        ctx.lineWidth = 3 * t + 1;
+        ctx.stroke();
+      } else {
+        e.x += e.vx * dt;
+        e.y += e.vy * dt;
+        e.vy += 240 * dt;
+        ctx.globalAlpha = t;
+        ctx.fillStyle = e.color;
+        ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+      }
+      ctx.globalAlpha = 1;
+      return true;
+    });
+  }
+
   function render() {
     var ctx = DOM.ctx;
     if (!ctx) return;
@@ -752,6 +789,7 @@
     drawCurrentPlayerHighlight(ctx);
     drawMoveHints(ctx);
     drawTokens(ctx);
+    drawEffects(ctx);
     drawFloatingEmojis(ctx);
 
     renderRAF = requestAnimationFrame(render);
@@ -809,6 +847,7 @@
     var value = rollDice();
     gameState.diceValue = value;
     gameState.rollsInTurn++;
+    animateDice(value);
 
     if (value === 6) {
       player.sixes = (player.sixes || 0) + 1;
@@ -903,6 +942,10 @@
     // Apply move
     token.pathIndex = newPathIndex;
     gameState.phase = 'resolving';
+    if (wasHome) {
+      SFX.enter();
+      spawnEffect(path[0], player.color, 'enter');
+    }
 
     var animDuration = animCells.length * MOVE_ANIM_MS_PER_CELL;
 
@@ -934,6 +977,7 @@
     if (newPathIndex >= 56) {
       addLog(player.name + '\'s token reached home!');
       SFX.tokenHome();
+      spawnEffect({ r: 7, c: 7 }, player.color, 'home');
 
       // Check for win
       var allDone = player.tokens.every(function (t) { return t.pathIndex >= 56; });
@@ -943,8 +987,9 @@
         gameState.phase = 'gameover';
         addLog(player.name + ' wins the game!');
         broadcastState({ type: 'win', pi: playerIdx });
-        SFX.win();
-        showWinOverlay(player);
+        if (offlineMode === 'cpu' && player.bot) SFX.lose(); else SFX.win();
+        Synth.music.stop();
+        setTimeout(function () { if (gameState.phase === 'gameover') showWinOverlay(player); }, 900);
         return;
       }
     }
@@ -968,6 +1013,7 @@
                 player.captures = (player.captures || 0) + 1;
                 addLog(player.name + ' captured ' + opp.name + '\'s token!');
                 SFX.capture();
+                spawnEffect(landCell, opp.color, 'capture');
                 if (gameState.settings.captureBonus) {
                   gotExtraRoll = true;
                 }
@@ -1015,9 +1061,21 @@
 
     if (isMyTurn()) {
       SFX.turnStart();
+      if (offlineMode) showTurnBanner();
     }
     startTurnTimer();
     updateUI();
+  }
+
+  function showTurnBanner() {
+    var banner = document.getElementById('turn-banner');
+    var p = currentPlayerObj();
+    if (!banner || !p) return;
+    banner.textContent = offlineMode === 'local' ? COLORS[p.color].name + "'s turn" : 'Your turn!';
+    banner.style.color = COLORS[p.color].main;
+    banner.classList.remove('show');
+    void banner.offsetWidth;
+    banner.classList.add('show');
   }
 
   function startTurnTimer() {
@@ -1632,6 +1690,18 @@
   //  10. DICE ANIMATION
   // =====================================================================
 
+  function setDiceFace(value) {
+    var face = DOM.diceFace;
+    if (!value) {
+      face.removeAttribute('data-v');
+      face.innerHTML = '?';
+      return;
+    }
+    if (face.getAttribute('data-v') === String(value)) return;
+    face.setAttribute('data-v', value);
+    face.innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>';
+  }
+
   function animateDice(finalValue) {
     SFX.diceRoll();
     diceAnim = {
@@ -1643,16 +1713,16 @@
     diceDisplay.classList.add('rolling');
 
     var interval = setInterval(function () {
-      DOM.diceFace.textContent = Math.floor(Math.random() * 6) + 1;
-    }, 60);
+      setDiceFace(Math.floor(Math.random() * 6) + 1);
+    }, 70);
 
     setTimeout(function () {
       clearInterval(interval);
       diceAnim = null;
       diceDisplay.classList.remove('rolling');
-      DOM.diceFace.textContent = finalValue;
+      setDiceFace(finalValue);
       DOM.diceFace.classList.add('dice-landed');
-      SFX.diceResult();
+      SFX.diceResult(finalValue);
       setTimeout(function () { DOM.diceFace.classList.remove('dice-landed'); }, 300);
     }, DICE_ANIM_MS);
   }
@@ -1838,6 +1908,7 @@
 
     updateHUD();
     updateDiceUI();
+    maybeBotTurn();
   }
 
   function updateHUD() {
@@ -1881,10 +1952,12 @@
     }
 
     if (!diceAnim && gameState.diceValue != null) {
-      DOM.diceFace.textContent = gameState.diceValue;
+      setDiceFace(gameState.diceValue);
     } else if (!diceAnim && gameState.diceValue == null) {
-      DOM.diceFace.textContent = '?';
+      setDiceFace(null);
     }
+    var cp = currentPlayerObj();
+    DOM.btnRoll.textContent = offlineMode && cp && cp.bot ? COLORS[cp.color].name + ' is thinking...' : 'Roll Dice';
   }
 
   function addLog(msg) {
@@ -1956,9 +2029,9 @@
   }
 
   function showWinOverlay(player) {
+    var isWinnerMe = offlineMode === 'local' ? true : offlineMode === 'cpu' ? !gameState.players[gameState.winner].bot : gameState.winner === myPlayerIndex();
     if (window.GamePlatform) {
-      var isWinnerMe = gameState.winner === myPlayerIndex();
-      GamePlatform.recordGame('ludo', 0, 0, { win: isWinnerMe });
+      GamePlatform.recordGame('ludo', 0, 0, { win: offlineMode === 'local' ? gameState.winner === 0 : isWinnerMe });
     }
 
     // Collect match statistics
@@ -1984,7 +2057,7 @@
 
     // Build result HTML
     var html = '<div style="text-align:center">';
-    html += '<div style="font-size:48px;margin-bottom:8px">' + (gameState.winner === myPlayerIndex() ? '\uD83C\uDFC6' : '') + '</div>';
+    html += '<div style="font-size:48px;margin-bottom:8px">' + (isWinnerMe ? '\uD83C\uDFC6' : '') + '</div>';
     html += '</div>';
     html += '<div style="max-width:320px;margin:16px auto 0;text-align:left">';
     for (var si = 0; si < stats.length; si++) {
@@ -1998,17 +2071,25 @@
     }
     html += '</div>';
 
-    DOM.overlayTitle.textContent = player.name + ' Wins!';
+    DOM.overlayTitle.textContent = player.name === 'You' ? 'You Win!' : player.name + ' Wins!';
     DOM.overlayTitle.style.color = getColorHex(player.color);
     DOM.overlayMsg.innerHTML = html;
     DOM.overlayActions.innerHTML = '';
 
     // Add rematch and lobby buttons
-    var btnHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:16px">';
-    btnHtml += '<button onclick="document.getElementById(\'game-overlay\').classList.add(\'hidden\');if(window._ludoRematch)window._ludoRematch()" style="padding:10px 24px;font-size:14px;font-weight:700;border:2px solid #00d4ff;border-radius:6px;background:transparent;color:#00d4ff;cursor:pointer">Rematch</button>';
-    btnHtml += '<button onclick="if(window._ludoBackToLobby)window._ludoBackToLobby()" style="padding:10px 24px;font-size:14px;font-weight:700;border:2px solid #666;border-radius:6px;background:transparent;color:#888;cursor:pointer">Lobby</button>';
-    btnHtml += '</div>';
-    DOM.overlayMsg.innerHTML += btnHtml;
+    var rematchBtn = document.createElement('button');
+    rematchBtn.className = 'btn btn-cyan';
+    rematchBtn.textContent = 'Rematch';
+    rematchBtn.addEventListener('click', function () {
+      hide(DOM.gameOverlay);
+      startRematch();
+    });
+    var lobbyBtn = document.createElement('button');
+    lobbyBtn.className = 'btn btn-ghost';
+    lobbyBtn.textContent = offlineMode ? 'Menu' : 'Lobby';
+    lobbyBtn.addEventListener('click', function () { resetToLobby(); });
+    DOM.overlayActions.appendChild(rematchBtn);
+    DOM.overlayActions.appendChild(lobbyBtn);
 
     show(DOM.gameOverlay);
   }
@@ -2071,8 +2152,11 @@
     gameState.rollsInTurn = 0;
     gameState.phase = 'rolling';
     gameState.winner = null;
+    effects = [];
     addLog('--- Rematch started! ---');
     broadcastState(null);
+    Synth.sfx('start');
+    Synth.music.start();
   }
 
   function startGame() {
@@ -2116,12 +2200,274 @@
 
     showGameScreen();
     startTurnTimer();
+    Synth.sfx('start');
+    Synth.music.start();
+  }
+
+  function showOfflineSetup(mode) {
+    offlineMode = mode;
+    hide(DOM.lobbyMain);
+    show(DOM.offlineSetup);
+    DOM.offlineTitle.textContent = mode === 'cpu' ? 'Play vs Computer' : 'Pass & Play';
+    DOM.offlineDifficulty.classList.toggle('hidden', mode !== 'cpu');
+    if (!settingsHome) settingsHome = { parent: DOM.hostSettings.parentNode, next: DOM.hostSettings.nextSibling };
+    DOM.offlineSettingsSlot.appendChild(DOM.hostSettings);
+    DOM.hostSettings.classList.add('offline');
+    show(DOM.hostSettings);
+  }
+
+  function restoreSettingsPanel() {
+    if (!settingsHome) return;
+    DOM.hostSettings.classList.remove('offline');
+    settingsHome.parent.insertBefore(DOM.hostSettings, settingsHome.next);
+    settingsHome = null;
+  }
+
+  function startOffline() {
+    ensureAudio();
+    isHost = true;
+    gameState.settings = Object.assign({}, gameState.settings, readSettings(), { spectatorMode: false });
+    var n = gameState.settings.numPlayers;
+    var seats = n === 2 ? ['red', 'blue'] : n === 3 ? ['red', 'green', 'blue'] : ['red', 'green', 'blue', 'yellow'];
+    var myName = (DOM.playerName.value || '').trim() || 'You';
+    gameState.players = seats.map(function (color, i) {
+      var bot = offlineMode === 'cpu' && i > 0;
+      return {
+        id: i === 0 ? myId : 'local-' + i,
+        name: offlineMode === 'cpu' ? (i === 0 ? myName : 'CPU ' + COLORS[color].name) : COLORS[color].name,
+        color: color,
+        tokens: createTokens(),
+        connected: true,
+        isHost: i === 0,
+        bot: bot,
+        captures: 0,
+        sixes: 0
+      };
+    });
+    myColor = 'red';
+    restoreSettingsPanel();
+    hide(DOM.offlineSetup);
+    stopTurnTimer();
+    gameState.phase = 'rolling';
+    gameState.currentPlayer = 0;
+    gameState.diceValue = null;
+    gameState.rollsInTurn = 0;
+    gameState.winner = null;
+    gameState.turnStartedAt = 0;
+    gameState.turnDeadline = 0;
+    gameState.turnId = 0;
+    effects = [];
+    DOM.gameLog.innerHTML = '';
+    DOM.gameScreen.classList.add('offline');
+    addLog(offlineMode === 'cpu' ? 'Game started vs ' + (n - 1) + ' computer' + (n > 2 ? 's' : '') + ' (' + botLevel + ').' : 'Pass & Play started. Pass the device each turn.');
+    showGameScreen();
+    startTurnTimer();
+    Synth.sfx('start');
+    Synth.music.start();
+    showTurnBanner();
+    updateUI();
+  }
+
+  function maybeBotTurn() {
+    if (!offlineMode || botTimer || !gameStarted) return;
+    var cp = currentPlayerObj();
+    if (!cp || !cp.bot) return;
+    var idx = gameState.currentPlayer;
+    if (gameState.phase === 'rolling') {
+      botTimer = setTimeout(function () {
+        botTimer = null;
+        if (gameState.phase === 'rolling' && gameState.currentPlayer === idx && !diceAnim) executeRoll(idx);
+        else maybeBotTurn();
+      }, 650 + Math.random() * 300);
+    } else if (gameState.phase === 'moving') {
+      botTimer = setTimeout(function () {
+        botTimer = null;
+        if (gameState.phase === 'moving' && gameState.currentPlayer === idx) executeMove(idx, chooseBotMove(idx));
+      }, 450 + Math.random() * 250);
+    }
+  }
+
+  function ringIndex(color, pathIndex) {
+    return (START_INDICES[color] + pathIndex) % 52;
+  }
+
+  function threatsAt(playerIdx, color, pathIndex) {
+    if (pathIndex < 0 || pathIndex > 50) return 0;
+    var cell = PATHS[color][pathIndex];
+    if (isSafeCell(cell.r, cell.c)) return 0;
+    var L = ringIndex(color, pathIndex);
+    var threat = 0;
+    gameState.players.forEach(function (opp, oi) {
+      if (oi === playerIdx) return;
+      opp.tokens.forEach(function (t) {
+        if (t.pathIndex < 0 || t.pathIndex > 50) return;
+        var d = (L - ringIndex(opp.color, t.pathIndex) + 52) % 52;
+        if (d >= 1 && d <= 6 && t.pathIndex + d <= 50) threat += 1;
+      });
+    });
+    return threat;
+  }
+
+  function capturesAt(playerIdx, color, pathIndex) {
+    if (pathIndex < 0 || pathIndex > 50) return 0;
+    var cell = PATHS[color][pathIndex];
+    if (isSafeCell(cell.r, cell.c)) return 0;
+    var n = 0;
+    gameState.players.forEach(function (opp, oi) {
+      if (oi === playerIdx) return;
+      opp.tokens.forEach(function (t) {
+        if (t.pathIndex < 0 || t.pathIndex > 50) return;
+        var oc = PATHS[opp.color][t.pathIndex];
+        if (oc.r === cell.r && oc.c === cell.c) n += 1 + t.pathIndex / 50;
+      });
+    });
+    return n;
+  }
+
+  function hitChance(ownerIdx, color, pathIndex) {
+    if (pathIndex < 0 || pathIndex > 50) return 0;
+    var cell = PATHS[color][pathIndex];
+    if (isSafeCell(cell.r, cell.c)) return 0;
+    var L = ringIndex(color, pathIndex);
+    var safeP = 1;
+    gameState.players.forEach(function (opp, oi) {
+      if (oi === ownerIdx) return;
+      var dists = {};
+      opp.tokens.forEach(function (t) {
+        if (t.pathIndex < 0 || t.pathIndex > 50) return;
+        var d = (L - ringIndex(opp.color, t.pathIndex) + 52) % 52;
+        if (d >= 1 && d <= 6 && t.pathIndex + d <= 50) dists[d] = true;
+      });
+      safeP *= 1 - Object.keys(dists).length / 6;
+    });
+    return 1 - safeP;
+  }
+
+  function tokenValue(ownerIdx, color, pathIndex) {
+    if (pathIndex < 0) return 0;
+    if (pathIndex >= 56) return 90;
+    if (pathIndex > 50) return 62 + (pathIndex - 50) * 2;
+    var v = 10 + pathIndex;
+    return v - hitChance(ownerIdx, color, pathIndex) * v * 0.9;
+  }
+
+  function evalPosition(me) {
+    var others = Math.max(1, gameState.players.length - 1);
+    var total = 0;
+    gameState.players.forEach(function (p, i) {
+      var sum = 0;
+      p.tokens.forEach(function (t) { sum += tokenValue(i, p.color, t.pathIndex); });
+      total += i === me ? sum : -sum / others;
+    });
+    return total;
+  }
+
+  function chooseBotMove(playerIdx) {
+    var player = gameState.players[playerIdx];
+    var moves = getValidMoves(playerIdx, gameState.diceValue);
+    if (!moves.length) return 0;
+    if (botLevel === 'easy') {
+      var enter = moves.filter(function (m) { return m.action === 'enter'; });
+      if (enter.length && Math.random() < 0.6) return enter[0].tokenIdx;
+      return moves[Math.floor(Math.random() * moves.length)].tokenIdx;
+    }
+    if (botLevel === 'hard') {
+      var bestMove = moves[0], bestValue = -Infinity;
+      moves.forEach(function (m) {
+        var token = player.tokens[m.tokenIdx];
+        var from = token.pathIndex;
+        token.pathIndex = m.newPathIndex;
+        var undo = [];
+        if (m.newPathIndex <= 50) {
+          var cell = PATHS[player.color][m.newPathIndex];
+          if (!isSafeCell(cell.r, cell.c)) {
+            gameState.players.forEach(function (opp, oi) {
+              if (oi === playerIdx) return;
+              opp.tokens.forEach(function (t) {
+                if (t.pathIndex < 0 || t.pathIndex > 50) return;
+                var oc = PATHS[opp.color][t.pathIndex];
+                if (oc.r === cell.r && oc.c === cell.c) { undo.push([t, t.pathIndex]); t.pathIndex = -1; }
+              });
+            });
+          }
+        }
+        var value = evalPosition(playerIdx) + (gameState.diceValue === 6 || (undo.length && gameState.settings.captureBonus) ? 8 : 0);
+        token.pathIndex = from;
+        undo.forEach(function (u) { u[0].pathIndex = u[1]; });
+        if (value > bestValue) { bestValue = value; bestMove = m; }
+      });
+      return bestMove.tokenIdx;
+    }
+    var best = moves[0], bestScore = -Infinity;
+    moves.forEach(function (m) {
+      var token = player.tokens[m.tokenIdx];
+      var from = token.pathIndex;
+      var to = m.newPathIndex;
+      var score = capturesAt(playerIdx, player.color, to) * 90;
+      if (to >= 56) score += 85;
+      else if (to > 50) score += 35;
+      if (m.action === 'enter') {
+        var out = player.tokens.filter(function (t) { return t.pathIndex >= 0 && t.pathIndex < 56; }).length;
+        score += out === 0 ? 70 : 40;
+      }
+      var cell = to <= 50 ? PATHS[player.color][to] : null;
+      if (cell && isSafeCell(cell.r, cell.c)) score += 20;
+      score -= (to <= 50 ? threatsAt(playerIdx, player.color, to) : 0) * 30;
+      score += (from >= 0 && from <= 50 ? threatsAt(playerIdx, player.color, from) : 0) * 15;
+      score += (to - Math.max(0, from)) * 0.6 + to * 0.15 + Math.random() * 8;
+      if (score > bestScore) { bestScore = score; best = m; }
+    });
+    return best.tokenIdx;
+  }
+
+  function syncMusicButton() {
+    var btn = document.querySelector('#gp-header .gp-btn-music');
+    if (!btn) return;
+    var on = Synth.music.isEnabled();
+    btn.classList.toggle('off', !on);
+    btn.title = on ? 'Music on (M)' : 'Music off (M)';
+    btn.setAttribute('aria-pressed', String(on));
+  }
+
+  function toggleMusic() {
+    Synth.music.setEnabled(!Synth.music.isEnabled());
+    syncMusicButton();
+  }
+
+  function addMusicButton() {
+    var actions = document.querySelector('#gp-header .gp-header-actions');
+    if (!actions || actions.querySelector('.gp-btn-music')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-btn-music';
+    btn.textContent = '\u{1F3B5}';
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      btn.blur();
+      toggleMusic();
+    });
+    actions.insertBefore(btn, actions.querySelector('.gp-btn-sound'));
+    syncMusicButton();
+  }
+
+  function audioLoop() {
+    Synth.update();
+    requestAnimationFrame(audioLoop);
   }
 
   function resetToLobby() {
     gameStarted = false;
     stopRenderLoop();
     stopTurnTimer();
+    clearTimeout(botTimer);
+    botTimer = null;
+    offlineMode = null;
+    isHost = false;
+    effects = [];
+    restoreSettingsPanel();
+    hide(DOM.offlineSetup);
+    DOM.gameScreen.classList.remove('offline');
+    Synth.music.stop();
     hide(DOM.gameScreen);
     hide(DOM.gameOverlay);
     hide(DOM.reconnectBanner);
@@ -2207,6 +2553,30 @@
   // =====================================================================
 
   function bindEvents() {
+    document.getElementById('btn-vs-cpu').addEventListener('click', function () {
+      ensureAudio();
+      showOfflineSetup('cpu');
+    });
+    document.getElementById('btn-local').addEventListener('click', function () {
+      ensureAudio();
+      showOfflineSetup('local');
+    });
+    document.getElementById('btn-offline-start').addEventListener('click', startOffline);
+    document.getElementById('btn-offline-back').addEventListener('click', function () {
+      offlineMode = null;
+      restoreSettingsPanel();
+      hide(DOM.hostSettings);
+      hide(DOM.offlineSetup);
+      show(DOM.lobbyMain);
+    });
+    DOM.offlineDifficulty.addEventListener('click', function (e) {
+      var btn = e.target.closest('.btn-opt');
+      if (!btn) return;
+      DOM.offlineDifficulty.querySelectorAll('.btn-opt').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      botLevel = btn.getAttribute('data-value');
+    });
+
     // Lobby buttons
     DOM.btnCreate.addEventListener('click', function () {
       ensureAudio();
@@ -2281,7 +2651,7 @@
     // Settings buttons (host only)
     DOM.hostSettings.addEventListener('click', function (e) {
       var btn = e.target.closest('.btn-opt');
-      if (!btn || !isHost) return;
+      if (!btn || !(isHost || offlineMode)) return;
       var group = btn.closest('.btn-group');
       if (!group) return;
 
@@ -2369,6 +2739,11 @@
 
     // Keyboard shortcut: Space to roll dice
     document.addEventListener('keydown', function (e) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.code === 'KeyM' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        toggleMusic();
+        return;
+      }
       if (e.code === 'Space' && gameStarted && isMyTurn() && gameState.phase === 'rolling') {
         e.preventDefault();
         DOM.btnRoll.click();
@@ -2434,6 +2809,8 @@
   if (window.GamePlatform) {
     GamePlatform.initHeader('Ludo');
   }
+  addMusicButton();
+  requestAnimationFrame(audioLoop);
 
   // Boot
   if (document.readyState === 'loading') {
